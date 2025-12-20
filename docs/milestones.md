@@ -64,7 +64,7 @@
 - [ ] RLS policies configured
 - [ ] API: GET /api/v1/lps with filters (full-text search only)
 - [ ] UI: Login + LP search page (Jinja2 + HTMX)
-- [ ] UI: Simple dashboard (recent matches, fund status, quick actions)
+- [ ] UI: Simple dashboard (LP count, fund status, quick actions)
 - [ ] **GitHub Actions: test → deploy to Railway**
 - [ ] **Live at lpxgp.com**
 

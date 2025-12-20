@@ -179,5 +179,5 @@ See docs/curriculum.md for the full learning path.
 - `SUPABASE_URL` - Your Supabase project URL
 - `SUPABASE_ANON_KEY` - Public anon key
 - `SUPABASE_SERVICE_KEY` - Service role key (for admin ops)
-- `OPENROUTER_API_KEY` - For LLM calls via OpenRouter (M4+)
+- `OPENROUTER_API_KEY` - For LLM calls via OpenRouter (M3+)
 - `VOYAGE_API_KEY` - For embeddings (M2+)
