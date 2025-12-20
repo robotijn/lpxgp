@@ -1,188 +1,20 @@
 # Milestone 1: Auth + Search Tests
 ## "Search LPs on lpxgp.com"
 
+> **IMPORTANT: Invite-Only Platform**
+> LPxGP has NO public registration. All users must be invited.
+> - Super Admin invites Company Admins
+> - Company Admins invite team members
+
 ---
 
-## F-AUTH-01: User Authentication [P0]
+## F-AUTH-01: User Login [P0]
 
 ```gherkin
-Feature: User Authentication
-  As a user
-  I want to register and login securely
+Feature: User Login
+  As an invited user
+  I want to login securely
   So that I can access the platform
-
-  # Sub-feature: Registration
-  Scenario: Register with valid credentials
-    Given I am on the registration page
-    When I enter email "gp@venture.com"
-    And I enter password "SecurePass123!"
-    And I enter name "Jane Smith"
-    And I click "Register"
-    Then I see "Check your email to verify"
-    And a verification email is sent
-
-  Scenario: Email validation
-    When I try to register with "not-an-email"
-    Then I see "Please enter a valid email"
-
-  Scenario: Password strength requirements
-    When I try to register with password "weak"
-    Then I see "Password must be at least 8 characters"
-    And "Include uppercase, lowercase, and numbers"
-
-  Scenario: Duplicate email prevention
-    Given "existing@venture.com" is already registered
-    When I try to register with "existing@venture.com"
-    Then I see "This email is already registered"
-
-  # --- NEGATIVE TESTS: Registration ---
-  Scenario: Register with empty email field
-    Given I am on the registration page
-    When I leave email field empty
-    And I enter password "SecurePass123!"
-    And I enter name "Jane Smith"
-    And I click "Register"
-    Then I see "Email is required"
-    And the form is not submitted
-
-  Scenario: Register with empty password field
-    Given I am on the registration page
-    When I enter email "gp@venture.com"
-    And I leave password field empty
-    And I enter name "Jane Smith"
-    And I click "Register"
-    Then I see "Password is required"
-    And the form is not submitted
-
-  Scenario: Register with empty name field
-    Given I am on the registration page
-    When I enter email "gp@venture.com"
-    And I enter password "SecurePass123!"
-    And I leave name field empty
-    And I click "Register"
-    Then I see "Name is required"
-    And the form is not submitted
-
-  Scenario: Register with all empty fields
-    Given I am on the registration page
-    When I click "Register" without filling any fields
-    Then I see validation errors for all required fields
-    And the form is not submitted
-
-  Scenario Outline: Invalid email formats rejected
-    Given I am on the registration page
-    When I enter email "<invalid_email>"
-    And I enter password "SecurePass123!"
-    And I click "Register"
-    Then I see "Please enter a valid email"
-
-    Examples:
-      | invalid_email          |
-      | plainaddress           |
-      | @missinglocal.com      |
-      | missing@.com           |
-      | missing@domain         |
-      | spaces in@email.com    |
-      | unicode@emojis.com     |
-      | multiple@@at.com       |
-
-  Scenario Outline: Weak password rejected
-    Given I am on the registration page
-    When I enter email "gp@venture.com"
-    And I enter password "<weak_password>"
-    And I click "Register"
-    Then I see password strength error
-
-    Examples:
-      | weak_password    | reason                    |
-      | 1234567          | Too short                 |
-      | abcdefgh         | No uppercase or numbers   |
-      | ABCDEFGH         | No lowercase or numbers   |
-      | 12345678         | No letters                |
-      | abcdefgh1        | No uppercase              |
-      | ABCDEFGH1        | No lowercase              |
-      | Abcdefgh         | No numbers                |
-      |                  | Empty password            |
-
-  Scenario: Password with only whitespace rejected
-    Given I am on the registration page
-    When I enter email "gp@venture.com"
-    And I enter password "        "
-    And I click "Register"
-    Then I see "Password is required"
-
-  Scenario: Email case insensitivity for duplicates
-    Given "User@Venture.com" is already registered
-    When I try to register with "user@venture.com"
-    Then I see "This email is already registered"
-
-  Scenario: Email with leading/trailing spaces trimmed
-    Given I am on the registration page
-    When I enter email "  gp@venture.com  "
-    And I enter valid password and name
-    And I click "Register"
-    Then registration proceeds with trimmed email "gp@venture.com"
-
-  Scenario: Name with maximum length exceeded
-    Given I am on the registration page
-    When I enter a name exceeding 255 characters
-    And I enter valid email and password
-    And I click "Register"
-    Then I see "Name is too long"
-
-  Scenario: Prevent HTML/script injection in name field
-    Given I am on the registration page
-    When I enter name "<script>alert('xss')</script>"
-    And I enter valid email and password
-    And I click "Register"
-    Then the name is sanitized or rejected
-    And no script is executed
-
-  # Sub-feature: Email Verification
-  Scenario: Verify email successfully
-    Given I registered with "new@venture.com"
-    And I received a verification email
-    When I click the verification link
-    Then my account is verified
-    And I am redirected to login
-
-  Scenario: Expired verification link
-    Given my verification link expired (24 hours)
-    When I click the link
-    Then I see "Link expired, request a new one"
-    And I can request a new verification email
-
-  # --- NEGATIVE TESTS: Email Verification ---
-  Scenario: Invalid verification token
-    When I visit a verification link with invalid token "abc123fake"
-    Then I see "Invalid verification link"
-    And my account remains unverified
-
-  Scenario: Already used verification link
-    Given I clicked my verification link successfully
-    When I click the same verification link again
-    Then I see "Email already verified"
-    And I am redirected to login
-
-  Scenario: Verification link for non-existent account
-    When I visit a verification link for deleted account
-    Then I see "Account not found"
-    And I see option to register
-
-  Scenario: Tampered verification token
-    Given I have a valid verification link
-    When I modify the token parameter in the URL
-    Then I see "Invalid verification link"
-
-  Scenario: Request new verification email rate limit
-    Given I requested 5 verification emails in the last hour
-    When I request another verification email
-    Then I see "Too many requests, please wait"
-    And no email is sent
-
-  Scenario: Verification link with missing token parameter
-    When I visit "/verify" without token parameter
-    Then I see "Invalid verification link"
 
   # Sub-feature: Login
   Scenario: Login with valid credentials
@@ -653,6 +485,207 @@ Feature: Role-Based Access Control
     And I try to create a fund
     Then I receive 403 Forbidden
     And my session reflects the new role
+```
+
+---
+
+## F-AUTH-05: User Invitations [P0]
+
+```gherkin
+Feature: User Invitations
+  As an admin
+  I want to invite users to the platform
+  So that vetted users can access LPxGP
+
+  # Sub-feature: No Public Registration
+  Scenario: No registration page exists
+    When I navigate to "/register"
+    Then I see 404 error
+    And I am not shown a registration form
+
+  Scenario: Login page has no register link
+    When I am on the login page
+    Then I do not see "Register" or "Sign up" links
+    And I only see login form and "Forgot password"
+
+  # Sub-feature: Company Admin Invites Team
+  Scenario: Admin invites team member
+    Given I am Admin of "Acme Capital"
+    When I go to Settings > Team
+    And I click "Invite"
+    And I enter email "newuser@acme.com"
+    And I select role "Member"
+    And I click "Send Invitation"
+    Then invitation is created
+    And email is sent to "newuser@acme.com"
+    And I see pending invitation in the list
+
+  Scenario: View pending invitations
+    Given I am Admin of "Acme Capital"
+    And I invited "user1@acme.com" and "user2@acme.com"
+    When I go to Settings > Team
+    Then I see:
+      | Email | Role | Status | Invited |
+      | user1@acme.com | Member | Pending | Today |
+      | user2@acme.com | Admin | Pending | Yesterday |
+
+  Scenario: Resend expired invitation
+    Given I invited "user@acme.com" 8 days ago
+    And the invitation is expired
+    When I click "Resend" next to the invitation
+    Then a new invitation is created
+    And new email is sent
+    And the old invitation is cancelled
+
+  Scenario: Cancel pending invitation
+    Given I have a pending invitation for "user@acme.com"
+    When I click "Cancel" next to the invitation
+    Then the invitation is cancelled
+    And the user cannot use the invitation link
+
+  # Sub-feature: Accept Invitation
+  Scenario: Accept invitation successfully
+    Given I received an invitation to join "Acme Capital"
+    When I click the invitation link
+    Then I see "Welcome to LPxGP"
+    And I see "You've been invited to join Acme Capital as Member"
+    And I see my email pre-filled (not editable)
+    And I see fields for: Full Name, Password, Confirm Password
+
+  Scenario: Complete invitation acceptance
+    Given I am on the invitation acceptance page
+    When I enter my full name "Jane Smith"
+    And I enter password "SecurePass123!"
+    And I confirm password "SecurePass123!"
+    And I click "Complete Setup"
+    Then my account is created
+    And I am logged in
+    And I see the first-time welcome screen
+    And I belong to "Acme Capital" with role "Member"
+
+  Scenario: First-time welcome for Company Admin
+    Given I accepted invitation as Admin of "Acme Capital"
+    And this is my first login
+    When I complete the setup
+    Then I see "Welcome to LPxGP!"
+    And I see "You're the admin of Acme Capital"
+    And I see two options:
+      | "Create Your First Fund" (primary) |
+      | "Invite Team Members" (secondary) |
+
+  Scenario: First-time welcome for Team Member
+    Given I accepted invitation as Member of "Acme Capital"
+    And the company has existing funds
+    When I complete the setup
+    Then I see the dashboard
+    And I see the company's funds
+    And I see "Welcome! You've joined Acme Capital"
+
+  # Sub-feature: Invitation Validation
+  Scenario: Expired invitation link
+    Given my invitation was sent 8 days ago
+    When I click the invitation link
+    Then I see "This invitation has expired"
+    And I see "Please contact your administrator for a new invitation"
+    And I cannot create an account
+
+  Scenario: Already used invitation link
+    Given I already accepted my invitation
+    When I click the invitation link again
+    Then I see "This invitation has already been used"
+    And I see a link to login
+
+  Scenario: Invalid invitation token
+    When I navigate to "/invite/invalid-token-xyz"
+    Then I see "Invalid invitation link"
+    And I cannot create an account
+
+  Scenario: Tampered invitation token
+    Given I have a valid invitation link
+    When I modify the token in the URL
+    Then I see "Invalid invitation link"
+
+  # --- NEGATIVE TESTS: Invitation Errors ---
+  Scenario: Invite email that already has account
+    Given "existing@acme.com" is already a registered user
+    When I try to invite "existing@acme.com"
+    Then I see "This user already has an account"
+    And no invitation is sent
+
+  Scenario: Invite with invalid email format
+    Given I am Admin of "Acme Capital"
+    When I try to invite "not-an-email"
+    Then I see "Please enter a valid email"
+    And no invitation is sent
+
+  Scenario: Invite with empty email
+    Given I am Admin of "Acme Capital"
+    When I try to invite with empty email
+    Then I see "Email is required"
+    And no invitation is sent
+
+  Scenario: Invite to same email twice
+    Given I already invited "user@acme.com" (pending)
+    When I try to invite "user@acme.com" again
+    Then I see "An invitation is already pending for this email"
+    And I see option to resend or cancel existing
+
+  Scenario: Member cannot send invitations
+    Given I have Member role
+    When I try to access invitation functionality
+    Then I do not see "Invite" button
+    And API call to invite returns 403 Forbidden
+
+  Scenario: Viewer cannot send invitations
+    Given I have Viewer role
+    When I try to access invitation functionality
+    Then I do not see "Invite" button
+    And API call to invite returns 403 Forbidden
+
+  Scenario: Accept with mismatched passwords
+    Given I am on the invitation acceptance page
+    When I enter password "SecurePass123!"
+    And I confirm password "DifferentPass456!"
+    And I click "Complete Setup"
+    Then I see "Passwords do not match"
+    And account is not created
+
+  Scenario: Accept with weak password
+    Given I am on the invitation acceptance page
+    When I enter password "weak"
+    Then I see password strength error
+    And account is not created
+
+  Scenario: Accept with empty name
+    Given I am on the invitation acceptance page
+    When I leave name field empty
+    And I enter valid password
+    And I click "Complete Setup"
+    Then I see "Name is required"
+    And account is not created
+
+  Scenario: Accept with XSS in name field
+    Given I am on the invitation acceptance page
+    When I enter name "<script>alert('xss')</script>"
+    Then the name is sanitized
+    And no script is executed
+
+  Scenario: Rate limit invitation creation
+    Given I created 20 invitations in the last hour
+    When I try to create another invitation
+    Then I see "Too many invitations sent. Please wait."
+    And no invitation is sent
+
+  Scenario: Rate limit invitation acceptance attempts
+    Given I failed to accept invitation 5 times
+    When I try again
+    Then I see "Too many attempts. Please wait 15 minutes."
+
+  Scenario: Invitation for deactivated company
+    Given "Defunct Corp" company has been deactivated
+    When I click an old invitation link for Defunct Corp
+    Then I see "This company is no longer active"
+    And I cannot create an account
 ```
 
 ---

@@ -232,23 +232,30 @@ Priority C (Third): Pitch Generation
 
 ### 5.3 Authentication & Authorization
 
-#### F-AUTH-01: User Authentication [P0]
-**Description:** Users can register and login securely
+> **IMPORTANT: Invite-Only Platform**
+> LPxGP is a controlled B2B platform. There is NO public registration.
+> All users must be invited - either by Super Admin (for company admins)
+> or by Company Admin (for team members).
+
+#### F-AUTH-01: User Login [P0]
+**Description:** Invited users can login securely
 **Requirements:**
 - Email/password authentication via Supabase Auth
-- Email verification
-- Password reset flow
-- Session management with JWT
+- Password reset flow for existing users
+- Session management with JWT (7-day refresh)
+- No public registration - login page only
+- Clear error messages (generic for security)
 
 **Test Cases:** See TEST-AUTH-01 in Testing Strategy
 
 #### F-AUTH-02: Multi-tenancy [P0]
-**Description:** Users belong to companies, data is isolated
+**Description:** Users belong to exactly one company, data is isolated
 **Requirements:**
-- User belongs to exactly one company
+- User belongs to exactly one company (no multi-company)
 - Users only see their company's data
 - Row-level security in database
 - Company-level settings
+- User cannot switch companies (must create new account)
 
 **Test Cases:** See TEST-AUTH-02 in Testing Strategy
 
@@ -256,22 +263,58 @@ Priority C (Third): Pitch Generation
 **Description:** Different permission levels within a company
 **Requirements:**
 - Roles: Admin, Member, Viewer
-- Admin: manage users, settings, all data
+- Admin: manage users, invite team, settings, all data
 - Member: create/edit/delete own data, view shared
 - Viewer: read-only access
+- First user in company is automatically Admin
 
 **Test Cases:** See TEST-AUTH-03 in Testing Strategy
 
-#### F-AUTH-04: Admin Panel [P0]
-**Description:** Super-admin interface for platform management
+#### F-AUTH-04: Super Admin Panel [P0]
+**Description:** Platform-level administration for LPxGP team
 **Requirements:**
-- Create/manage companies
-- Create/manage users
+- Create new companies (after sales/vetting process)
+- Invite company admin (first user of each company)
+- View/manage all companies and users
 - View platform analytics
 - Manage LP database (global)
 - Trigger data enrichment jobs
+- System health monitoring
+
+**Access:** Only users with `is_super_admin = true`
 
 **Test Cases:** See TEST-AUTH-04 in Testing Strategy
+
+#### F-AUTH-05: User Invitations [P0]
+**Description:** Invite-only access to the platform
+**Requirements:**
+
+**Super Admin invites Company Admin:**
+1. Super Admin creates company in admin panel
+2. Super Admin enters admin email and clicks "Send Invite"
+3. System generates invitation with secure token
+4. Email sent: "You've been invited to LPxGP as Admin of [Company]"
+5. Link expires in 7 days
+6. Clicking link → Accept Invite page (set password)
+7. User created with Admin role, linked to company
+
+**Company Admin invites Team Member:**
+1. Admin goes to Settings > Team > Invite
+2. Admin enters email and selects role (Member or Admin)
+3. System generates invitation with secure token
+4. Email sent: "You've been invited to join [Company] on LPxGP"
+5. Link expires in 7 days
+6. Clicking link → Accept Invite page (set password)
+7. User created with specified role, linked to company
+
+**Invitation Rules:**
+- One active invitation per email address
+- Expired invitations can be resent
+- Accepted invitations are marked used
+- Cannot invite email that already has an account
+- Invitation includes: token, email, company_id, role, invited_by, expires_at
+
+**Test Cases:** See TEST-AUTH-05 in Testing Strategy
 
 ---
 
@@ -513,11 +556,48 @@ Priority C (Third): Pitch Generation
 #### F-UI-01: Dashboard [P0]
 **Description:** User home screen with key information
 **Requirements:**
-- Fund profile status summary
-- Recent matches (last 10)
-- Pending actions count
-- Quick stats (total matches, pitches generated)
-- Quick actions (new fund, find LPs)
+- Company name in header with settings link
+- Fund cards showing: name, status, size, key stats
+- "New Fund" button (Admin/Member only)
+- Recent activity feed (last 10 items)
+- Quick action buttons: Search LPs, View Matches, Outreach Hub
+
+**First-Time Welcome (Company Admin):**
+When a Company Admin logs in for the first time (no funds exist):
+- Welcome message with company name
+- Two prominent options:
+  - "Create Your First Fund" (primary)
+  - "Invite Team Members" (secondary)
+- Quick tip explaining the platform workflow
+
+**First-Time Welcome (Team Member):**
+When a team member logs in for the first time:
+- Welcome message
+- If company has funds → show dashboard with funds
+- If no funds exist → message "Your admin is setting up the first fund"
+
+**Dashboard Layout:**
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  [Company Name]                                [⚙️ Settings]    │
+├─────────────────────────────────────────────────────────────────┤
+│  YOUR FUNDS                                                     │
+│  ┌────────────────────┐  ┌────────────────────┐                │
+│  │ Fund Name          │  │ Fund Name          │  [+ New Fund]  │
+│  │ Status · $XXM      │  │ Status · $XXM      │                │
+│  │ XX matches         │  │ Closed             │                │
+│  │ XX contacted       │  │                    │                │
+│  │ [View Matches →]   │  │ [View Details →]   │                │
+│  └────────────────────┘  └────────────────────┘                │
+│                                                                 │
+│  RECENT ACTIVITY                                                │
+│  • [User] [action] [target] · [time ago]                       │
+│  • ...                                                          │
+│                                                                 │
+│  QUICK ACTIONS                                                  │
+│  [🔍 Search LPs]   [📊 View Matches]   [📧 Outreach Hub]       │
+└─────────────────────────────────────────────────────────────────┘
+```
 
 **Test Cases:** See TEST-UI-01 in Testing Strategy
 
@@ -624,34 +704,43 @@ The platform prioritizes human oversight for critical actions. AI assists but hu
 ### 6.1 Entity Relationship Diagram
 
 ```
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│   Company   │────<│    User     │     │    Role     │
-└─────────────┘     └─────────────┘     └─────────────┘
-      │                   │
-      │                   │ creates/owns
-      │                   ▼
-      │             ┌─────────────┐
-      └────────────>│    Fund     │
-                    └─────────────┘
-                          │
-                          │ matches with
-                          ▼
-                    ┌─────────────┐     ┌─────────────┐
-                    │   Match     │────>│     LP      │
-                    └─────────────┘     └─────────────┘
-                          │                   │
-                          │                   │
-                          ▼                   ▼
-                    ┌─────────────┐     ┌─────────────┐
-                    │   Pitch     │     │  Contact    │
-                    └─────────────┘     └─────────────┘
-                                              │
-                                              ▼
-                                        ┌─────────────┐
-                                        │ Enrichment  │
-                                        │    Log      │
-                                        └─────────────┘
+ORGANIZATIONS                    PEOPLE (Global)
+─────────────                    ───────────────
+┌─────────────┐                  ┌─────────────┐
+│   Company   │──────────────────│   People    │ (all industry professionals)
+│  (GP firm)  │                  │  (global)   │
+└──────┬──────┘                  └──────┬──────┘
+       │                                │
+       │ owns                           │ employment history
+       ▼                                ▼
+┌─────────────┐                  ┌─────────────┐
+│    Fund     │<─────────────────│ Employment  │ (person ↔ org with dates)
+└──────┬──────┘    fund_team     └──────┬──────┘
+       │                                │
+       │ matches with                   │ works at
+       ▼                                ▼
+┌─────────────┐                  ┌─────────────┐
+│   Match     │─────────────────>│     LP      │ (LP organizations)
+└──────┬──────┘                  └─────────────┘
+       │
+       ▼
+┌─────────────┐
+│   Pitch     │
+└─────────────┘
+
+PLATFORM USERS (subset of People)
+─────────────────────────────────
+┌─────────────┐
+│    User     │ (can login to platform)
+│  person_id  │────> references People
+└─────────────┘
 ```
+
+**Key Design Decisions:**
+- **People are global:** All industry professionals in one table (LP contacts + GP team members)
+- **Employment tracks history:** People can move between organizations, with start/end dates
+- **Users are a subset:** Platform users (who can login) reference the global People table
+- **LP contacts are shared:** All GP companies benefit from the shared contact database
 
 ### 6.2 Core Tables
 
@@ -671,14 +760,117 @@ CREATE TABLE companies (
 ```sql
 CREATE TABLE users (
     id              UUID PRIMARY KEY REFERENCES auth.users(id),
+    person_id       UUID REFERENCES people(id), -- Link to global person record
     company_id      UUID REFERENCES companies(id),
     email           TEXT UNIQUE NOT NULL,
-    full_name       TEXT,
     role            TEXT CHECK (role IN ('admin', 'member', 'viewer')) DEFAULT 'member',
     is_super_admin  BOOLEAN DEFAULT FALSE,
+    invited_by      UUID REFERENCES users(id),  -- who invited this user
+    first_login_at  TIMESTAMPTZ,                -- track first login for welcome screen
     created_at      TIMESTAMPTZ DEFAULT NOW(),
     updated_at      TIMESTAMPTZ DEFAULT NOW()
 );
+
+CREATE INDEX idx_users_person ON users(person_id);
+CREATE INDEX idx_users_company ON users(company_id);
+```
+
+#### People (Global Contact Database)
+All professionals in the industry - both LP contacts and GP team members.
+```sql
+CREATE TABLE people (
+    id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+    -- Identity
+    full_name           TEXT NOT NULL,
+    email               TEXT,                    -- may be NULL or outdated
+    phone               TEXT,
+    linkedin_url        TEXT,
+
+    -- Professional info (current, denormalized for convenience)
+    current_title       TEXT,                    -- "Managing Director"
+    current_org_type    TEXT,                    -- 'lp' or 'gp'
+    current_org_id      UUID,                    -- FK to lps or companies
+
+    -- Attributes
+    focus_areas         TEXT[] DEFAULT '{}',     -- "Private Equity", "Healthcare"
+    is_decision_maker   BOOLEAN DEFAULT FALSE,   -- for LP contacts
+    bio                 TEXT,
+    notes               TEXT,
+
+    -- Data quality
+    data_source         TEXT DEFAULT 'import',
+    last_verified       TIMESTAMPTZ,
+    verification_status TEXT CHECK (verification_status IN ('unverified', 'pending', 'verified', 'outdated')) DEFAULT 'unverified',
+
+    -- Audit
+    created_by          UUID REFERENCES auth.users(id),
+    updated_by          UUID REFERENCES auth.users(id),
+    created_at          TIMESTAMPTZ DEFAULT NOW(),
+    updated_at          TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_people_email ON people(email);
+CREATE INDEX idx_people_name_trgm ON people USING GIN(full_name gin_trgm_ops);
+CREATE INDEX idx_people_current_org ON people(current_org_type, current_org_id);
+```
+
+#### Employment (Career History)
+Links people to organizations over time.
+```sql
+CREATE TABLE employment (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    person_id       UUID REFERENCES people(id) ON DELETE CASCADE NOT NULL,
+
+    -- Organization reference (polymorphic)
+    org_type        TEXT CHECK (org_type IN ('lp', 'gp')) NOT NULL,
+    org_id          UUID NOT NULL,              -- FK to lps.id or companies.id
+
+    -- Role info
+    title           TEXT,
+    department      TEXT,                       -- "Private Markets", "Alternatives"
+    is_current      BOOLEAN DEFAULT TRUE,
+
+    -- Dates
+    start_date      DATE,
+    end_date        DATE,                       -- NULL if current
+
+    -- Metadata
+    source          TEXT DEFAULT 'import',
+    created_at      TIMESTAMPTZ DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ DEFAULT NOW(),
+
+    -- Constraints
+    CONSTRAINT valid_dates CHECK (end_date IS NULL OR end_date >= start_date),
+    CONSTRAINT current_has_no_end CHECK (NOT is_current OR end_date IS NULL)
+);
+
+CREATE INDEX idx_employment_person ON employment(person_id);
+CREATE INDEX idx_employment_org ON employment(org_type, org_id);
+CREATE INDEX idx_employment_current ON employment(is_current) WHERE is_current = TRUE;
+```
+
+#### Invitations
+```sql
+CREATE TABLE invitations (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email           TEXT NOT NULL,
+    company_id      UUID REFERENCES companies(id) NOT NULL,
+    role            TEXT CHECK (role IN ('admin', 'member', 'viewer')) NOT NULL,
+    token           TEXT UNIQUE NOT NULL,       -- secure random token
+    invited_by      UUID REFERENCES users(id),  -- NULL if invited by super admin
+
+    -- Status tracking
+    status          TEXT CHECK (status IN ('pending', 'accepted', 'expired', 'cancelled')) DEFAULT 'pending',
+    expires_at      TIMESTAMPTZ NOT NULL,       -- 7 days from creation
+    accepted_at     TIMESTAMPTZ,
+
+    created_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_invitations_token ON invitations(token);
+CREATE INDEX idx_invitations_email ON invitations(email);
+CREATE INDEX idx_invitations_company ON invitations(company_id);
 ```
 
 #### Funds (GP Profiles)
@@ -717,9 +909,8 @@ CREATE TABLE funds (
     total_invested_mm   DECIMAL(12,2),
     realized_proceeds_mm DECIMAL(12,2),
 
-    -- Team
+    -- Team (see fund_team table for actual team members)
     team_size           INTEGER,
-    key_persons         JSONB DEFAULT '[]',
     years_investing     INTEGER,
     spun_out_from       TEXT,
 
@@ -756,6 +947,25 @@ CREATE TABLE funds (
 
 CREATE INDEX idx_funds_company ON funds(company_id);
 CREATE INDEX idx_funds_thesis_embedding ON funds USING ivfflat (thesis_embedding vector_cosine_ops);
+```
+
+#### Fund Team (GP Professionals on a Fund)
+Links people to funds they work on.
+```sql
+CREATE TABLE fund_team (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    fund_id         UUID REFERENCES funds(id) ON DELETE CASCADE NOT NULL,
+    person_id       UUID REFERENCES people(id) NOT NULL,
+    role            TEXT,                       -- "Partner", "Principal", "Analyst"
+    is_key_person   BOOLEAN DEFAULT FALSE,      -- regulatory "key person"
+    allocation_pct  DECIMAL(5,2),               -- % of time on this fund
+    created_at      TIMESTAMPTZ DEFAULT NOW(),
+
+    UNIQUE(fund_id, person_id)
+);
+
+CREATE INDEX idx_fund_team_fund ON fund_team(fund_id);
+CREATE INDEX idx_fund_team_person ON fund_team(person_id);
 ```
 
 #### LPs (Investors)
@@ -833,35 +1043,23 @@ CREATE INDEX idx_lps_mandate_embedding ON lps USING ivfflat (mandate_embedding v
 CREATE INDEX idx_lps_name_trgm ON lps USING GIN(name gin_trgm_ops);
 ```
 
-#### LP Contacts
-```sql
-CREATE TABLE lp_contacts (
-    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    lp_id           UUID REFERENCES lps(id) ON DELETE CASCADE,
+#### LP Contacts (via People + Employment)
 
-    full_name       TEXT NOT NULL,
-    title           TEXT,
-    email           TEXT,
-    phone           TEXT,
-    linkedin_url    TEXT,
-
-    is_decision_maker BOOLEAN DEFAULT FALSE,
-    focus_areas     TEXT[] DEFAULT '{}',
-    notes           TEXT,
-
-    -- Audit Trail
-    created_by      UUID REFERENCES auth.users(id),
-    updated_by      UUID REFERENCES auth.users(id),
-    data_source     TEXT DEFAULT 'import',
-    last_verified   TIMESTAMPTZ,
-    verification_status TEXT CHECK (verification_status IN ('unverified', 'pending', 'verified', 'outdated')) DEFAULT 'unverified',
-
-    created_at      TIMESTAMPTZ DEFAULT NOW(),
-    updated_at      TIMESTAMPTZ DEFAULT NOW()
-);
-
-CREATE INDEX idx_lp_contacts_lp ON lp_contacts(lp_id);
-```
+> **Note:** LP contacts are now stored in the global `people` table with
+> employment records linking them to LP organizations. This enables:
+> - Tracking people as they move between organizations
+> - Shared contact database across all GP companies
+> - Employment history with start/end dates
+>
+> To find contacts for an LP:
+> ```sql
+> SELECT p.*, e.title, e.department, e.start_date
+> FROM people p
+> JOIN employment e ON e.person_id = p.id
+> WHERE e.org_type = 'lp'
+>   AND e.org_id = '<lp_id>'
+>   AND e.is_current = TRUE;
+> ```
 
 #### LP Commitments (Historical)
 ```sql
@@ -1022,9 +1220,47 @@ CREATE POLICY "LPs editable by admins" ON lps
         EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND is_super_admin = TRUE)
     );
 
--- LP contacts follow LP permissions
-CREATE POLICY "LP contacts readable" ON lp_contacts
+-- People are globally readable (shared contact database)
+CREATE POLICY "People readable by authenticated" ON people
     FOR SELECT USING (auth.role() = 'authenticated');
+
+-- People editable by super admins only
+CREATE POLICY "People editable by admins" ON people
+    FOR INSERT UPDATE DELETE USING (
+        EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND is_super_admin = TRUE)
+    );
+
+-- Employment records follow people permissions
+CREATE POLICY "Employment readable by authenticated" ON employment
+    FOR SELECT USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Employment editable by admins" ON employment
+    FOR INSERT UPDATE DELETE USING (
+        EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND is_super_admin = TRUE)
+    );
+
+-- Fund team visible to company members
+CREATE POLICY "Fund team visible to company" ON fund_team
+    FOR SELECT USING (
+        fund_id IN (
+            SELECT id FROM funds WHERE company_id = (
+                SELECT company_id FROM users WHERE id = auth.uid()
+            )
+        )
+    );
+
+-- Fund team managed by company admins
+CREATE POLICY "Fund team managed by admins" ON fund_team
+    FOR INSERT UPDATE DELETE USING (
+        fund_id IN (
+            SELECT id FROM funds WHERE company_id = (
+                SELECT company_id FROM users WHERE id = auth.uid()
+            )
+        )
+        AND EXISTS (
+            SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin'
+        )
+    );
 ```
 
 ---
@@ -1303,19 +1539,28 @@ Future (API integrations):
 ```
 /api/v1/
 ├── /auth
-│   ├── POST   /register           # Create new user
-│   ├── POST   /login              # Login
-│   ├── POST   /logout             # Logout
-│   ├── POST   /refresh            # Refresh token
-│   ├── POST   /reset-password     # Request password reset
-│   └── POST   /verify-email       # Verify email address
+│   ├── POST   /login              # Login with email/password
+│   ├── POST   /logout             # Logout (invalidate session)
+│   ├── POST   /refresh            # Refresh JWT token
+│   ├── POST   /reset-password     # Request password reset email
+│   ├── POST   /reset-password/confirm  # Set new password with token
+│   │
+│   │ # Invitation flow (no public registration)
+│   ├── GET    /invite/{token}     # Validate invitation token
+│   └── POST   /invite/{token}/accept  # Accept invite (set password, create account)
+│
+├── /invitations (admin endpoints)
+│   ├── GET    /                   # List pending invitations (company admin)
+│   ├── POST   /                   # Create invitation (company admin)
+│   ├── DELETE /{id}               # Cancel invitation (company admin)
+│   └── POST   /{id}/resend        # Resend invitation email (company admin)
 │
 ├── /users
-│   ├── GET    /me                 # Get current user
-│   ├── PATCH  /me                 # Update current user
-│   ├── GET    /                   # List company users (admin)
-│   ├── POST   /invite             # Invite user to company (admin)
-│   └── DELETE /{id}               # Remove user (admin)
+│   ├── GET    /me                 # Get current user profile
+│   ├── PATCH  /me                 # Update current user profile
+│   ├── GET    /                   # List company users (company admin)
+│   ├── PATCH  /{id}               # Update user role (company admin)
+│   └── DELETE /{id}               # Deactivate user (company admin)
 │
 ├── /companies
 │   ├── GET    /me                 # Get current company
@@ -1392,30 +1637,34 @@ Future (API integrations):
 
 ### 10.1 Authentication
 
+> **Note:** LPxGP is invite-only. There is no self-registration.
+
 ```
-US-AUTH-01: User Registration
-As a new user, I want to register with my email so I can access the platform.
+US-AUTH-01: Accept Invitation
+As an invited user, I want to accept my invitation and set up my account.
 
 Acceptance Criteria:
-- Email format validated
-- Password min 8 chars, 1 number, 1 special
-- Verification email sent within 30 seconds
-- Cannot login until verified
-- Clear error messages for validation failures
+- Invitation link shows company name and my role
+- Email field is pre-filled and not editable
+- Password must be min 8 chars, 1 uppercase, 1 lowercase, 1 number
+- After submission, account is created and I'm logged in
+- First-time welcome screen is shown
+- Expired invitation shows clear error with "Request new invitation" option
 
 Test: TEST-AUTH-01
 ```
 
 ```
 US-AUTH-02: User Login
-As a registered user, I want to login so I can access my data.
+As an existing user, I want to login so I can access my data.
 
 Acceptance Criteria:
 - Email/password authentication works
 - Invalid credentials show generic error (security)
 - Successful login redirects to dashboard
+- First-time users see welcome screen
 - Session persists across browser refresh (7 days)
-- "Remember me" option available
+- No "Register" link on login page (invite-only)
 
 Test: TEST-AUTH-02
 ```
@@ -1429,8 +1678,39 @@ Acceptance Criteria:
 - User cannot see other companies' matches
 - User cannot see other companies' users
 - API returns 404 (not 403) for other company data
+- User belongs to exactly one company
 
 Test: TEST-AUTH-03
+```
+
+```
+US-AUTH-04: Invite Team Member
+As a company admin, I want to invite team members so they can use the platform.
+
+Acceptance Criteria:
+- Can invite by email address
+- Can select role (Member or Admin)
+- Invitation email sent within 30 seconds
+- Can view pending invitations
+- Can resend expired invitations
+- Can cancel pending invitations
+- Cannot invite email that already has account
+
+Test: TEST-AUTH-04
+```
+
+```
+US-AUTH-05: Super Admin - Create Company
+As a super admin, I want to create companies and invite their first admin.
+
+Acceptance Criteria:
+- Can create company with name
+- Can enter admin email and send invitation
+- Company appears in admin panel
+- First user invited automatically gets Admin role
+- Can view all companies and their status
+
+Test: TEST-AUTH-05
 ```
 
 ### 10.2 LP Search (Priority A)

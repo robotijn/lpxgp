@@ -1,39 +1,157 @@
 # Milestone 5: Production Tests
 ## "Production-ready with admin"
 
+> **Super Admin = LPxGP Platform Team**
+> Only Super Admins can create companies and invite the first user.
+> This is the controlled onboarding flow for new GP firms.
+
 ---
 
-## F-AUTH-04: Admin Panel [P0]
+## F-AUTH-04: Super Admin Panel [P0]
 
 ```gherkin
-Feature: Admin Panel
-  As a super admin
-  I want to manage the platform
-  So that I can support all users
+Feature: Super Admin Panel
+  As a super admin (LPxGP team member)
+  I want to manage companies and platform
+  So that I can onboard and support GP firms
+
+  # =============================================
+  # Sub-feature: Company Onboarding (Core Flow)
+  # =============================================
+
+  Scenario: Complete company onboarding flow
+    Given I am a super admin
+    # Step 1: Create company
+    When I go to Admin > Companies
+    And I click "Add Company"
+    Then I see company creation form
+
+    # Step 2: Enter company details
+    When I enter:
+      | Field | Value |
+      | Company Name | Acme Capital |
+      | Admin Email | partner@acme.com |
+      | Plan | Standard |
+    And I click "Create & Send Invitation"
+    Then company "Acme Capital" is created
+    And company status is "Pending" (no users yet)
+    And invitation is created for "partner@acme.com"
+    And invitation email is sent
+    And I see confirmation "Company created. Invitation sent to partner@acme.com"
+
+    # Step 3: Verify in company list
+    When I view the companies list
+    Then I see "Acme Capital" with:
+      | Status | Pending |
+      | Users | 0 |
+      | Admin Invited | partner@acme.com |
+
+  Scenario: Company becomes active when admin accepts
+    Given I created company "Acme Capital"
+    And "partner@acme.com" received invitation
+    When the admin accepts the invitation
+    Then company status changes to "Active"
+    And user count shows "1"
+    And "partner@acme.com" is shown as Admin
 
   # Sub-feature: Company Management
   Scenario: View all companies
     Given I am a super admin
     When I go to Admin > Companies
     Then I see all companies with:
-      | Company | Users | Funds | Created |
-      | Acme Capital | 5 | 3 | 2024-01-15 |
-      | Beta Ventures | 8 | 5 | 2024-02-20 |
+      | Company | Status | Users | Funds | Created |
+      | Acme Capital | Active | 5 | 3 | 2024-01-15 |
+      | Beta Ventures | Active | 8 | 5 | 2024-02-20 |
+      | New Firm | Pending | 0 | 0 | 2024-03-01 |
 
-  Scenario: Create new company
-    When I click "Add Company"
-    And I enter:
-      | Name | New Partners |
-      | Admin Email | admin@newpartners.com |
-    And I click "Create"
-    Then company is created
-    And invitation email is sent to admin
+  Scenario: Filter companies by status
+    Given I am viewing companies
+    When I filter by status "Pending"
+    Then I only see companies awaiting admin acceptance
+
+  Scenario: Search companies
+    Given I am viewing companies
+    When I search for "Acme"
+    Then I see "Acme Capital" in results
+    And other companies are hidden
+
+  Scenario: View company details
+    Given I am a super admin
+    When I click on "Acme Capital"
+    Then I see company detail page with:
+      | Section | Content |
+      | Overview | Name, status, created date |
+      | Users | List of all users with roles |
+      | Funds | List of all funds |
+      | Activity | Recent activity log |
+      | Settings | Plan, limits, features |
 
   Scenario: Edit company settings
-    When I select a company
-    Then I can edit company name
-    And I can adjust company limits
-    And I can enable/disable features
+    Given I am viewing company "Acme Capital"
+    When I click "Edit Settings"
+    Then I can edit:
+      | Company name |
+      | Plan/tier |
+      | User limit |
+      | Feature flags |
+    When I save changes
+    Then settings are updated
+    And change is logged in activity
+
+  Scenario: Deactivate company
+    Given company "Defunct Corp" should be deactivated
+    When I click "Deactivate Company"
+    Then I see confirmation dialog with warnings
+    When I confirm with reason "Contract ended"
+    Then company status is "Deactivated"
+    And all users cannot login
+    And data is preserved (not deleted)
+    And I can reactivate later
+
+  Scenario: Reactivate company
+    Given company "Defunct Corp" is deactivated
+    When I click "Reactivate"
+    Then company status is "Active"
+    And users can login again
+
+  # --- NEGATIVE TESTS: Company Creation ---
+  Scenario: Create company with empty name
+    Given I am creating a new company
+    When I leave company name empty
+    And I click "Create"
+    Then I see "Company name is required"
+    And company is not created
+
+  Scenario: Create company with duplicate name
+    Given "Acme Capital" already exists
+    When I try to create company "Acme Capital"
+    Then I see "A company with this name already exists"
+    And company is not created
+
+  Scenario: Create company with invalid admin email
+    Given I am creating a new company
+    When I enter admin email "not-an-email"
+    Then I see "Please enter a valid email"
+    And company is not created
+
+  Scenario: Create company with existing user email
+    Given "existing@other.com" is already a user
+    When I create company with admin email "existing@other.com"
+    Then I see "This email is already registered"
+    And company is not created
+
+  Scenario: Resend company admin invitation
+    Given company "New Firm" has pending invitation
+    When I click "Resend Invitation"
+    Then new invitation email is sent
+    And old invitation is expired
+    And I see confirmation
+
+  Scenario: Cancel company invitation
+    Given company "New Firm" has pending invitation
+    When I click "Cancel Invitation"
+    Then invitation is cancelled
+    And I can send a new invitation to different email
 
   # Sub-feature: User Management
   Scenario: View company users
@@ -62,11 +180,15 @@ Feature: Admin Panel
     And user can be reactivated
 
   # Sub-feature: LP Database Management
+  # Note: LP contacts are now stored in global "people" table with "employment" records.
+  # Admins manage people separately from LP organizations.
+
   Scenario: Browse all LPs
     When I go to Admin > LPs
     Then I see all LPs in the database
     And I can search and filter
     And I can see data quality scores
+    And I can see how many contacts (people) are linked
 
   Scenario: Edit LP data
     When I find an LP
@@ -80,6 +202,52 @@ Feature: Admin Panel
     When I confirm
     Then LP is deleted
     And related matches are updated
+    And employment records for this LP are ended (people preserved)
+
+  # Sub-feature: People (Global Contact Database)
+  Scenario: Browse all people
+    When I go to Admin > People
+    Then I see all people in the global database
+    And I can filter by current org type (LP/GP)
+    And I can search by name or email
+    And I can see employment history summary
+
+  Scenario: View person detail
+    When I click on person "John Smith"
+    Then I see their profile with:
+      | Section | Content |
+      | Contact Info | Name, email, phone, LinkedIn |
+      | Current Role | Title at current org |
+      | Employment History | All past positions with dates |
+      | Focus Areas | Expertise and specializations |
+
+  Scenario: Edit person details
+    When I click "Edit" on a person
+    Then I can modify contact info
+    And I can update their current role
+    And I can add/edit employment history
+    And changes are tracked in audit log
+
+  Scenario: Manage employment history
+    Given person "John Smith" is at "CalPERS"
+    When I add new employment:
+      | Field | Value |
+      | Org | Yale Endowment |
+      | Org Type | lp |
+      | Title | CIO |
+      | Start Date | 2024-01-15 |
+    And I end their CalPERS employment
+    Then John Smith's current org is "Yale Endowment"
+    And CalPERS employment shows end date
+    And all history is preserved
+
+  Scenario: Merge duplicate people
+    Given two person records with same email
+    When I click "Merge"
+    Then I select which record is primary
+    And employment histories are combined
+    And duplicate is marked as merged
+    And references are updated
 
   # Sub-feature: Data Import
   Scenario: Trigger data import

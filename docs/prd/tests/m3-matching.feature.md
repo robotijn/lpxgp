@@ -371,12 +371,15 @@ Feature: AI Profile Extraction
     And maps to our taxonomy
 
   Scenario: Extract team information
+    # Team members are stored as people records with fund_team links
     Given my deck has a team slide with bios
     When AI processes the deck
-    Then it extracts:
-      | Name | Title |
-      | John Smith | Managing Partner |
-      | Jane Doe | Partner |
+    Then it extracts team members:
+      | Name | Title | Is Key Person |
+      | John Smith | Managing Partner | Yes |
+      | Jane Doe | Partner | Yes |
+    And creates person records in global people table
+    And creates fund_team links with roles
 
   Scenario: Extract track record
     Given my deck has a track record slide

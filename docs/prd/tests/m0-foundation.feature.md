@@ -199,41 +199,60 @@ Feature: LP Profile Storage
       | Min IRR Threshold | 150% |
     Then I see error "IRR threshold must be between 0% and 100%"
 
-  # Sub-feature: Contact Management
-  Scenario: Store multiple contacts per LP
+  # Sub-feature: People & Employment Management
+  # Note: Contacts are stored in global "people" table with "employment" records
+  # linking them to organizations. This enables career tracking across the industry.
+
+  Scenario: Store multiple contacts for an LP
     Given an LP "Yale Endowment" exists
-    When I add contacts:
+    When I create people with current employment at Yale Endowment:
       | Name | Title | Decision Maker |
       | John Smith | CIO | Yes |
       | Jane Doe | Director of PE | Yes |
       | Bob Wilson | Associate | No |
-    Then the LP has 3 contacts
+    Then 3 people are linked to Yale Endowment via employment records
     And 2 are marked as decision makers
 
-  Scenario: Store contact details
-    Given I am adding a contact to an LP
-    When I enter:
+  Scenario: Store person details with employment
+    Given an LP "Yale Endowment" exists
+    When I create a person:
       | Field | Value |
       | Full Name | John Smith |
-      | Title | Chief Investment Officer |
       | Email | jsmith@yale.edu |
       | Phone | +1-203-555-0100 |
       | LinkedIn | linkedin.com/in/jsmith |
       | Focus Areas | PE, VC, Real Estate |
-    Then the contact is stored with all details
+    And I create an employment record:
+      | Field | Value |
+      | Organization | Yale Endowment |
+      | Org Type | lp |
+      | Title | Chief Investment Officer |
+      | Is Current | Yes |
+      | Start Date | 2015-01-01 |
+    Then the person is stored in the global people table
+    And the employment record links them to Yale Endowment
 
-  # Negative: Invalid contact data
-  Scenario: Reject contact without name
-    Given I am adding a contact to an LP
+  Scenario: Track employment history
+    Given a person "John Smith" worked at:
+      | Organization | Title | Start Date | End Date |
+      | Stanford Endowment | Associate | 2010-01-01 | 2014-12-31 |
+      | Yale Endowment | CIO | 2015-01-01 | NULL |
+    Then John Smith has 2 employment records
+    And 1 is marked as current (Yale)
+    And 1 is marked as historical (Stanford)
+
+  # Negative: Invalid person data
+  Scenario: Reject person without name
+    Given I am creating a person
     When I enter:
       | Field | Value |
       | Full Name | |
       | Email | test@example.com |
-    Then I see error "Contact name is required"
-    And the contact is not created
+    Then I see error "Name is required"
+    And the person is not created
 
   Scenario: Reject invalid email format
-    Given I am adding a contact to an LP
+    Given I am creating a person
     When I enter:
       | Field | Value |
       | Full Name | John Smith |
@@ -241,7 +260,7 @@ Feature: LP Profile Storage
     Then I see error "Invalid email format"
 
   Scenario: Reject invalid email formats (variations)
-    Given I am adding a contact to an LP
+    Given I am creating a person
     When I try these invalid emails:
       | Invalid Email |
       | @example.com |
@@ -252,7 +271,7 @@ Feature: LP Profile Storage
     Then each is rejected with "Invalid email format"
 
   Scenario: Accept valid email edge cases
-    Given I am adding a contact to an LP
+    Given I am creating a person
     When I try these valid emails:
       | Valid Email |
       | user+tag@example.com |
@@ -261,7 +280,7 @@ Feature: LP Profile Storage
     Then each is accepted
 
   Scenario: Reject invalid phone format
-    Given I am adding a contact to an LP
+    Given I am creating a person
     When I enter:
       | Field | Value |
       | Full Name | John Smith |
@@ -269,17 +288,30 @@ Feature: LP Profile Storage
     Then I see error "Invalid phone number format"
 
   Scenario: Reject invalid LinkedIn URL
-    Given I am adding a contact to an LP
+    Given I am creating a person
     When I enter:
       | Field | Value |
       | Full Name | John Smith |
       | LinkedIn | facebook.com/jsmith |
     Then I see error "LinkedIn URL must be from linkedin.com"
 
-  Scenario: Prevent duplicate contacts
-    Given an LP has contact "John Smith" with email "jsmith@yale.edu"
-    When I try to add another contact with email "jsmith@yale.edu"
-    Then I see error "A contact with this email already exists"
+  Scenario: Reject employment with end date before start date
+    Given I am creating an employment record
+    When I enter:
+      | Field | Value |
+      | Start Date | 2020-01-01 |
+      | End Date | 2019-01-01 |
+    Then I see error "End date cannot be before start date"
+
+  Scenario: Handle person moving between organizations
+    Given a person "John Smith" is currently at "Stanford Endowment"
+    When I update their employment:
+      | Action | Details |
+      | End current | Stanford Endowment ends 2024-12-01 |
+      | Start new | Yale Endowment starts 2024-12-15 |
+    Then John Smith's current org is "Yale Endowment"
+    And Stanford employment is marked as historical
+    And all employment history is preserved
 
   # Sub-feature: Historical Data
   Scenario: Store LP commitment history
@@ -644,15 +676,21 @@ Feature: LP Data Cleaning Pipeline
     When the cleaning pipeline runs
     Then types are normalized
 
-  # Sub-feature: Contact Parsing
-  Scenario: Parse contact information
-    Given raw contact "John Smith, CIO, jsmith@calpers.ca.gov"
+  # Sub-feature: Person/Contact Parsing
+  # Note: Parsed contacts become people records with employment links
+
+  Scenario: Parse contact information into person + employment
+    Given raw contact "John Smith, CIO, jsmith@calpers.ca.gov" for LP "CalPERS"
     When the cleaning pipeline runs
-    Then I get:
+    Then I get a person record:
       | Field | Value |
       | Name | John Smith |
-      | Title | CIO |
       | Email | jsmith@calpers.ca.gov |
+    And an employment record:
+      | Field | Value |
+      | Title | CIO |
+      | Org | CalPERS |
+      | Is Current | Yes |
 
   Scenario: Validate email format
     Given raw email "not-valid-email"
@@ -660,11 +698,11 @@ Feature: LP Data Cleaning Pipeline
     Then the email is flagged as invalid
     And the record is queued for review
 
-  # Negative: Contact parsing edge cases
+  # Negative: Person parsing edge cases
   Scenario: Handle unparseable contact string
     Given raw contact "asdfghjkl random text"
     When the cleaning pipeline runs
-    Then the raw text is stored as notes
+    Then the raw text is stored as notes on the person
     And record is flagged for manual entry
 
   Scenario: Handle contact with missing components
@@ -672,6 +710,7 @@ Feature: LP Data Cleaning Pipeline
     When the cleaning pipeline runs
     Then name is extracted
     And title and email remain empty
+    And person is created with employment (title empty)
     And record is flagged for enrichment
 
   Scenario: Handle international phone formats
@@ -686,10 +725,17 @@ Feature: LP Data Cleaning Pipeline
     And partial formats are flagged
 
   Scenario: Handle multiple emails in one field
-    Given raw contact with "john@example.com; jane@example.com"
+    Given raw contact with "john@example.com; jane@example.com" for LP "CalPERS"
     When the cleaning pipeline runs
-    Then both emails are extracted
-    And linked to the same LP (different contacts)
+    Then two person records are created
+    And each has employment linking to CalPERS
+
+  Scenario: Detect existing person by email
+    Given a person "John Smith" exists with email "jsmith@calpers.ca.gov"
+    When importing contact "J. Smith, CIO, jsmith@calpers.ca.gov" for LP "Yale Endowment"
+    Then the existing person is found (not duplicated)
+    And a new employment record links them to Yale Endowment
+    And previous CalPERS employment remains intact
 
   # Sub-feature: Duplicate Detection and Merge
   Scenario: Detect duplicates

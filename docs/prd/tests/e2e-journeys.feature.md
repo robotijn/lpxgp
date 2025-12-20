@@ -2,33 +2,93 @@
 
 Complete end-to-end scenarios that span multiple features and milestones.
 
+> **Invite-Only Platform**
+> LPxGP has no public registration. All journeys start with an invitation.
+
+---
+
+## Journey 0: Platform Onboarding (Super Admin)
+
+```gherkin
+Feature: Platform Onboarding Journey
+  As a Super Admin (LPxGP team)
+  I want to onboard new GP firms
+  So that they can use the platform
+
+  Scenario: Complete company onboarding from sales to first login
+    # Step 1: Sales Process (Outside Platform)
+    Given a GP firm "Acme Capital" signed up for LPxGP
+    And they completed the vetting/sales process
+    And we have their admin contact: partner@acme.com
+
+    # Step 2: Create Company (M5)
+    When I login as Super Admin
+    And I go to Admin > Companies
+    And I click "Add Company"
+    And I enter:
+      | Company Name | Acme Capital |
+      | Admin Email | partner@acme.com |
+      | Plan | Standard |
+    And I click "Create & Send Invitation"
+    Then company is created with status "Pending"
+    And invitation email is sent to partner@acme.com
+
+    # Step 3: Company Admin Accepts (M1)
+    Given partner@acme.com receives the invitation email
+    When they click the invitation link
+    Then they see "Welcome to LPxGP"
+    And they see "You've been invited as Admin of Acme Capital"
+    When they enter their name and password
+    And they click "Complete Setup"
+    Then their account is created
+    And they are logged in
+    And company status changes to "Active"
+
+    # Step 4: First-Time Welcome (M1)
+    Then they see the first-time welcome screen:
+      | "Welcome to LPxGP!" |
+      | "You're the admin of Acme Capital" |
+      | [Create Your First Fund] |
+      | [Invite Team Members] |
+
+    # Step 5: Verify in Admin Panel (M5)
+    When I refresh Admin > Companies as Super Admin
+    Then I see "Acme Capital" with status "Active"
+    And user count is "1"
+```
+
 ---
 
 ## Journey 1: New GP Onboarding
 
 ```gherkin
 Feature: New GP Onboarding Journey
-  As a new GP user
+  As a newly invited GP user
   I want to set up my account and create my first fund
   So that I can start finding LPs
 
-  Scenario: Complete onboarding from signup to first match
-    # Step 1: Registration (M1)
-    Given I am a GP at a new fund
-    When I visit lpxgp.com
-    And I click "Get Started"
-    And I register with my email
-    Then I receive a verification email
+  Scenario: Complete onboarding from invitation to first match
+    # Step 1: Receive Invitation (M1)
+    Given I am a partner at "Acme Capital"
+    And I received an invitation email from LPxGP
+    When I click the invitation link
+    Then I see "Welcome to LPxGP"
+    And I see "You've been invited to join Acme Capital as Admin"
 
-    # Step 2: Email Verification (M1)
-    When I click the verification link
-    Then my account is verified
-    And I am redirected to login
+    # Step 2: Accept Invitation (M1)
+    When I enter my full name "John Partner"
+    And I enter password "SecurePass123!"
+    And I confirm password
+    And I click "Complete Setup"
+    Then my account is created
+    And I am logged in
 
-    # Step 3: First Login (M1)
-    When I login for the first time
-    Then I see a welcome screen
-    And I am prompted to create my first fund
+    # Step 3: First Login Welcome (M1)
+    Then I see the first-time welcome screen
+    And I see "You're the admin of Acme Capital"
+    And I see two options:
+      | "Create Your First Fund" (primary) |
+      | "Invite Team Members" (secondary) |
 
     # Step 4: Upload Pitch Deck (M3)
     When I click "Create Fund"
@@ -79,54 +139,67 @@ Feature: New GP Onboarding Journey
 
 ```gherkin
 Feature: New GP Onboarding - Error Paths
-  As a new GP user
+  As a newly invited GP user
   I want graceful error handling during onboarding
   So that I can recover and complete setup
 
-  # Registration Errors
+  # Invitation Errors
 
-  Scenario: Registration with invalid email format
-    Given I am on the registration page
-    When I enter "not-an-email" as my email
-    And I click "Register"
-    Then I see error "Please enter a valid email address"
-    And the email field is highlighted
-    And I can correct my email and try again
+  Scenario: Invitation link expired
+    Given my invitation was sent 8 days ago
+    When I click the invitation link
+    Then I see "This invitation has expired"
+    And I see "Please contact your administrator for a new invitation"
+    And I cannot proceed to create account
 
-  Scenario: Registration with already-used email
-    Given "gp@existingfund.com" is already registered
-    When I try to register with "gp@existingfund.com"
-    Then I see error "An account with this email already exists"
-    And I see a link to "Login instead"
+  Scenario: Invitation already used
+    Given I already accepted my invitation
+    When I click the invitation link again
+    Then I see "This invitation has already been used"
+    And I see a link to "Login to your account"
 
-  Scenario: Registration network failure
-    Given I am on the registration page
+  Scenario: Invalid invitation link
+    Given I have a corrupted invitation link
+    When I visit the corrupted link
+    Then I see "Invalid invitation link"
+    And I see "Contact your administrator if you need a new invitation"
+
+  Scenario: Accept invitation with weak password
+    Given I am on the invitation acceptance page
+    When I enter password "weak"
+    And I click "Complete Setup"
+    Then I see password strength error
+    And I can enter a stronger password
+
+  Scenario: Accept invitation with mismatched passwords
+    Given I am on the invitation acceptance page
+    When I enter password "SecurePass123!"
+    And I confirm password "DifferentPass!"
+    And I click "Complete Setup"
+    Then I see "Passwords do not match"
+    And I can correct and try again
+
+  Scenario: Accept invitation network failure
+    Given I am on the invitation acceptance page
     And the network connection drops
-    When I submit registration
+    When I submit the form
     Then I see error "Unable to connect. Please check your internet connection."
     And my entered data is preserved
     When the network reconnects
     And I click "Try Again"
-    Then registration completes successfully
+    Then account creation completes successfully
 
-  Scenario: Verification link expired
-    Given I registered but waited 48 hours
-    When I click the verification link
-    Then I see "This verification link has expired"
-    And I see a button "Resend Verification Email"
-    When I click it
-    Then a new verification email is sent
-
-  Scenario: Invalid verification link
-    Given I have a corrupted verification link
-    When I visit the corrupted link
-    Then I see "Invalid verification link"
-    And I see instructions to request a new one
+  Scenario: Invitation for deactivated company
+    Given my invitation was for "Defunct Corp"
+    And the company has been deactivated
+    When I click the invitation link
+    Then I see "This company is no longer active on LPxGP"
+    And I cannot create an account
 
   # Login Errors
 
   Scenario: Login with wrong password
-    Given my account is verified
+    Given I have an active account
     When I enter my email with wrong password
     And I click "Login"
     Then I see error "Invalid email or password"
