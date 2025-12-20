@@ -1,7 +1,7 @@
 # Product Requirements Document (PRD)
 # LPxGP: GP-LP Intelligence Platform
 
-**Version:** 1.3
+**Version:** 1.4
 **Last Updated:** 2025-12-20
 **Status:** Approved for MVP Development
 
@@ -58,7 +58,7 @@
 | Database/Auth | **Supabase Cloud** | Managed, fast setup, reliable backups |
 | Vector Search | **pgvector** | Integrated with Supabase PostgreSQL |
 | Embeddings | **Voyage AI** | Best quality for financial domain |
-| AI/LLM | **Claude API** | Superior document analysis and reasoning |
+| AI/LLM | **OpenRouter** | Multi-model access, cost flexibility with free models |
 | MVP Priority | **A→B→C** | Search first, then matching, then pitch gen |
 
 ---
@@ -1268,8 +1268,8 @@ def calculate_data_quality_score(lp: LP) -> float:
                     ┌───────────┼───────────┐
                     │                       │
             ┌───────▼───────┐       ┌───────▼───────┐
-            │   Claude API  │       │   Voyage AI   │
-            │   (Analysis)  │       │  (Embeddings) │
+            │   OpenRouter  │       │   Voyage AI   │
+            │    (LLMs)     │       │  (Embeddings) │
             └───────────────┘       └───────────────┘
 
 Future (API integrations):
@@ -1292,7 +1292,7 @@ Future (API integrations):
 | **Vector DB** | pgvector (Supabase) | Integrated, no separate service |
 | **Auth** | Supabase Auth | Built-in, handles JWT, supports OAuth |
 | **Embeddings** | Voyage AI (M2+ only) | Best quality for financial domain |
-| **AI/LLM** | Claude API (Anthropic) | Superior document analysis and reasoning |
+| **AI/LLM** | OpenRouter (multi-model) | Multi-model access, cost flexibility with free models |
 | **File Storage** | Supabase Storage | Integrated, S3-compatible |
 | **PDF Parsing** | PyMuPDF + pdfplumber | Best Python PDF libraries |
 | **PPTX Parsing** | python-pptx | Read/write PowerPoint |
@@ -1780,6 +1780,7 @@ Regions:
 | 1.1 | 2024-12-20 | Claude | Added data pipeline, enrichment, testing strategy, decisions |
 | 1.2 | 2024-12-20 | Claude | Removed web scraping, added human-in-the-loop requirements, updated F-GP-02 flow, added audit trail fields |
 | 1.3 | 2025-12-20 | Claude | Fixed F-LP-06 priority (P1), documentation consistency review |
+| 1.4 | 2025-12-20 | Claude | Updated AI/LLM from Claude API to OpenRouter for multi-model access |
 
 ---
 

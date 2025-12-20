@@ -20,7 +20,7 @@ Note: Read these files on demand rather than auto-loading (to save context).
 | **Backend** | Python 3.11+ (uv), FastAPI |
 | **Frontend** | Jinja2 templates + HTMX + Tailwind CSS (CDN, no npm build) |
 | **Database** | Supabase Cloud (PostgreSQL + pgvector + Auth) |
-| **AI/LLM** | Claude API (Anthropic) |
+| **AI/LLM** | OpenRouter (Claude, free models, etc.) |
 | **Deployment** | Railway (auto-deploys from GitHub) |
 
 **M2+:** Voyage AI for semantic search
@@ -37,8 +37,8 @@ Note: Read these files on demand rather than auto-loading (to save context).
                     ┌────────────┼────────────┐
                     ▼            ▼            ▼
              ┌──────────┐ ┌──────────┐ ┌──────────┐
-             │ Claude   │ │ Voyage   │ │ Supabase │
-             │ API      │ │ AI (M2+) │ │ Auth     │
+             │OpenRouter│ │ Voyage   │ │ Supabase │
+             │(LLMs)    │ │ AI (M2+) │ │ Auth     │
              └──────────┘ └──────────┘ └──────────┘
 ```
 
@@ -134,7 +134,7 @@ Algorithm that scores LP-Fund compatibility based on:
 - Semantic similarity of thesis/mandate (Voyage AI embeddings)
 
 ### Pitch Generation
-Claude-generated content:
+LLM-generated content (via OpenRouter):
 - LP-specific executive summaries
 - Personalized outreach emails
 - Talking points and concerns
@@ -152,7 +152,7 @@ TDD workflow:
 Learn Claude Code features while building LPxGP:
 - Modules 1-5: Claude CLI basics (CLAUDE.md, commands, rules, deployment)
 - Modules 6-7: Skills and agents
-- Modules 8-11: MCP, Claude API, production
+- Modules 8-11: MCP, OpenRouter API, production
 
 See docs/curriculum.md for the full learning path.
 
@@ -171,5 +171,5 @@ See docs/curriculum.md for the full learning path.
 - `SUPABASE_URL` - Your Supabase project URL
 - `SUPABASE_ANON_KEY` - Public anon key
 - `SUPABASE_SERVICE_KEY` - Service role key (for admin ops)
-- `ANTHROPIC_API_KEY` - For Claude API (M4+)
+- `OPENROUTER_API_KEY` - For LLM calls via OpenRouter (M4+)
 - `VOYAGE_API_KEY` - For embeddings (M2+)

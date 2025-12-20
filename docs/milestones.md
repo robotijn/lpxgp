@@ -6,17 +6,6 @@
 
 ---
 
-## Tech Principles
-- CDN for frontend libs (no npm build for MVP)
-- supabase-py client (no SQLAlchemy)
-- Supabase Auth UI (no custom login forms)
-- Add complexity only when needed
-- Human reviews all generated content before use
-- No auto-send - copy to clipboard only
-- Puppeteer MCP for UI verification/screenshots (not web scraping)
-
----
-
 ## Overview
 
 | Milestone | Demo Statement | Duration | Live URL |
@@ -190,7 +179,7 @@
 **Duration:** 1-2 days
 
 **What we build:**
-- Claude API integration
+- LLM integration (via OpenRouter)
 - Explanation generation
 - Summary + email generation (human-in-loop)
 - PDF export
@@ -208,7 +197,7 @@
 - [ ] Explanation caching
 
 **CLI Learning:**
-- Module 9: Claude API
+- Module 9: LLM API (OpenRouter)
 - Module 10: Prompt engineering
 
 **Exit Criteria:**

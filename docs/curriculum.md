@@ -16,7 +16,7 @@ See CLAUDE.md for tech stack and commands.
 | M1 | 3-5 | Rules, CI/CD, HTMX | LP search live on lpxgp.com |
 | M2 | 6-7 | Skills, agents | Semantic search |
 | M3 | 8 | MCP fundamentals | GP profiles + matching |
-| M4 | 9-10 | Claude API, prompting | AI explanations + pitch |
+| M4 | 9-10 | OpenRouter API, prompting | AI explanations + pitch |
 | M5 | 11 | Production monitoring | Admin + polish |
 
 ---
@@ -465,14 +465,12 @@ Puppeteer MCP is for **UI verification and screenshots**, not web scraping.
 
 #### Pitch deck extraction
 ```python
-client = anthropic.AsyncAnthropic()
-
 async def extract_fund_info(file_path: str) -> FundDraft:
     """Extract fund information from pitch deck."""
     text = await extract_text(file_path)  # PDF/PPT to text
 
-    response = await client.messages.create(
-        model="claude-sonnet-4-20250514",
+    response = await client.chat.completions.create(
+        model=settings.OPENROUTER_MODEL,
         messages=[{
             "role": "user",
             "content": f"""
@@ -489,7 +487,7 @@ async def extract_fund_info(file_path: str) -> FundDraft:
             """
         }]
     )
-    return FundDraft.parse_raw(response.content[0].text)
+    return FundDraft.model_validate_json(response.choices[0].message.content)
 ```
 
 #### Confirmation UI
@@ -554,19 +552,28 @@ def calculate_score(fund: Fund, lp: LP) -> float:
 
 **Duration:** 1-2 days
 
-### Module 9: Claude API Integration
+### Module 9: OpenRouter API Integration
 
-**Goal:** Generate match explanations.
+**Goal:** Generate match explanations via OpenRouter (access to multiple LLM providers).
 
 #### 9.1 API setup
 ```python
-import anthropic
+from openai import AsyncOpenAI
+from src.config import settings
 
-client = anthropic.AsyncAnthropic()
+# OpenRouter uses OpenAI-compatible API
+client = AsyncOpenAI(
+    base_url="https://openrouter.ai/api/v1",
+    api_key=settings.OPENROUTER_API_KEY,
+)
+
+# Model options:
+# Free: "google/gemini-2.0-flash-exp:free", "meta-llama/llama-3.3-70b-instruct:free"
+# Paid: "anthropic/claude-sonnet-4", "openai/gpt-4o"
 
 async def generate_explanation(fund: Fund, lp: LP, score: float) -> str:
-    response = await client.messages.create(
-        model="claude-sonnet-4-20250514",
+    response = await client.chat.completions.create(
+        model=settings.OPENROUTER_MODEL,  # Configure in .env
         max_tokens=1000,
         messages=[{
             "role": "user",
@@ -584,7 +591,7 @@ async def generate_explanation(fund: Fund, lp: LP, score: float) -> str:
             """
         }]
     )
-    return response.content[0].text
+    return response.choices[0].message.content
 ```
 
 #### 9.2 Caching
@@ -617,7 +624,7 @@ async def generate_summary_draft(match: Match) -> str:
     Emphasize aspects relevant to their mandate:
     "{match.lp.mandate_description}"
     """
-    return await call_claude(prompt)
+    return await call_llm(prompt)  # Uses OpenRouter client from Module 9
 ```
 
 #### 10.2 Email generation
@@ -635,7 +642,7 @@ async def generate_email_draft(match: Match, tone: str = "professional") -> Emai
 
     Under 200 words.
     """
-    content = await call_claude(prompt)
+    content = await call_llm(prompt)
     return EmailDraft(subject=extract_subject(content), body=extract_body(content))
 ```
 
