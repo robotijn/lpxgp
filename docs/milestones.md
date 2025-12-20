@@ -13,6 +13,9 @@
 - supabase-py client (no SQLAlchemy)
 - Supabase Auth UI (no custom login forms)
 - Add complexity only when needed
+- Human reviews all generated content before use
+- No auto-send - copy to clipboard only
+- Puppeteer MCP for UI verification/screenshots (not web scraping)
 
 ---
 
@@ -78,6 +81,7 @@
 - [ ] RLS policies configured
 - [ ] API: GET /api/v1/lps with filters (full-text search only)
 - [ ] UI: Login + LP search page (Jinja2 + HTMX)
+- [ ] UI: Simple dashboard (recent matches, fund status, quick actions)
 - [ ] **GitHub Actions: test → deploy to Railway**
 - [ ] **Live at lpxgp.com**
 
@@ -147,15 +151,21 @@
 
 **What we build:**
 - Fund profile CRUD
-- Deck upload + text extraction
+- Deck upload + LLM extraction
 - Matching algorithm
 - Match results UI
 
+**Fund Onboarding Flow:**
+1. Deck upload → LLM extraction
+2. GP confirms extracted data
+3. Questionnaire for gaps
+4. Save fund profile
+
 **Deliverables:**
 - [ ] API: CRUD /api/v1/funds
-- [ ] API: Deck upload
+- [ ] API: Deck upload + LLM extraction
 - [ ] API: Generate matches
-- [ ] UI: Fund wizard + match results
+- [ ] UI: Fund wizard (deck → confirm → questionnaire → save)
 - [ ] Score breakdown visualization
 
 **CLI Learning:**
@@ -184,14 +194,19 @@
 **What we build:**
 - Claude API integration
 - Explanation generation
-- Summary + email generation
+- Summary + email generation (human-in-loop)
 - PDF export
+
+**Human-in-Loop Flow:**
+- Generate email → GP reviews/edits → copy to clipboard
+- No auto-send functionality
 
 **Deliverables:**
 - [ ] API: Get explanation
-- [ ] API: Generate summary/email
+- [ ] API: Generate summary/email draft
 - [ ] UI: Explanation panel
-- [ ] UI: Pitch generation + export
+- [ ] UI: Email editor with copy to clipboard
+- [ ] UI: PDF export
 - [ ] Explanation caching
 
 **CLI Learning:**
@@ -228,6 +243,7 @@
 **Deliverables:**
 - [ ] Admin: User management
 - [ ] Admin: Data quality stats
+- [ ] Role-based access: Admin, Member, Viewer
 - [ ] Sentry integration
 - [ ] Feedback: "Was this match relevant?"
 - [ ] All endpoints < 500ms p95
@@ -254,7 +270,7 @@
 
 **Only if needed after real usage.**
 
-- N8N + Puppeteer
+- Data integrations (Preqin API, partner feeds)
 - Automated enrichment
 - LinkedIn lookup
 

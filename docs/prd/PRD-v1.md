@@ -1,7 +1,7 @@
 # Product Requirements Document (PRD)
 # LPxGP: GP-LP Intelligence Platform
 
-**Version:** 1.1
+**Version:** 1.2
 **Last Updated:** 2024-12-20
 **Status:** Approved for MVP Development
 
@@ -14,6 +14,7 @@
 3. [Solution Overview](#3-solution-overview)
 4. [User Personas](#4-user-personas)
 5. [Feature Requirements](#5-feature-requirements)
+   - 5.9 [Human-in-the-Loop Requirements](#59-human-in-the-loop-requirements)
 6. [Data Architecture](#6-data-architecture)
 7. [Data Pipeline & Enrichment](#7-data-pipeline--enrichment)
 8. [Technical Architecture](#8-technical-architecture)
@@ -81,7 +82,7 @@ Investment fund managers spend 12-18 months raising capital. The process is:
 | Placement agents | Expensive, limited capacity, conflicts of interest |
 | Data providers (Preqin, PitchBook) | Raw data, no intelligence, no actionability |
 | CRM systems | Track relationships, don't find new ones |
-| LinkedIn | Noisy, not PE/VC focused, no matching |
+| LinkedIn | Noisy, not PE/VC focused, no matching capabilities |
 
 ### 2.3 The Data Challenge
 
@@ -89,10 +90,10 @@ Existing LP/GP data is:
 - Scattered across CSV files and Metabase databases
 - Inconsistently populated (random fields filled/empty)
 - Not standardized (different naming conventions)
-- Missing enrichment (no recent updates, no LinkedIn data)
+- Missing enrichment (no recent updates)
 - Tens of thousands of records requiring cleaning
 
-**Solution:** AI-powered data pipeline that cleans, normalizes, and enriches using web sources.
+**Solution:** AI-powered data pipeline that cleans, normalizes, and enriches using imported data sources.
 
 ---
 
@@ -120,11 +121,11 @@ Existing LP/GP data is:
 │  └──────────────┘  └──────────────┘  └──────────────────────┘  │
 │                                                                  │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐  │
-│  │ Pitch Gen    │  │ Admin Panel  │  │   Web Enrichment     │  │
+│  │ Pitch Gen    │  │ Admin Panel  │  │   Data Sources       │  │
 │  │              │  │              │  │                      │  │
-│  │ - LP-specific│  │ - Users      │  │ - LinkedIn scraping  │  │
-│  │   materials  │  │ - Companies  │  │ - Website parsing    │  │
-│  │ - Deck mods  │  │ - Permissions│  │ - News/PR search     │  │
+│  │ - LP-specific│  │ - Users      │  │ - CSV import         │  │
+│  │   materials  │  │ - Companies  │  │ - Manual entry       │  │
+│  │ - Deck mods  │  │ - Permissions│  │ - API integrations   │  │
 │  └──────────────┘  └──────────────┘  └──────────────────────┘  │
 │                                                                  │
 └─────────────────────────────────────────────────────────────────┘
@@ -289,13 +290,19 @@ Priority C (Third): Pitch Generation
 **Test Cases:** See TEST-GP-01 in Testing Strategy
 
 #### F-GP-02: Pitch Deck Upload [P0]
-**Description:** Upload and process fund pitch decks
+**Description:** Upload and process fund pitch decks with AI-assisted profile creation
 **Requirements:**
 - Accept PDF and PPTX formats
 - Max file size: 100MB
 - Store securely in Supabase Storage
-- Extract text for AI processing
-- Generate preview/thumbnail
+
+**Flow:**
+1. GP uploads PDF/PPT pitch deck
+2. LLM (Claude) extracts fund information (strategy, size, team, track record, etc.)
+3. System displays extracted fields for GP review and confirmation
+4. Interactive questionnaire prompts GP for any missing required fields
+5. GP reviews complete profile and approves before saving
+6. Profile saved with confirmation status
 
 **Test Cases:** See TEST-GP-02 in Testing Strategy
 
@@ -379,16 +386,14 @@ Priority C (Third): Pitch Generation
 
 **Test Cases:** See TEST-LP-05 in Testing Strategy
 
-#### F-LP-06: LP Data Enrichment [P0]
+#### F-LP-06: LP Data Enrichment [P1]
 **Description:** Enhance LP data using external sources
 **Requirements:**
-- LinkedIn profile lookup for contacts
-- Company website parsing for mandate info
-- News/PR search for recent activities
-- Puppeteer-based web scraping
-- Rate limiting to avoid blocks
-- Human review for enriched data
+- Future API integrations (Preqin, PitchBook) for institutional data
+- Bulk update support from external data providers
+- Human review for enriched data before committing
 - Confidence scoring for enriched fields
+- Design for extensibility to new data sources
 
 **Test Cases:** See TEST-LP-06 in Testing Strategy
 
@@ -565,6 +570,57 @@ Priority C (Third): Pitch Generation
 
 ---
 
+### 5.9 Human-in-the-Loop Requirements
+
+The platform prioritizes human oversight for critical actions. AI assists but humans decide.
+
+#### F-HITL-01: Outreach Email Review [P0]
+**Description:** Human reviews and manually sends all outreach
+**Requirements:**
+- AI generates draft email, displayed for review
+- GP can edit email content before proceeding
+- "Copy to Clipboard" button (no auto-send)
+- GP manually pastes into their email client
+- Track that email was copied (not sent)
+
+#### F-HITL-02: Match Selection [P0]
+**Description:** GP explicitly approves matches for outreach
+**Requirements:**
+- Matches shown as recommendations, not actions
+- GP must explicitly add LP to shortlist
+- Shortlist is separate from match results
+- Bulk add to shortlist supported
+- Clear distinction between "matched" and "shortlisted"
+
+#### F-HITL-03: Fund Profile Confirmation [P0]
+**Description:** GP confirms AI-extracted fund information
+**Requirements:**
+- AI extraction shows confidence scores per field
+- GP reviews each extracted field
+- Required fields highlighted if missing
+- GP must explicitly approve profile before saving
+- Audit trail of what was AI-extracted vs manually entered
+
+#### F-HITL-04: Data Import Preview [P0]
+**Description:** Preview and approve data before committing
+**Requirements:**
+- Show preview of first N rows after mapping
+- Highlight validation errors and warnings
+- Show duplicate detection results
+- Require explicit "Confirm Import" action
+- Rollback option within 24 hours
+
+#### F-HITL-05: LP Data Corrections [P1]
+**Description:** GPs can flag outdated or incorrect LP information
+**Requirements:**
+- "Flag as outdated" button on LP profiles
+- Optional correction suggestion field
+- Flagged records queued for admin review
+- Track flag history per LP
+- Notify admin of new flags
+
+---
+
 ## 6. Data Architecture
 
 ### 6.1 Entity Relationship Diagram
@@ -689,6 +745,12 @@ CREATE TABLE funds (
     investment_thesis   TEXT,
     thesis_embedding    VECTOR(1024),
 
+    -- Audit Trail
+    updated_by          UUID REFERENCES users(id),
+    data_source         TEXT DEFAULT 'manual',
+    last_verified       TIMESTAMPTZ,
+    verification_status TEXT CHECK (verification_status IN ('unverified', 'pending', 'verified', 'outdated')) DEFAULT 'unverified',
+
     -- Metadata
     created_at          TIMESTAMPTZ DEFAULT NOW(),
     updated_at          TIMESTAMPTZ DEFAULT NOW()
@@ -752,9 +814,12 @@ CREATE TABLE lps (
     -- Vector embedding
     mandate_embedding       VECTOR(1024),
 
-    -- Data Quality
-    data_source             TEXT,
-    last_verified           DATE,
+    -- Data Quality & Audit Trail
+    created_by              UUID REFERENCES auth.users(id),
+    updated_by              UUID REFERENCES auth.users(id),
+    data_source             TEXT DEFAULT 'import',
+    last_verified           TIMESTAMPTZ,
+    verification_status     TEXT CHECK (verification_status IN ('unverified', 'pending', 'verified', 'outdated')) DEFAULT 'unverified',
     data_quality_score      DECIMAL(3,2) DEFAULT 0.0,
     enrichment_status       TEXT CHECK (enrichment_status IN ('pending', 'in_progress', 'completed', 'failed')) DEFAULT 'pending',
 
@@ -786,9 +851,12 @@ CREATE TABLE lp_contacts (
     focus_areas     TEXT[] DEFAULT '{}',
     notes           TEXT,
 
-    -- Enrichment tracking
-    linkedin_enriched BOOLEAN DEFAULT FALSE,
-    last_enriched   TIMESTAMPTZ,
+    -- Audit Trail
+    created_by      UUID REFERENCES auth.users(id),
+    updated_by      UUID REFERENCES auth.users(id),
+    data_source     TEXT DEFAULT 'import',
+    last_verified   TIMESTAMPTZ,
+    verification_status TEXT CHECK (verification_status IN ('unverified', 'pending', 'verified', 'outdated')) DEFAULT 'unverified',
 
     created_at      TIMESTAMPTZ DEFAULT NOW(),
     updated_at      TIMESTAMPTZ DEFAULT NOW()
@@ -892,7 +960,7 @@ CREATE TABLE import_jobs (
 
     file_name       TEXT NOT NULL,
     file_url        TEXT,
-    status          TEXT CHECK (status IN ('pending', 'processing', 'completed', 'failed')) DEFAULT 'pending',
+    status          TEXT CHECK (status IN ('pending', 'preview', 'approved', 'processing', 'completed', 'failed', 'rolled_back')) DEFAULT 'pending',
 
     total_rows      INTEGER,
     processed_rows  INTEGER DEFAULT 0,
@@ -901,8 +969,14 @@ CREATE TABLE import_jobs (
 
     field_mapping   JSONB,
     errors          JSONB DEFAULT '[]',
+    preview_data    JSONB DEFAULT '[]',
 
+    -- Audit Trail
     created_by      UUID REFERENCES users(id),
+    approved_by     UUID REFERENCES users(id),
+    approved_at     TIMESTAMPTZ,
+    data_source     TEXT DEFAULT 'csv_import',
+
     created_at      TIMESTAMPTZ DEFAULT NOW(),
     completed_at    TIMESTAMPTZ
 );
@@ -1055,63 +1129,64 @@ LP_TYPE_MAPPING = {
 }
 ```
 
-### 7.3 Enrichment Pipeline
+### 7.3 Data Sources & Enrichment
 
-**Architecture:** N8N orchestrates → Puppeteer fetches → Claude parses → Supabase stores
+**Data Sources (No Web Scraping):**
+- **CSV Import:** Bulk upload from spreadsheets (primary source)
+- **Manual Entry:** Users add/edit LP records directly
+- **Future API Integrations:** Preqin, PitchBook, and other data providers
+
+**Design Principles:**
+- No web scraping (no Puppeteer, no automated browsing)
+- All data comes from explicit imports or manual entry
+- Bulk update support for external data provider feeds
+- Human review required before committing enriched data
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    Enrichment Pipeline                           │
-│                  (N8N Orchestration Layer)                       │
+│                    Data Enrichment Flow                          │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
-│  N8N Workflow: "Nightly LP Enrichment"                          │
-│  ├── Trigger: Schedule (2 AM daily) or Manual                   │
-│  ├── Query: Get 100 LPs with enrichment_status = 'pending'      │
-│  ├── Rate limit: 2 second delay between requests                │
-│  └── Error handling: Retry 3x, then mark as 'failed'            │
+│  Data Sources:                                                   │
+│  ├── CSV/Excel Import (current)                                 │
+│  ├── Manual Entry (current)                                     │
+│  └── API Integrations (future: Preqin, PitchBook)               │
 │                                                                  │
-│  For each LP (Puppeteer fetches ALL pages):                     │
+│  Processing Pipeline:                                            │
 │                                                                  │
-│  1. Website Enrichment                                          │
-│     ├── Puppeteer: Navigate to LP website                       │
-│     ├── Puppeteer: Extract page HTML                            │
-│     ├── Claude: Parse for About, Investment Focus, Team         │
-│     └── Supabase: Update mandate_description, strategies        │
+│  1. Import/Update Detection                                     │
+│     ├── Parse incoming data                                     │
+│     ├── Match against existing records (name + location)        │
+│     └── Queue for human review if conflicts detected            │
 │                                                                  │
-│  2. LinkedIn Contact Enrichment                                 │
-│     ├── For each contact without linkedin_url:                  │
-│     │   ├── Puppeteer: Search LinkedIn (name + company)         │
-│     │   ├── Puppeteer: Extract profile if found                 │
-│     │   ├── Claude: Verify match (confidence score)             │
-│     │   └── Supabase: Update contact record                     │
+│  2. Human Review (for bulk updates)                             │
+│     ├── Show diff between old and new values                    │
+│     ├── Allow field-by-field approval                           │
+│     └── Require explicit confirmation                           │
 │                                                                  │
-│  3. News/PR Enrichment                                          │
-│     ├── Puppeteer: Search Google News for LP name               │
-│     ├── Puppeteer: Fetch top 5 relevant articles                │
-│     ├── Claude: Extract insights (commitments, hires, strategy) │
-│     └── Supabase: Update notes, recent_activities               │
-│                                                                  │
-│  4. Commitment History (if not present)                         │
-│     ├── Puppeteer: Search SEC EDGAR (for US LPs)                │
-│     ├── Claude: Extract commitment data from filings            │
-│     └── Supabase: Populate lp_commitments table                 │
-│                                                                  │
-│  5. Generate Embeddings                                         │
+│  3. Generate Embeddings                                         │
 │     ├── Combine: mandate_description + strategies + notes       │
 │     ├── Voyage AI: Generate 1024-dim embedding                  │
 │     └── Supabase: Store in mandate_embedding column             │
 │                                                                  │
-│  6. Calculate Data Quality Score                                │
+│  4. Calculate Data Quality Score                                │
 │     ├── Score = weighted sum of field completeness              │
 │     ├── Bonus for recent verification                           │
 │     └── Supabase: Store in data_quality_score                   │
 │                                                                  │
-│  7. Update Status                                               │
-│     └── Supabase: Set enrichment_status = 'completed'           │
+│  5. Update Audit Trail                                          │
+│     ├── Record data_source for each field                       │
+│     ├── Track last_verified date                                │
+│     └── Set verification_status                                 │
 │                                                                  │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+**Future API Integration Design:**
+- Standardized adapter pattern for data providers
+- Scheduled sync jobs (configurable frequency)
+- Field-level merge rules (e.g., "prefer Preqin for AUM")
+- Conflict resolution queue for human review
 
 ### 7.4 Data Quality Scoring
 
@@ -1197,11 +1272,11 @@ def calculate_data_quality_score(lp: LP) -> float:
             │   (Analysis)  │       │  (Embeddings) │
             └───────────────┘       └───────────────┘
 
-Post-MVP only:
-┌───────────────────┐       ┌───────────────────┐
-│       N8N         │──────>│    Puppeteer      │
-│  (Orchestration)  │       │    (Scraping)     │
-└───────────────────┘       └───────────────────┘
+Future (API integrations):
+┌───────────────────┐
+│  External APIs    │
+│  (Preqin, etc.)   │
+└───────────────────┘
 ```
 
 ### 8.2 Technology Stack
@@ -1223,7 +1298,7 @@ Post-MVP only:
 | **PPTX Parsing** | python-pptx | Read/write PowerPoint |
 | **CI/CD** | GitHub Actions | Integrated with repo, runs tests |
 | **Hosting** | Railway | Auto-deploys from GitHub, no Docker needed |
-| **Web Scraping** | N8N + Puppeteer | Post-MVP only, for LP enrichment |
+| **Data Enrichment** | API integrations (future) | Preqin, PitchBook for institutional LP data |
 
 ### 8.3 API Design
 
@@ -1375,9 +1450,9 @@ Each milestone delivers a demoable product increment:
 Railway (Python app) → Supabase (DB + Auth) → Voyage AI (embeddings) → Claude API (analysis)
 ```
 
-**Post-MVP only (if enrichment needed):**
+**Future (data enrichment via APIs):**
 ```
-N8N (orchestration) → Puppeteer (fetch) → Claude (parse) → Supabase (store)
+External APIs (Preqin, PitchBook) → Adapter → Human Review → Supabase (store)
 ```
 
 **Claude CLI vs API:**
@@ -1515,15 +1590,15 @@ Test: TEST-IMPORT-02
 
 ```
 US-IMPORT-03: Data Enrichment
-As an admin, I want LP data enriched from web sources so it's more complete.
+As an admin, I want LP data enriched from external sources so it's more complete.
 
 Acceptance Criteria:
-- Enrichment can be triggered per LP or in batch
-- Website content scraped and parsed
-- LinkedIn profiles found for contacts
+- Support bulk updates from CSV/Excel
+- Future: API integration with data providers (Preqin, PitchBook)
 - Enrichment log shows what changed
 - Confidence score for enriched fields
-- Human review queue for low-confidence
+- Human review queue before committing changes
+- Diff view showing old vs new values
 
 Test: TEST-IMPORT-03
 ```
@@ -1822,6 +1897,7 @@ Regions:
 |---------|------|--------|---------|
 | 1.0 | 2024-12-20 | Claude | Initial draft |
 | 1.1 | 2024-12-20 | Claude | Added data pipeline, enrichment, testing strategy, decisions |
+| 1.2 | 2024-12-20 | Claude | Removed web scraping, added human-in-the-loop requirements, updated F-GP-02 flow, added audit trail fields |
 
 ---
 

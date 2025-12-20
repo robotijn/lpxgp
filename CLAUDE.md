@@ -22,7 +22,14 @@ An AI-powered platform helping investment fund managers (GPs) find and engage th
 | **Deployment** | Railway (auto-deploys from GitHub) |
 
 **M2+:** Voyage AI for semantic search
-**Post-MVP:** N8N + Puppeteer for data enrichment (only if needed)
+**Post-MVP:** Data integrations (external APIs, partner feeds)
+
+## Development Tools
+
+| Tool | Purpose |
+|------|---------|
+| **Puppeteer MCP** | UI screenshots, visual verification, design iteration |
+| **Playwright** | Automated E2E tests in CI/CD |
 
 ## Common Commands
 
@@ -56,6 +63,11 @@ git push origin main
 - Row-Level Security (RLS) for multi-tenancy
 - pgvector for semantic search
 - Migrations in `supabase/migrations/`
+
+### Human-in-the-Loop (AI Content)
+- All generated content (emails, summaries) requires human review before use
+- No auto-send functionality - copy to clipboard only
+- Fund profiles: GP must confirm AI-extracted information
 
 ## Project Structure
 

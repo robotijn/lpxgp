@@ -149,9 +149,36 @@ Clean your LP data using Claude CLI. Target: data quality score > 0.7.
 
 ---
 
+### Data Schema Design Note
+
+Design for future data sources (APIs, partner feeds). Include audit fields in all tables:
+
+```sql
+-- Example LP table with audit fields
+CREATE TABLE lps (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    type TEXT,
+    -- ... other fields ...
+
+    -- Audit fields for data provenance
+    data_source TEXT NOT NULL DEFAULT 'manual',  -- 'manual', 'pitchbook', 'partner_feed', etc.
+    last_verified TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+**Why this matters:**
+- Track where data came from for quality assessment
+- Know when data was last verified as accurate
+- Enable future integrations without schema changes
+
+---
+
 ### M0 Deliverables Checklist
 - [ ] Project structure (main.py + base.html)
-- [ ] Supabase tables + RLS
+- [ ] Supabase tables + RLS (with audit fields)
 - [ ] LP data imported and cleaned
 - [ ] Data quality score > 0.7
 - [ ] Basic /lps page working
@@ -436,7 +463,7 @@ Create `pytest-runner` and `search-debugger` agents.
 Connect Claude to external tools:
 - Databases
 - APIs
-- Browser automation
+- Browser automation (UI verification, not scraping)
 
 #### 8.2 Configuration
 ```json
@@ -451,7 +478,83 @@ Connect Claude to external tools:
 }
 ```
 
+#### 8.3 Puppeteer MCP Use Cases
+Puppeteer MCP is for **UI verification and screenshots**, not web scraping.
+
+**Good uses:**
+- Screenshot the match results page to verify layout
+- Verify responsive design across breakpoints
+- Check visual regression after UI changes
+- Capture error states for debugging
+
+**Not for:** Scraping competitor sites, data extraction from external pages.
+
 *Note: MCP is for post-MVP enrichment. Focus on matching algorithm first.*
+
+---
+
+### Fund Onboarding Flow
+
+```
+1. GP uploads pitch deck (PDF/PPT)
+2. Claude extracts: fund name, size, strategy, thesis, team
+3. Show extracted info → GP confirms or edits
+4. Questionnaire for missing fields
+5. GP approves → generate embeddings
+```
+
+#### Pitch deck extraction
+```python
+async def extract_fund_info(file_path: str) -> FundDraft:
+    """Extract fund information from pitch deck."""
+    text = await extract_text(file_path)  # PDF/PPT to text
+
+    response = await client.messages.create(
+        model="claude-sonnet-4-20250514",
+        messages=[{
+            "role": "user",
+            "content": f"""
+            Extract from this pitch deck:
+            - Fund name
+            - Target size ($M)
+            - Strategy (VC/PE/Growth/etc)
+            - Investment thesis
+            - Team members and backgrounds
+
+            Return as JSON.
+
+            {text}
+            """
+        }]
+    )
+    return FundDraft.parse_raw(response.content[0].text)
+```
+
+#### Confirmation UI
+```html
+<!-- GP reviews and edits extracted info -->
+<form hx-post="/funds/confirm" hx-target="#result">
+    <h2>We extracted this from your deck:</h2>
+
+    <label>Fund Name</label>
+    <input name="name" value="{{ draft.name }}">
+
+    <label>Target Size ($M)</label>
+    <input name="target_size_mm" value="{{ draft.target_size_mm }}">
+
+    <label>Strategy</label>
+    <select name="strategy">
+        {% for s in strategies %}
+        <option {{ 'selected' if s == draft.strategy }}>{{ s }}</option>
+        {% endfor %}
+    </select>
+
+    <label>Thesis</label>
+    <textarea name="thesis">{{ draft.thesis }}</textarea>
+
+    <button type="submit">Confirm & Generate Matches</button>
+</form>
+```
 
 ---
 
@@ -543,11 +646,14 @@ async def get_explanation(match: Match) -> str:
 
 ### Module 10: Pitch Generation
 
-**Goal:** Generate LP-specific materials.
+**Goal:** Generate LP-specific materials as drafts for GP review.
+
+**Important:** All generated content is a **draft**. The GP reviews and edits before use.
 
 #### 10.1 Summary generation
 ```python
-async def generate_summary(match: Match) -> str:
+async def generate_summary_draft(match: Match) -> str:
+    """Generate draft summary - GP will review before using."""
     prompt = f"""
     Create a 1-page executive summary for {match.fund.name}
     tailored to {match.lp.name}.
@@ -560,7 +666,8 @@ async def generate_summary(match: Match) -> str:
 
 #### 10.2 Email generation
 ```python
-async def generate_email(match: Match, tone: str = "professional") -> Email:
+async def generate_email_draft(match: Match, tone: str = "professional") -> EmailDraft:
+    """Generate draft email - GP reviews and sends from their own email client."""
     prompt = f"""
     Draft an intro email from {match.fund.name} to {match.lp.name}.
     Tone: {tone}
@@ -573,8 +680,27 @@ async def generate_email(match: Match, tone: str = "professional") -> Email:
     Under 200 words.
     """
     content = await call_claude(prompt)
-    return Email(subject=extract_subject(content), body=extract_body(content))
+    return EmailDraft(subject=extract_subject(content), body=extract_body(content))
 ```
+
+#### 10.3 Draft review UI
+```html
+<!-- GP reviews generated draft -->
+<div class="draft-container">
+    <h3>Draft Email</h3>
+    <p class="notice">Review and edit this draft before copying.</p>
+
+    <textarea id="email-draft" rows="10">{{ draft.body }}</textarea>
+
+    <div class="actions">
+        <!-- Copy to clipboard, NOT send -->
+        <button onclick="copyToClipboard()">Copy to Clipboard</button>
+        <button hx-post="/drafts/{{ draft.id }}/regenerate">Regenerate</button>
+    </div>
+</div>
+```
+
+**Never auto-send.** The GP copies the draft to their email client, reviews it, and sends manually.
 
 ---
 
