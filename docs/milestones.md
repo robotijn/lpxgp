@@ -8,6 +8,14 @@
 
 ---
 
+## Tech Principles
+- CDN for frontend libs (no npm build for MVP)
+- supabase-py client (no SQLAlchemy)
+- Supabase Auth UI (no custom login forms)
+- Add complexity only when needed
+
+---
+
 ## Overview
 
 | Milestone | Demo Statement | Duration | Live URL |
@@ -35,11 +43,10 @@
 - Data cleaning with Claude CLI
 
 **Deliverables:**
-- [ ] FastAPI project with uv + Jinja2 + HTMX
-- [ ] Supabase: Tables created
+- [ ] main.py + base.html + Supabase tables
+- [ ] Use CDN for HTMX + Tailwind (no build step)
 - [ ] LP data imported and cleaned
 - [ ] GP data imported
-- [ ] Data quality score > 0.7
 
 **CLI Learning:**
 - Module 1: CLAUDE.md
@@ -47,9 +54,7 @@
 
 **Exit Criteria:**
 - [ ] `uv run pytest` passes
-- [ ] `uv run uvicorn src.main:app` starts locally
-- [ ] Data quality score > 0.7
-- [ ] Can query LPs in Supabase
+- [ ] localhost:8000/lps shows data
 
 **Demo:** Local only - show Supabase dashboard with your data
 
@@ -61,17 +66,17 @@
 **Duration:** 2-3 days
 
 **What we build:**
-- Supabase Auth
+- Supabase Auth UI (don't build custom login forms)
 - Row-Level Security
-- LP search API with filters
+- LP full-text search API with filters (no embeddings yet)
 - Search UI (HTMX)
 - **Deploy to Railway**
 - **CI/CD pipeline (GitHub Actions)**
 
 **Deliverables:**
-- [ ] Auth: Register, login, logout
+- [ ] Auth: Use Supabase Auth UI (register, login, logout)
 - [ ] RLS policies configured
-- [ ] API: GET /api/v1/lps with filters
+- [ ] API: GET /api/v1/lps with filters (full-text search only)
 - [ ] UI: Login + LP search page (Jinja2 + HTMX)
 - [ ] **GitHub Actions: test → deploy to Railway**
 - [ ] **Live at lpxgp.com**
@@ -99,6 +104,8 @@
 
 ## M2: Semantic Search
 ### "Natural language search works"
+
+**THIS milestone adds Voyage AI embeddings.** M0-M1 used Supabase full-text search, now we upgrade to semantic.
 
 **Duration:** 1-2 days
 

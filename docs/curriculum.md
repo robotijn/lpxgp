@@ -1,7 +1,7 @@
 # Curriculum: Building LPxGP with Claude Code
 
 **For:** Experienced Python developer (20+ years)
-**Tech stack:** Python (uv), FastAPI, Jinja2, HTMX, Tailwind, Supabase
+**Tech stack:** Python (uv), FastAPI, Jinja2, HTMX, Tailwind (CDN for HTMX/Tailwind), Supabase
 **Pace:** Self-directed, milestone-based
 **Package manager:** `uv` (not pip/conda)
 **Deployment:** Railway (auto-deploys from GitHub) - no Docker needed
@@ -150,12 +150,11 @@ Clean your LP data using Claude CLI. Target: data quality score > 0.7.
 ---
 
 ### M0 Deliverables Checklist
-- [ ] Project structure created
-- [ ] Supabase tables + RLS policies
+- [ ] Project structure (main.py + base.html)
+- [ ] Supabase tables + RLS
 - [ ] LP data imported and cleaned
-- [ ] GP data imported
 - [ ] Data quality score > 0.7
-- [ ] Commands: `/status`, `/test`, `/dev`
+- [ ] Basic /lps page working
 
 ---
 
@@ -249,7 +248,21 @@ Set up GitHub Actions to run tests and deploy to Railway.
 
 **Goal:** Build dynamic UI without JavaScript frameworks.
 
-#### 5.1 Basic HTMX
+**Note:** Use `supabase-py` client directly for database access instead of SQLAlchemy - simpler and works seamlessly with Supabase RLS.
+
+#### 5.1 Base template with CDN links
+```html
+<!-- templates/base.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+...
+```
+
+#### 5.2 Basic HTMX
 ```html
 <!-- Search form with live results -->
 <input type="text"
@@ -263,7 +276,7 @@ Set up GitHub Actions to run tests and deploy to Railway.
 <div id="results"></div>
 ```
 
-#### 5.2 FastAPI + Jinja2 endpoint
+#### 5.3 FastAPI + Jinja2 endpoint
 ```python
 @router.get("/lps/search")
 async def search_lps(
@@ -278,7 +291,7 @@ async def search_lps(
     )
 ```
 
-#### 5.3 Component template
+#### 5.4 Component template
 ```html
 <!-- templates/components/lp_list.html -->
 {% for lp in lps %}
@@ -300,7 +313,7 @@ Build the LP search page with HTMX live filtering.
 ---
 
 ### M1 Deliverables Checklist
-- [ ] Auth: Register, login, logout
+- [ ] Auth: Use Supabase Auth UI (no custom login forms needed)
 - [ ] RLS policies configured
 - [ ] API: GET /lps with filters
 - [ ] UI: Login + LP search page (HTMX)
@@ -313,6 +326,8 @@ Build the LP search page with HTMX live filtering.
 ### "Natural language search works"
 
 **Duration:** 1-2 days
+
+**Note:** This is when Voyage AI gets added to the project. M0 and M1 use only keyword/filter-based search.
 
 ### Module 6: Skills
 

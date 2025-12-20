@@ -16,12 +16,12 @@ An AI-powered platform helping investment fund managers (GPs) find and engage th
 | Layer | Technology |
 |-------|------------|
 | **Backend** | Python 3.11+ (uv), FastAPI |
-| **Frontend** | Jinja2 templates + HTMX + Tailwind CSS |
+| **Frontend** | Jinja2 templates + HTMX + Tailwind CSS (CDN, no npm build) |
 | **Database** | Supabase Cloud (PostgreSQL + pgvector + Auth) |
-| **Embeddings** | Voyage AI (financial domain) |
 | **AI/LLM** | Claude API (Anthropic) |
 | **Deployment** | Railway (auto-deploys from GitHub) |
 
+**M2+:** Voyage AI for semantic search
 **Post-MVP:** N8N + Puppeteer for data enrichment (only if needed)
 
 ## Common Commands
@@ -30,12 +30,6 @@ An AI-powered platform helping investment fund managers (GPs) find and engage th
 # Development
 uv run uvicorn src.main:app --reload   # Start dev server (http://localhost:8000)
 uv run pytest                          # Run tests
-uv run pytest -v --tb=short            # Verbose tests
-uv run ruff check .                    # Lint
-uv run ruff format .                   # Format
-
-# Tailwind CSS (run in separate terminal)
-npx tailwindcss -i ./src/static/input.css -o ./src/static/styles.css --watch
 
 # Deployment (push to main = auto-deploy to Railway)
 git push origin main
@@ -58,6 +52,7 @@ git push origin main
 - Semantic HTML with accessibility in mind
 
 ### Database
+- Use supabase-py directly (no SQLAlchemy)
 - Row-Level Security (RLS) for multi-tenancy
 - pgvector for semantic search
 - Migrations in `supabase/migrations/`
@@ -67,29 +62,18 @@ git push origin main
 ```
 lpxgp/
 ├── CLAUDE.md
-├── pyproject.toml              # Railway detects this
+├── pyproject.toml
 ├── src/
-│   ├── main.py                 # FastAPI app entry point
-│   ├── api/                    # API routes (JSON endpoints)
-│   ├── pages/                  # Page routes (HTML endpoints)
-│   ├── models/                 # Pydantic models
-│   ├── services/               # Business logic
-│   ├── ai/                     # Claude/Voyage integrations
-│   ├── templates/              # Jinja2 HTML templates
-│   │   ├── base.html
-│   │   ├── pages/
-│   │   └── components/
-│   └── static/                 # CSS, JS, images
-│       ├── styles.css          # Compiled Tailwind
-│       └── htmx.min.js
+│   ├── main.py                 # FastAPI app + all routes
+│   ├── templates/
+│   │   ├── base.html           # Layout with CDN links
+│   │   └── pages/
+│   └── static/                 # Images only (CSS/JS via CDN)
 ├── tests/
-│   ├── unit/
-│   ├── integration/
-│   └── e2e/                    # Playwright tests
+│   └── test_main.py
 ├── supabase/
 │   └── migrations/
 └── docs/
-    └── prd/
 ```
 
 ## Milestones

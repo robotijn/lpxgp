@@ -1210,12 +1210,13 @@ Post-MVP only:
 |-------|------------|-----------|
 | **App Framework** | FastAPI (Python 3.11+) | Async, fast, great for AI integration |
 | **Templating** | Jinja2 | Server-side rendering, Python native |
-| **Interactivity** | HTMX | Hypermedia-driven, no JS framework needed |
-| **Styling** | Tailwind CSS | Utility-first, rapid development |
+| **Interactivity** | HTMX (via CDN) | Hypermedia-driven, no JS framework needed |
+| **Styling** | Tailwind CSS (via CDN) | Utility-first, rapid development |
 | **Database** | Supabase (PostgreSQL) | Managed, reliable backups, built-in auth |
+| **ORM** | supabase-py | No SQLAlchemy, direct Supabase client |
 | **Vector DB** | pgvector (Supabase) | Integrated, no separate service |
 | **Auth** | Supabase Auth | Built-in, handles JWT, supports OAuth |
-| **Embeddings** | Voyage AI | Best quality for financial domain |
+| **Embeddings** | Voyage AI (M2+ only) | Best quality for financial domain |
 | **AI/LLM** | Claude API (Anthropic) | Superior document analysis and reasoning |
 | **File Storage** | Supabase Storage | Integrated, S3-compatible |
 | **PDF Parsing** | PyMuPDF + pdfplumber | Best Python PDF libraries |
@@ -1312,12 +1313,12 @@ Post-MVP only:
 **M1: Auth + Search + Deploy (2-3 days)**
 - Authentication with Supabase
 - Row-Level Security
-- LP search with filters
+- LP search with filters (Supabase full-text search, built-in, free)
 - HTMX-powered search UI
 - Deploy to Railway + CI/CD pipeline
 
 **M2: Semantic Search (1-2 days)**
-- Voyage AI integration
+- Voyage AI integration (semantic search starts here)
 - LP embeddings
 - Natural language search
 
@@ -1713,6 +1714,7 @@ See separate document: **@docs/prd/test-specifications.md**
 | 3 | 2024-12-20 | Priority A→B→C | Various orders | Search is foundation, then matching, then output |
 | 4 | 2024-12-20 | PDF supplement approach | Modify PDF, Generate new | Keep original intact, generate addendum |
 | 5 | 2024-12-20 | pgvector for vectors | Pinecone, Weaviate | Integrated with Supabase, no extra service |
+| 6 | 2024-12-20 | CDN for frontend, supabase-py for database | npm/bundler, SQLAlchemy | Minimize build tools and dependencies for faster iteration |
 
 ---
 
