@@ -1178,35 +1178,40 @@ def calculate_data_quality_score(lp: LP) -> float:
                     │   Supabase Cloud      │
                     │   - Auth              │
                     │   - PostgreSQL        │
+                    │   - pgvector          │
                     │   - Storage           │
-                    │   - Edge Functions    │
                     └───────────┬───────────┘
                                 │
-            ┌───────────────────┼───────────────────┐
-            │                   │                   │
-    ┌───────▼───────┐   ┌───────▼───────┐   ┌──────▼──────┐
-    │   Frontend    │   │   Backend     │   │   Workers   │
-    │   (Vercel)    │   │   (Railway)   │   │  (Railway)  │
-    │   React/TS    │   │   FastAPI     │   │  Enrichment │
-    │               │   │               │   │  Jobs       │
-    └───────────────┘   └───────┬───────┘   └─────────────┘
+                    ┌───────────▼───────────┐
+                    │   Python App          │
+                    │   (Railway)           │
+                    │                       │
+                    │   FastAPI + Jinja2    │
+                    │   + HTMX + Tailwind   │
+                    └───────────┬───────────┘
                                 │
                     ┌───────────┼───────────┐
-                    │           │           │
-            ┌───────▼───┐ ┌─────▼─────┐ ┌───▼───────┐
-            │ Claude API│ │ Voyage AI │ │ Puppeteer │
-            │ (Analysis)│ │(Embeddings)│ │ (Scraping)│
-            └───────────┘ └───────────┘ └───────────┘
+                    │                       │
+            ┌───────▼───────┐       ┌───────▼───────┐
+            │   Claude API  │       │   Voyage AI   │
+            │   (Analysis)  │       │  (Embeddings) │
+            └───────────────┘       └───────────────┘
+
+Post-MVP only:
+┌───────────────────┐       ┌───────────────────┐
+│       N8N         │──────>│    Puppeteer      │
+│  (Orchestration)  │       │    (Scraping)     │
+└───────────────────┘       └───────────────────┘
 ```
 
 ### 8.2 Technology Stack
 
 | Layer | Technology | Rationale |
 |-------|------------|-----------|
-| **Frontend** | React 18 + TypeScript | Modern, type-safe, large ecosystem |
-| **Styling** | Tailwind CSS + shadcn/ui | Rapid development, consistent design |
-| **State** | TanStack Query (React Query) | Best for server state management |
-| **Backend** | FastAPI (Python 3.11+) | Async, fast, great for AI integration |
+| **App Framework** | FastAPI (Python 3.11+) | Async, fast, great for AI integration |
+| **Templating** | Jinja2 | Server-side rendering, Python native |
+| **Interactivity** | HTMX | Hypermedia-driven, no JS framework needed |
+| **Styling** | Tailwind CSS | Utility-first, rapid development |
 | **Database** | Supabase (PostgreSQL) | Managed, reliable backups, built-in auth |
 | **Vector DB** | pgvector (Supabase) | Integrated, no separate service |
 | **Auth** | Supabase Auth | Built-in, handles JWT, supports OAuth |
@@ -1215,12 +1220,9 @@ def calculate_data_quality_score(lp: LP) -> float:
 | **File Storage** | Supabase Storage | Integrated, S3-compatible |
 | **PDF Parsing** | PyMuPDF + pdfplumber | Best Python PDF libraries |
 | **PPTX Parsing** | python-pptx | Read/write PowerPoint |
-| **Web Scraping** | Puppeteer (via MCP) | Headless browser for JS-heavy sites |
-| **Task Queue** | Supabase Edge Functions or Celery | Background job processing |
-| **Containerization** | Docker + Compose | Local development consistency |
-| **CI/CD** | GitHub Actions | Integrated with repo |
-| **Frontend Hosting** | Vercel | Optimized for React, easy deploys |
-| **Backend Hosting** | Railway | Easy Docker deployment, good DX |
+| **CI/CD** | GitHub Actions | Integrated with repo, runs tests |
+| **Hosting** | Railway | Auto-deploys from GitHub, no Docker needed |
+| **Web Scraping** | N8N + Puppeteer | Post-MVP only, for LP enrichment |
 
 ### 8.3 API Design
 
@@ -1302,31 +1304,39 @@ def calculate_data_quality_score(lp: LP) -> float:
 
 ### 9.1 MVP Scope
 
-**Priority A: LP Search & Database (Sprints 1-3)**
-- Authentication with Supabase
-- LP data import from CSV
-- Data cleaning pipeline
-- Data enrichment (basic)
-- LP search with filters
-- Semantic search with Voyage AI
+**M0: Setup + Data Import (1-2 days)**
+- Project structure (Python monolith)
+- Supabase project + tables
+- LP/GP data import and cleaning
 
-**Priority B: Matching Engine (Sprints 4-5)**
+**M1: Auth + Search + Deploy (2-3 days)**
+- Authentication with Supabase
+- Row-Level Security
+- LP search with filters
+- HTMX-powered search UI
+- Deploy to Railway + CI/CD pipeline
+
+**M2: Semantic Search (1-2 days)**
+- Voyage AI integration
+- LP embeddings
+- Natural language search
+
+**M3: GP Profiles + Matching (2-3 days)**
 - Fund profile creation
 - Pitch deck upload
-- Hard filter matching
-- Soft scoring algorithm
+- Hard filter + soft scoring
 - Semantic matching
-- AI explanations
 
-**Priority C: Pitch Generation (Sprint 6)**
-- LP-specific executive summary
-- Outreach email generation
+**M4: AI Explanations + Pitch (1-2 days)**
+- Claude API integration
+- Match explanations
+- LP-specific summary + email generation
 
-**Integration & Deploy (Sprint 7)**
-- React frontend
-- All features integrated
-- Docker deployment
-- CI/CD pipeline
+**M5: Production Polish (2-3 days)**
+- Admin dashboard
+- Error tracking (Sentry)
+- Feedback collection
+- Performance optimization
 
 ### 9.2 Out of Scope for MVP
 
@@ -1346,19 +1356,25 @@ Each milestone delivers a demoable product increment:
 
 | Milestone | Demo | Duration |
 |-----------|------|----------|
-| M0: Foundation | "I can search my LP database" | 2-3 weeks |
-| M1: Smart Search | "Find LPs using natural language" | 1-2 weeks |
-| M2: Matching | "See which LPs match my fund" | 2-3 weeks |
-| M3: Explanations | "Understand WHY an LP matches" | 1-2 weeks |
-| M4: Pitch Gen | "Generate personalized outreach" | 1-2 weeks |
-| M5: Production | "Live system with automation" | 2-3 weeks |
+| M0: Setup + Data | "Data is imported and clean" | 1-2 days |
+| M1: Auth + Search + Deploy | "Search LPs on lpxgp.com" | 2-3 days |
+| M2: Semantic Search | "Natural language search works" | 1-2 days |
+| M3: GP Profiles + Matching | "See matching LPs for my fund" | 2-3 days |
+| M4: AI + Pitch | "AI explains matches + generates pitch" | 1-2 days |
+| M5: Production Polish | "Production-ready with admin" | 2-3 days |
 
 **Key Principles:**
 - Every milestone is independently valuable and demoable
 - You can stop at any milestone and have a useful product
-- Frontend and backend built together for each milestone
+- Single Python app serves both API and UI (Jinja2 + HTMX)
+- Deployment happens in M1; after that, every push auto-deploys
 
-**Architecture (M2+):**
+**Architecture:**
+```
+Railway (Python app) → Supabase (DB + Auth) → Voyage AI (embeddings) → Claude API (analysis)
+```
+
+**Post-MVP only (if enrichment needed):**
 ```
 N8N (orchestration) → Puppeteer (fetch) → Claude (parse) → Supabase (store)
 ```
@@ -1684,7 +1700,7 @@ See separate document: **@docs/prd/test-specifications.md**
 - Database connection pooling (Supabase)
 - Async operations for AI calls
 - Background jobs for enrichment
-- CDN for static assets (Vercel)
+- Static assets served by FastAPI (Railway handles caching)
 
 ---
 

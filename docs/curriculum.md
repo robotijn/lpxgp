@@ -1,9 +1,10 @@
 # Curriculum: Building LPxGP with Claude Code
 
 **For:** Experienced Python developer (20+ years)
-**Tech stack:** Python (uv), TypeScript/React, Supabase, Docker
+**Tech stack:** Python (uv), FastAPI, Jinja2, HTMX, Tailwind, Supabase
 **Pace:** Self-directed, milestone-based
 **Package manager:** `uv` (not pip/conda)
+**Deployment:** Railway (auto-deploys from GitHub) - no Docker needed
 
 ---
 
@@ -13,25 +14,27 @@ Learn Claude Code customization while building LPxGP - a GP-LP intelligence plat
 
 Each milestone delivers a demoable product AND teaches Claude CLI skills.
 
+**After M1, every push to main auto-deploys to lpxgp.com.**
+
 ---
 
 ## Milestone-Module Mapping
 
 | Milestone | Modules | What You Learn | What You Build |
 |-----------|---------|----------------|----------------|
-| M0 | 1-4 | CLAUDE.md, rules, commands | Searchable LP database |
-| M1 | 5-6 | Skills, agents | Semantic search |
-| M2 | 7-10 | MCP, Puppeteer, N8N | GP profiles + matching |
-| M3 | 11-12 | Claude API basics | AI explanations |
-| M4 | 13-14 | Advanced prompting | Pitch generation |
-| M5 | 15-16 | Docker, CI/CD | Production deployment |
+| M0 | 1-2 | CLAUDE.md, commands | Data imported + clean (local) |
+| M1 | 3-5 | Rules, CI/CD, deployment | LP search live on lpxgp.com |
+| M2 | 6-7 | Skills, agents | Semantic search |
+| M3 | 8 | MCP fundamentals | GP profiles + matching |
+| M4 | 9-10 | Claude API, prompting | AI explanations + pitch |
+| M5 | 11 | Production monitoring | Admin + polish |
 
 ---
 
 ## Milestone 0: Foundation
-### "I can search my LP database"
+### "Data is imported and clean"
 
-**Duration:** 2-3 weeks
+**Duration:** 1-2 days
 
 ### Module 1: CLAUDE.md Foundation
 
@@ -57,13 +60,13 @@ AI-powered platform for GP-LP matching.
 
 ## Tech Stack
 - Python 3.11+ (uv), FastAPI
-- React 18, TypeScript, Tailwind
+- Jinja2 + HTMX + Tailwind
 - Supabase (PostgreSQL + pgvector)
 
 ## Commands
+- `uv run uvicorn src.main:app --reload` - start server
 - `uv run pytest` - run tests
 - `uv run ruff check .` - lint
-- `npm run dev` - frontend
 ```
 
 #### 1.3 File imports with `@`
@@ -77,58 +80,17 @@ Review the existing CLAUDE.md and add your personal preferences to CLAUDE.local.
 
 ---
 
-### Module 2: Project Rules
-
-**Goal:** Organize rules with path-specific matching.
-
-#### 2.1 Rules directory
-```
-.claude/rules/
-├── python.md      # Python standards
-├── testing.md     # pytest conventions
-├── api.md         # FastAPI patterns
-└── frontend.md    # React/TypeScript
-```
-
-#### 2.2 Path-specific rules
-```markdown
----
-paths: **/*.py
----
-
-# Python Rules
-- Type hints on all public functions
-- Use Pydantic for request/response models
-- Use pathlib.Path over os.path
-```
-
-```markdown
----
-paths: tests/**/*.py
----
-
-# Test Rules
-- Use pytest fixtures
-- Naming: test_<what>_<when>_<expected>
-- Use factories for test data
-```
-
-#### Exercise 2
-Create `.claude/rules/python.md` and `.claude/rules/testing.md`.
-
----
-
-### Module 3: Basic Commands
+### Module 2: Basic Commands
 
 **Goal:** Create project-specific slash commands.
 
-#### 3.1 Command location
+#### 2.1 Command location
 ```
 .claude/commands/           # Project commands
 ~/.claude/commands/         # Personal commands
 ```
 
-#### 3.2 LPxGP commands
+#### 2.2 LPxGP commands
 ```markdown
 # .claude/commands/status.md
 ---
@@ -149,72 +111,32 @@ Run `uv run pytest -v --tb=short` and summarize results.
 ```
 
 ```markdown
-# .claude/commands/db.md
+# .claude/commands/dev.md
 ---
-description: Database status
-allowed-tools: Bash, Read
+description: Start development server
+allowed-tools: Bash
 ---
 
-Check Supabase connection and show table row counts.
+Start the FastAPI server with `uv run uvicorn src.main:app --reload`.
 ```
 
-#### Exercise 3
-Create `/status`, `/test`, and `/db` commands.
+#### Exercise 2
+Create `/status`, `/test`, and `/dev` commands.
 
 ---
 
-### Module 4: Command Arguments
-
-**Goal:** Create commands with dynamic input.
-
-#### 4.1 Variables
-| Variable | Example |
-|----------|---------|
-| `$ARGUMENTS` | All args as string |
-| `$1`, `$2` | Positional args |
-| `!command` | Shell output |
-| `@file` | File contents |
-
-#### 4.2 LPxGP examples
-```markdown
-# .claude/commands/analyze.md
----
-description: Analyze a file
-argument-hint: <file> [focus]
----
-
-Analyze @$1 for code quality.
-Focus: $2
-```
-
-```markdown
-# .claude/commands/lp.md
----
-description: Look up LP by name
-argument-hint: <name>
----
-
-Search for LP: $ARGUMENTS
-Show their profile and any matches.
-```
-
-#### Exercise 4
-Create `/analyze` and `/lp` commands.
-
----
-
-### Module 4b: Data Cleaning with CLI
+### Module 2b: Data Cleaning with CLI
 
 **Goal:** Use Claude CLI to clean your LP/GP data (free, no API cost).
 
-#### 4b.1 The approach
+#### 2b.1 The approach
 ```
 You: "I have a messy CSV with 10k LPs. Help me clean it."
 Claude CLI: Reads file, writes Python script, you run it locally.
 Cost: $0 (your subscription)
 ```
 
-#### 4b.2 Cleaning workflow
+#### 2b.2 Cleaning workflow
 1. Load CSV into conversation: `@data/raw_lps.csv`
 2. Claude analyzes issues (missing fields, inconsistent naming)
 3. Claude writes `clean_lps.py` script
@@ -222,20 +144,7 @@ Cost: $0 (your subscription)
 5. Iterate until clean
 6. Import to Supabase
 
-#### 4b.3 Normalization functions
-```python
-# Claude helps you write these
-STRATEGY_MAP = {
-    "pe": "Private Equity",
-    "vc": "Venture Capital",
-    "buyout": "Private Equity - Buyout",
-}
-
-def normalize_strategy(value: str) -> str:
-    return STRATEGY_MAP.get(value.lower().strip(), value)
-```
-
-#### Exercise 4b
+#### Exercise 2b
 Clean your LP data using Claude CLI. Target: data quality score > 0.7.
 
 ---
@@ -245,28 +154,177 @@ Clean your LP data using Claude CLI. Target: data quality score > 0.7.
 - [ ] Supabase tables + RLS policies
 - [ ] LP data imported and cleaned
 - [ ] GP data imported
-- [ ] Basic search UI with filters
-- [ ] LP detail page
-- [ ] Commands: `/status`, `/test`, `/db`, `/analyze`
+- [ ] Data quality score > 0.7
+- [ ] Commands: `/status`, `/test`, `/dev`
 
 ---
 
-## Milestone 1: Smart Search
-### "Find LPs using natural language"
+## Milestone 1: Auth + Search + Deploy
+### "Search LPs on lpxgp.com"
 
-**Duration:** 1-2 weeks
+**Duration:** 2-3 days
 
-### Module 5: Skills
+### Module 3: Project Rules
+
+**Goal:** Organize rules with path-specific matching.
+
+#### 3.1 Rules directory
+```
+.claude/rules/
+├── python.md      # Python standards
+├── testing.md     # pytest conventions
+├── api.md         # FastAPI patterns
+└── templates.md   # Jinja2/HTMX patterns
+```
+
+#### 3.2 Path-specific rules
+```markdown
+---
+paths: **/*.py
+---
+
+# Python Rules
+- Type hints on all public functions
+- Use Pydantic for request/response models
+- Use pathlib.Path over os.path
+```
+
+```markdown
+---
+paths: **/templates/**/*.html
+---
+
+# Template Rules
+- Use HTMX attributes for dynamic behavior
+- Include hx-indicator for loading states
+- Use Tailwind utility classes
+```
+
+#### Exercise 3
+Create `.claude/rules/python.md` and `.claude/rules/templates.md`.
+
+---
+
+### Module 4: GitHub Actions CI/CD
+
+**Goal:** Automate testing and deployment.
+
+#### 4.1 GitHub Actions workflow
+```yaml
+# .github/workflows/deploy.yml
+name: Deploy
+on:
+  push:
+    branches: [main]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+      - run: uv sync
+      - run: uv run pytest
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: railwayapp/railway-deploy@v1
+        with:
+          railway_token: ${{ secrets.RAILWAY_TOKEN }}
+```
+
+#### 4.2 Railway setup
+1. Create Railway account
+2. Connect GitHub repo
+3. Add environment variables (Supabase URL, API keys)
+4. Connect domain lpxgp.com
+
+#### Exercise 4
+Set up GitHub Actions to run tests and deploy to Railway.
+
+---
+
+### Module 5: HTMX Patterns
+
+**Goal:** Build dynamic UI without JavaScript frameworks.
+
+#### 5.1 Basic HTMX
+```html
+<!-- Search form with live results -->
+<input type="text"
+       name="query"
+       hx-get="/lps/search"
+       hx-trigger="keyup changed delay:300ms"
+       hx-target="#results"
+       hx-indicator="#loading">
+
+<div id="loading" class="htmx-indicator">Loading...</div>
+<div id="results"></div>
+```
+
+#### 5.2 FastAPI + Jinja2 endpoint
+```python
+@router.get("/lps/search")
+async def search_lps(
+    request: Request,
+    query: str = "",
+    type: str | None = None
+):
+    lps = await lp_service.search(query=query, type=type)
+    return templates.TemplateResponse(
+        "components/lp_list.html",
+        {"request": request, "lps": lps}
+    )
+```
+
+#### 5.3 Component template
+```html
+<!-- templates/components/lp_list.html -->
+{% for lp in lps %}
+<div class="p-4 border rounded hover:bg-gray-50">
+    <h3 class="font-bold">{{ lp.name }}</h3>
+    <p class="text-gray-600">{{ lp.type }}</p>
+    <button hx-get="/lps/{{ lp.id }}"
+            hx-target="#modal-content"
+            hx-trigger="click">
+        View Details
+    </button>
+</div>
+{% endfor %}
+```
+
+#### Exercise 5
+Build the LP search page with HTMX live filtering.
+
+---
+
+### M1 Deliverables Checklist
+- [ ] Auth: Register, login, logout
+- [ ] RLS policies configured
+- [ ] API: GET /lps with filters
+- [ ] UI: Login + LP search page (HTMX)
+- [ ] GitHub Actions: test -> deploy
+- [ ] **Live at lpxgp.com**
+
+---
+
+## Milestone 2: Semantic Search
+### "Natural language search works"
+
+**Duration:** 1-2 days
+
+### Module 6: Skills
 
 **Goal:** Create capabilities Claude uses automatically.
 
-#### 5.1 Skills vs Commands
+#### 6.1 Skills vs Commands
 | Aspect | Commands | Skills |
 |--------|----------|--------|
 | Invocation | User types `/command` | Claude decides |
 | Structure | Single file | Directory with SKILL.md |
 
-#### 5.2 LPxGP skills
+#### 6.2 LPxGP skills
 ```
 .claude/skills/
 ├── supabase-helper/
@@ -277,44 +335,42 @@ Clean your LP data using Claude CLI. Target: data quality score > 0.7.
     └── embedding-examples.md
 ```
 
-#### 5.3 Supabase skill
+#### 6.3 Voyage helper skill
 ```yaml
 ---
-name: supabase-helper
-description: Supabase specialist for RLS policies, migrations, pgvector queries, and Auth. Use when working with database or authentication.
+name: voyage-helper
+description: Voyage AI embedding specialist. Helps with vector search, similarity queries, and pgvector operations. Use when working with semantic search or embeddings.
 allowed-tools: Read, Grep, Glob, Edit, Bash
 ---
 
-# Supabase Helper
+# Voyage AI Helper
 
 ## When to Use
-- Writing migrations
-- Setting up RLS policies
-- pgvector similarity queries
-- Auth configuration
+- Generating embeddings for LPs/funds
+- Writing pgvector similarity queries
+- Debugging search relevance
 
-## RLS Pattern for Multi-tenancy
-See [rls-patterns.md](rls-patterns.md)
+## Embedding Pattern
+See [embedding-examples.md](embedding-examples.md)
 ```
 
-#### Exercise 5
+#### Exercise 6
 Create `supabase-helper` and `voyage-helper` skills.
 
 ---
 
-### Module 6: Custom Agents
+### Module 7: Custom Agents
 
 **Goal:** Create specialized AI assistants.
 
-#### 6.1 LPxGP agents
+#### 7.1 LPxGP agents
 ```
 .claude/agents/
 ├── pytest-runner.md      # Test specialist
-├── api-reviewer.md       # Code reviewer
 └── search-debugger.md    # Search quality checker
 ```
 
-#### 6.2 Pytest runner agent
+#### 7.2 Pytest runner agent
 ```markdown
 ---
 name: pytest-runner
@@ -332,61 +388,42 @@ You are a Python testing specialist for LPxGP.
 4. Re-run to verify
 
 ## LPxGP Patterns
-- Factories in tests/fixtures/factories.py
+- Fixtures in tests/conftest.py
 - Mock external APIs (Claude, Voyage)
 - Use httpx for integration tests
 ```
 
-#### 6.3 Search debugger agent
-```markdown
----
-name: search-debugger
-description: Debug search quality issues. Use when search results seem wrong.
-tools: Read, Bash, Grep
-model: sonnet
----
-
-You debug LPxGP search quality.
-
-## Process
-1. Run the problematic query
-2. Check embedding similarity scores
-3. Verify LP data quality
-4. Suggest improvements
-```
-
-#### Exercise 6
+#### Exercise 7
 Create `pytest-runner` and `search-debugger` agents.
 
 ---
 
-### M1 Deliverables Checklist
-- [ ] Voyage AI integration
-- [ ] Embeddings for all LP mandates
-- [ ] Semantic search endpoint
-- [ ] Combined filter + semantic search
-- [ ] Relevance scores in UI
+### M2 Deliverables Checklist
+- [ ] Voyage AI configured
+- [ ] Embeddings for all LPs
+- [ ] API: POST /lps/semantic-search
+- [ ] UI: Natural language search box
 - [ ] Skills: `supabase-helper`, `voyage-helper`
 - [ ] Agents: `pytest-runner`, `search-debugger`
 
 ---
 
-## Milestone 2: GP Profiles + Matching
-### "See which LPs match my fund"
+## Milestone 3: GP Profiles + Matching
+### "See matching LPs for my fund"
 
-**Duration:** 2-3 weeks
+**Duration:** 2-3 days
 
-### Module 7: MCP Fundamentals
+### Module 8: MCP Fundamentals
 
-**Goal:** Understand Model Context Protocol.
+**Goal:** Understand Model Context Protocol (for future enrichment).
 
-#### 7.1 What is MCP?
+#### 8.1 What is MCP?
 Connect Claude to external tools:
 - Databases
 - APIs
 - Browser automation
 
-#### 7.2 Configuration
+#### 8.2 Configuration
 ```json
 // ~/.claude/settings.json
 {
@@ -399,62 +436,13 @@ Connect Claude to external tools:
 }
 ```
 
----
-
-### Module 8: Puppeteer MCP
-
-**Goal:** Browser automation for LP enrichment.
-
-#### 8.1 Capabilities
-- Navigate to URLs
-- Extract page content
-- Take screenshots
-- Handle JavaScript-rendered pages
-
-#### 8.2 Enrichment use cases
-- Scrape LP website "About" pages
-- Extract investment mandates
-- Find LinkedIn profiles
-- Gather news articles
-
-#### 8.3 Rate limiting
-```python
-async def enrich_lp(lp_url: str):
-    content = await puppeteer.get_page_content(lp_url)
-    mandate = await extract_with_claude(content)
-    await asyncio.sleep(2)  # Rate limit
-    return mandate
-```
+*Note: MCP is for post-MVP enrichment. Focus on matching algorithm first.*
 
 ---
 
-### Module 9: N8N Setup
+### Matching Algorithm
 
-**Goal:** Workflow orchestration for data pipelines.
-
-#### 9.1 Docker setup
-```yaml
-services:
-  n8n:
-    image: n8nio/n8n
-    ports:
-      - "5678:5678"
-    volumes:
-      - n8n_data:/home/node/.n8n
-```
-
-#### 9.2 LPxGP workflows
-- **CSV Import:** Upload → Parse → Clean → Store
-- **Nightly Enrichment:** Schedule → Puppeteer → Claude → Supabase
-- **Duplicate Detection:** New LP → Search → Flag
-
----
-
-### Module 10: Matching Engine
-
-**Goal:** Match funds to LPs with scoring.
-
-#### 10.1 Hard filters
+#### Hard filters
 ```python
 def apply_hard_filters(fund: Fund, lps: list[LP]) -> list[LP]:
     return [lp for lp in lps if
@@ -464,7 +452,7 @@ def apply_hard_filters(fund: Fund, lps: list[LP]) -> list[LP]:
     ]
 ```
 
-#### 10.2 Soft scoring
+#### Soft scoring
 ```python
 def calculate_score(fund: Fund, lp: LP) -> float:
     score = 0
@@ -477,28 +465,26 @@ def calculate_score(fund: Fund, lp: LP) -> float:
 
 ---
 
-### M2 Deliverables Checklist
-- [ ] Fund profile creation wizard
+### M3 Deliverables Checklist
+- [ ] Fund profile creation form
 - [ ] Pitch deck upload + text extraction
 - [ ] Fund thesis embeddings
 - [ ] Matching algorithm (hard + soft)
 - [ ] Match results page with scores
 - [ ] Score breakdown visualization
-- [ ] Puppeteer MCP configured
-- [ ] N8N running with basic workflow
 
 ---
 
-## Milestone 3: AI Explanations
-### "Understand WHY an LP matches"
+## Milestone 4: AI Explanations + Pitch
+### "AI explains matches + generates pitch"
 
-**Duration:** 1-2 weeks
+**Duration:** 1-2 days
 
-### Module 11: Claude API Integration
+### Module 9: Claude API Integration
 
 **Goal:** Generate match explanations.
 
-#### 11.1 API setup
+#### 9.1 API setup
 ```python
 import anthropic
 
@@ -527,7 +513,7 @@ async def generate_explanation(fund: Fund, lp: LP, score: float) -> str:
     return response.content[0].text
 ```
 
-#### 11.2 Caching
+#### 9.2 Caching
 ```python
 async def get_explanation(match: Match) -> str:
     if match.explanation:
@@ -540,54 +526,11 @@ async def get_explanation(match: Match) -> str:
 
 ---
 
-### Module 12: Explanation Quality
+### Module 10: Pitch Generation
 
-**Goal:** Ensure explanations are accurate.
+**Goal:** Generate LP-specific materials.
 
-#### 12.1 Principles
-- Only reference data you have
-- Add citations: "Based on their mandate: [quote]"
-- Flag concerns, don't hide them
-- Add disclaimer for AI-generated content
-
-#### 12.2 Prompt engineering
-```python
-prompt = f"""
-Based ONLY on this data (do not invent facts):
-
-LP Mandate: "{lp.mandate_description}"
-LP Check Size: ${lp.check_size_min_mm}M - ${lp.check_size_max_mm}M
-LP Strategies: {lp.strategies}
-
-Fund Thesis: "{fund.investment_thesis}"
-Fund Size: ${fund.target_size_mm}M
-
-Explain the alignment. Quote the mandate where relevant.
-"""
-```
-
----
-
-### M3 Deliverables Checklist
-- [ ] Claude API integration
-- [ ] Explanation generation
-- [ ] Caching layer
-- [ ] Talking points extraction
-- [ ] Concerns identification
-- [ ] Expandable explanation panel in UI
-
----
-
-## Milestone 4: Pitch Generation
-### "Generate personalized outreach"
-
-**Duration:** 1-2 weeks
-
-### Module 13: Summary Generation
-
-**Goal:** LP-specific executive summaries.
-
-#### 13.1 Generation
+#### 10.1 Summary generation
 ```python
 async def generate_summary(match: Match) -> str:
     prompt = f"""
@@ -600,22 +543,7 @@ async def generate_summary(match: Match) -> str:
     return await call_claude(prompt)
 ```
 
-#### 13.2 PDF export
-```python
-from weasyprint import HTML
-
-def export_pdf(summary: str, match: Match) -> bytes:
-    html = render_template("summary.html", summary=summary, match=match)
-    return HTML(string=html).write_pdf()
-```
-
----
-
-### Module 14: Email Generation
-
-**Goal:** Personalized outreach emails.
-
-#### 14.1 Tone options
+#### 10.2 Email generation
 ```python
 async def generate_email(match: Match, tone: str = "professional") -> Email:
     prompt = f"""
@@ -636,95 +564,60 @@ async def generate_email(match: Match, tone: str = "professional") -> Email:
 ---
 
 ### M4 Deliverables Checklist
-- [ ] Executive summary generation
-- [ ] PDF export
+- [ ] Claude API integration
+- [ ] Explanation generation
+- [ ] Caching layer
+- [ ] Talking points extraction
 - [ ] Email generation (multiple tones)
-- [ ] Edit before export
-- [ ] Copy to clipboard
-- [ ] Save as template
+- [ ] PDF export
 
 ---
 
-## Milestone 5: Production
-### "Live system with automation"
+## Milestone 5: Production Polish
+### "Production-ready with admin"
 
-**Duration:** 2-3 weeks
+**Duration:** 2-3 days
 
-### Module 15: Docker & CI/CD
+### Module 11: Production Monitoring
 
-**Goal:** Containerize and automate deployment.
+**Goal:** Admin dashboard and monitoring.
 
-#### 15.1 Docker Compose
-```yaml
-version: '3.8'
-services:
-  backend:
-    build: ./backend
-    ports: ["8000:8000"]
-    environment:
-      - DATABASE_URL=${DATABASE_URL}
-      - CLAUDE_API_KEY=${CLAUDE_API_KEY}
-
-  frontend:
-    build: ./frontend
-    ports: ["3000:3000"]
-
-  n8n:
-    image: n8nio/n8n
-    ports: ["5678:5678"]
-```
-
-#### 15.2 GitHub Actions
-```yaml
-name: Deploy
-on:
-  push:
-    branches: [main]
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: uv sync && uv run pytest
-  deploy:
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-      - run: railway up
-```
-
----
-
-### Module 16: Production Polish
-
-**Goal:** Monitoring, admin, automation.
-
-#### 16.1 Admin dashboard
+#### 11.1 Admin features
 - User management
 - Data quality metrics
-- Enrichment job status
-- Error logs
+- Error tracking (Sentry)
+- Feedback collection
 
-#### 16.2 Automation
-- Nightly enrichment (N8N + Puppeteer)
-- Stale data alerts
-- Backup verification
+#### 11.2 Sentry setup
+```python
+import sentry_sdk
 
-#### 16.3 Feedback loop
-- "Was this match relevant?" Yes/No
-- Track: Email sent → Response → Meeting
-- Use feedback to improve scoring
+sentry_sdk.init(
+    dsn=os.environ["SENTRY_DSN"],
+    traces_sample_rate=0.1,
+)
+```
+
+#### 11.3 Feedback loop
+```python
+@router.post("/matches/{match_id}/feedback")
+async def submit_feedback(
+    match_id: UUID,
+    feedback: Literal["positive", "negative"],
+    reason: str | None = None
+):
+    await match_service.record_feedback(match_id, feedback, reason)
+```
 
 ---
 
 ### M5 Deliverables Checklist
-- [ ] Docker deployment
-- [ ] CI/CD pipeline
 - [ ] Admin dashboard
-- [ ] Automated enrichment
-- [ ] Error tracking (Sentry)
+- [ ] User management
+- [ ] Data quality stats
+- [ ] Sentry integration
 - [ ] Feedback collection
-- [ ] Basic analytics
+- [ ] All endpoints < 500ms p95
 
 ---
 
@@ -741,10 +634,10 @@ jobs:
 
 ### Commands
 ```bash
-uv run pytest                # Run tests
-uv run ruff check .          # Lint
-npm run dev                  # Frontend
-docker-compose up -d         # All services
+uv run uvicorn src.main:app --reload  # Dev server
+uv run pytest                          # Run tests
+uv run ruff check .                    # Lint
+git push origin main                   # Deploy
 ```
 
 ### CLI vs API

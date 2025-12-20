@@ -16,34 +16,29 @@ An AI-powered platform helping investment fund managers (GPs) find and engage th
 | Layer | Technology |
 |-------|------------|
 | **Backend** | Python 3.11+ (uv), FastAPI |
-| **Frontend** | React 18, TypeScript, Tailwind CSS, shadcn/ui |
+| **Frontend** | Jinja2 templates + HTMX + Tailwind CSS |
 | **Database** | Supabase Cloud (PostgreSQL + pgvector + Auth) |
 | **Embeddings** | Voyage AI (financial domain) |
 | **AI/LLM** | Claude API (Anthropic) |
-| **Automation** | N8N (workflow automation) |
-| **Scraping** | Puppeteer MCP |
-| **Deployment** | Docker, GitHub Actions, Vercel/Railway |
+| **Deployment** | Railway (auto-deploys from GitHub) |
+
+**Post-MVP:** N8N + Puppeteer for data enrichment (only if needed)
 
 ## Common Commands
 
 ```bash
-# Python backend
-uv run pytest                    # Run tests
-uv run pytest -v --tb=short      # Verbose tests
-uv run ruff check .              # Lint
-uv run ruff format .             # Format
-uv run python -m backend.main    # Start backend
+# Development
+uv run uvicorn src.main:app --reload   # Start dev server (http://localhost:8000)
+uv run pytest                          # Run tests
+uv run pytest -v --tb=short            # Verbose tests
+uv run ruff check .                    # Lint
+uv run ruff format .                   # Format
 
-# Frontend
-npm run dev                      # Start dev server
-npm run build                    # Production build
-npm run test                     # Run tests
-npm run lint                     # ESLint
+# Tailwind CSS (run in separate terminal)
+npx tailwindcss -i ./src/static/input.css -o ./src/static/styles.css --watch
 
-# Docker
-docker-compose up -d             # Start all services
-docker-compose logs -f           # View logs
-docker-compose down              # Stop services
+# Deployment (push to main = auto-deploy to Railway)
+git push origin main
 ```
 
 ## Code Standards
@@ -56,12 +51,11 @@ docker-compose down              # Stop services
 - Pydantic for all request/response models
 - pytest for testing with factories
 
-### TypeScript/React
-- Functional components only
-- TanStack Query for server state
+### Templates (Jinja2 + HTMX)
+- Base template with common layout
+- HTMX for dynamic updates (no page reloads)
 - Tailwind CSS for styling
-- shadcn/ui component library
-- ESLint + Prettier
+- Semantic HTML with accessibility in mind
 
 ### Database
 - Row-Level Security (RLS) for multi-tenancy
@@ -73,44 +67,43 @@ docker-compose down              # Stop services
 ```
 lpxgp/
 ├── CLAUDE.md
-├── docker-compose.yml
-├── backend/
-│   ├── pyproject.toml
-│   ├── src/
-│   │   ├── api/           # FastAPI routes
-│   │   ├── models/        # Pydantic models
-│   │   ├── services/      # Business logic
-│   │   ├── ai/            # Claude/Voyage integrations
-│   │   └── cleaning/      # Data normalization
-│   └── tests/
-│       ├── unit/
-│       ├── integration/
-│       └── fixtures/
-├── frontend/
-│   ├── package.json
-│   └── src/
-│       ├── components/
-│       ├── pages/
-│       ├── hooks/
-│       └── lib/
+├── pyproject.toml              # Railway detects this
+├── src/
+│   ├── main.py                 # FastAPI app entry point
+│   ├── api/                    # API routes (JSON endpoints)
+│   ├── pages/                  # Page routes (HTML endpoints)
+│   ├── models/                 # Pydantic models
+│   ├── services/               # Business logic
+│   ├── ai/                     # Claude/Voyage integrations
+│   ├── templates/              # Jinja2 HTML templates
+│   │   ├── base.html
+│   │   ├── pages/
+│   │   └── components/
+│   └── static/                 # CSS, JS, images
+│       ├── styles.css          # Compiled Tailwind
+│       └── htmx.min.js
+├── tests/
+│   ├── unit/
+│   ├── integration/
+│   └── e2e/                    # Playwright tests
 ├── supabase/
-│   └── migrations/        # SQL migrations
-├── n8n/
-│   └── workflows/         # N8N workflow exports
+│   └── migrations/
 └── docs/
     └── prd/
 ```
 
 ## Milestones
 
-| Milestone | Demo | Duration |
-|-----------|------|----------|
-| M0 | "Search my LP database" | 2-3 weeks |
-| M1 | "Find LPs with natural language" | 1-2 weeks |
-| M2 | "See which LPs match my fund" | 2-3 weeks |
-| M3 | "Understand WHY an LP matches" | 1-2 weeks |
-| M4 | "Generate personalized pitch" | 1-2 weeks |
-| M5 | "Live system with automation" | 2-3 weeks |
+| Milestone | Demo | Duration | Live |
+|-----------|------|----------|------|
+| M0 | "Data is imported and clean" | 1-2 days | Local only |
+| M1 | "Search LPs on lpxgp.com" | 2-3 days | Yes |
+| M2 | "Natural language search works" | 1-2 days | Auto-deploy |
+| M3 | "See matching LPs for my fund" | 2-3 days | Auto-deploy |
+| M4 | "AI explains matches + generates pitch" | 1-2 days | Auto-deploy |
+| M5 | "Production-ready with admin" | 2-3 days | Auto-deploy |
+
+**Total: ~15 working days** - After M1, every push auto-deploys to lpxgp.com.
 
 See @docs/milestones.md for full roadmap.
 
@@ -151,7 +144,8 @@ TDD workflow:
 ## Learning Approach
 
 Learn Claude Code features while building LPxGP:
-- Modules 1-6: Claude CLI (commands, skills, agents)
-- Modules 7-19: Build the application sprint by sprint
+- Modules 1-5: Claude CLI basics (CLAUDE.md, commands, rules, deployment)
+- Modules 6-7: Skills and agents
+- Modules 8-11: MCP, Claude API, production
 
 See @docs/curriculum.md for the full learning path.

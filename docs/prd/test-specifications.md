@@ -17,13 +17,13 @@
 ### Test Pyramid
 ```
               ┌─────────┐
-              │   E2E   │  Playwright (~20 tests)
+              │   E2E   │  Playwright for HTMX pages (~20 tests)
              ─┴─────────┴─
             ┌─────────────┐
             │ Integration │  pytest + httpx (~100 tests)
            ─┴─────────────┴─
           ┌─────────────────┐
-          │   Unit Tests    │  pytest + Jest (~200 tests)
+          │   Unit Tests    │  pytest (~200 tests)
          ─┴─────────────────┴─
 ```
 
@@ -31,9 +31,13 @@
 | Layer | Tool |
 |-------|------|
 | Unit (Python) | pytest |
-| Unit (Frontend) | Vitest |
 | Integration | pytest + httpx |
-| E2E | Playwright |
+| E2E | Playwright (server-rendered HTML + HTMX) |
+
+### Stack
+- **Frontend:** Jinja2 templates + HTMX + Tailwind CSS (server-rendered)
+- **Backend:** FastAPI + SQLAlchemy
+- **Testing:** pytest for all Python code, Playwright for browser E2E tests
 
 ---
 
@@ -346,55 +350,79 @@ class TestDataIsolation:
 
 ### M0-E2E: End-to-End Tests
 
-```typescript
-// tests/e2e/m0-foundation.spec.ts
+```python
+# tests/e2e/test_m0_foundation.py
 
-import { test, expect } from '@playwright/test';
+import pytest
+from playwright.sync_api import Page, expect
 
-test.describe('M0: Foundation', () => {
 
-  test('user can register and login', async ({ page }) => {
-    await page.goto('/register');
-    await page.fill('[data-testid="email"]', 'test@example.com');
-    await page.fill('[data-testid="password"]', 'SecurePass123!');
-    await page.fill('[data-testid="name"]', 'Test User');
-    await page.click('[data-testid="register-btn"]');
+class TestM0Foundation:
+    """E2E tests for M0: Foundation milestone."""
 
-    // Should redirect to verify email page
-    await expect(page).toHaveURL(/verify/);
-  });
+    def test_user_can_register(self, page: Page):
+        """User can register with valid credentials."""
+        page.goto("/register")
+        page.fill('[data-testid="email"]', "test@example.com")
+        page.fill('[data-testid="password"]', "SecurePass123!")
+        page.fill('[data-testid="name"]', "Test User")
+        page.click('[data-testid="register-btn"]')
 
-  test('user can search LPs with filters', async ({ page }) => {
-    await loginAs(page, 'member@example.com');
-    await page.goto('/lps');
+        # Should redirect to verify email page
+        expect(page).to_have_url(re.compile(r"/verify"))
 
-    // Apply filter
-    await page.click('[data-testid="type-filter"]');
-    await page.click('text=Public Pension');
+    def test_user_can_search_lps_with_filters(self, page: Page, logged_in_user):
+        """User can filter LPs by type using HTMX-powered filters."""
+        page.goto("/lps")
 
-    // Results should update
-    await expect(page.locator('[data-testid="lp-card"]')).toHaveCount({ min: 1 });
+        # Apply filter - HTMX will update the results
+        page.click('[data-testid="type-filter"]')
+        page.click("text=Public Pension")
 
-    // All results should be Public Pension
-    const types = await page.locator('[data-testid="lp-type"]').allTextContents();
-    for (const type of types) {
-      expect(type).toBe('Public Pension');
-    }
-  });
+        # Wait for HTMX to update the content
+        page.wait_for_selector('[data-testid="lp-card"]')
 
-  test('user can view LP details', async ({ page }) => {
-    await loginAs(page, 'member@example.com');
-    await page.goto('/lps');
+        # Results should be visible
+        expect(page.locator('[data-testid="lp-card"]')).to_have_count(
+            greater_than_or_equal=1
+        )
 
-    // Click first LP
-    await page.click('[data-testid="lp-card"]:first-child');
+        # All results should be Public Pension
+        type_elements = page.locator('[data-testid="lp-type"]').all()
+        for elem in type_elements:
+            expect(elem).to_have_text("Public Pension")
 
-    // Should see detail page
-    await expect(page.locator('[data-testid="lp-name"]')).toBeVisible();
-    await expect(page.locator('[data-testid="lp-mandate"]')).toBeVisible();
-  });
+    def test_user_can_view_lp_details(self, page: Page, logged_in_user):
+        """User can click an LP card to view details."""
+        page.goto("/lps")
+        page.wait_for_selector('[data-testid="lp-card"]')
 
-});
+        # Click first LP card
+        page.click('[data-testid="lp-card"]:first-child')
+
+        # Should see detail page with LP info
+        expect(page.locator('[data-testid="lp-name"]')).to_be_visible()
+        expect(page.locator('[data-testid="lp-mandate"]')).to_be_visible()
+
+    def test_htmx_partial_updates(self, page: Page, logged_in_user):
+        """HTMX correctly updates partial page content without full reload."""
+        page.goto("/lps")
+
+        # Get initial page content marker
+        initial_url = page.url
+
+        # Apply filter (triggers HTMX request)
+        page.click('[data-testid="type-filter"]')
+        page.click("text=Endowment")
+
+        # Wait for HTMX to complete
+        page.wait_for_load_state("networkidle")
+
+        # URL should update with filter params but no full page reload
+        expect(page).to_have_url(re.compile(r"type=Endowment"))
+
+        # Header should still be visible (wasn't replaced)
+        expect(page.locator('[data-testid="page-header"]')).to_be_visible()
 ```
 
 ---
@@ -500,43 +528,71 @@ class TestSemanticSearch:
 
 ### M1-E2E: End-to-End Tests
 
-```typescript
-// tests/e2e/m1-semantic-search.spec.ts
+```python
+# tests/e2e/test_m1_semantic_search.py
 
-test.describe('M1: Semantic Search', () => {
+import pytest
+from playwright.sync_api import Page, expect
 
-  test('natural language search returns relevant results', async ({ page }) => {
-    await loginAs(page, 'member@example.com');
-    await page.goto('/lps');
 
-    await page.fill('[data-testid="semantic-search"]', 'family offices interested in fintech');
-    await page.press('[data-testid="semantic-search"]', 'Enter');
+class TestM1SemanticSearch:
+    """E2E tests for M1: Semantic Search milestone."""
 
-    await expect(page.locator('[data-testid="loading"]')).not.toBeVisible();
-    await expect(page.locator('[data-testid="lp-card"]')).toHaveCount({ min: 1 });
-    await expect(page.locator('[data-testid="similarity-score"]')).toBeVisible();
-  });
+    def test_natural_language_search_returns_results(self, page: Page, logged_in_user):
+        """User can search using natural language via HTMX."""
+        page.goto("/lps")
 
-  test('can combine semantic search with filters', async ({ page }) => {
-    await loginAs(page, 'member@example.com');
-    await page.goto('/lps');
+        # Enter semantic search query
+        page.fill('[data-testid="semantic-search"]', "family offices interested in fintech")
+        page.press('[data-testid="semantic-search"]', "Enter")
 
-    // Apply filter first
-    await page.click('[data-testid="type-filter"]');
-    await page.click('text=Endowment');
+        # Wait for HTMX to complete the search
+        page.wait_for_selector('[data-testid="lp-card"]')
+        expect(page.locator('[data-testid="loading"]')).not.to_be_visible()
 
-    // Then semantic search
-    await page.fill('[data-testid="semantic-search"]', 'technology');
-    await page.press('[data-testid="semantic-search"]', 'Enter');
+        # Should have results with similarity scores
+        expect(page.locator('[data-testid="lp-card"]')).to_have_count(
+            greater_than_or_equal=1
+        )
+        expect(page.locator('[data-testid="similarity-score"]').first).to_be_visible()
 
-    // All results should be Endowments
-    const types = await page.locator('[data-testid="lp-type"]').allTextContents();
-    for (const type of types) {
-      expect(type).toBe('Endowment');
-    }
-  });
+    def test_combine_semantic_search_with_filters(self, page: Page, logged_in_user):
+        """User can combine semantic search with type filters."""
+        page.goto("/lps")
 
-});
+        # Apply filter first
+        page.click('[data-testid="type-filter"]')
+        page.click("text=Endowment")
+
+        # Wait for filter to apply
+        page.wait_for_load_state("networkidle")
+
+        # Then perform semantic search
+        page.fill('[data-testid="semantic-search"]', "technology")
+        page.press('[data-testid="semantic-search"]', "Enter")
+
+        # Wait for search results
+        page.wait_for_load_state("networkidle")
+
+        # All results should be Endowments
+        type_elements = page.locator('[data-testid="lp-type"]').all()
+        for elem in type_elements:
+            expect(elem).to_have_text("Endowment")
+
+    def test_search_shows_loading_indicator(self, page: Page, logged_in_user):
+        """Loading indicator appears during HTMX search request."""
+        page.goto("/lps")
+
+        # Start search
+        page.fill('[data-testid="semantic-search"]', "healthcare investors")
+
+        # Check loading indicator appears (htmx-indicator class)
+        page.press('[data-testid="semantic-search"]', "Enter")
+        expect(page.locator('[data-testid="loading"]')).to_be_visible()
+
+        # Wait for completion
+        page.wait_for_load_state("networkidle")
+        expect(page.locator('[data-testid="loading"]')).not.to_be_visible()
 ```
 
 ---
@@ -700,43 +756,70 @@ class TestMatchGeneration:
 
 ### M2-E2E: End-to-End Tests
 
-```typescript
-// tests/e2e/m2-matching.spec.ts
+```python
+# tests/e2e/test_m2_matching.py
 
-test.describe('M2: Matching', () => {
+import pytest
+from playwright.sync_api import Page, expect
 
-  test('create fund and generate matches', async ({ page }) => {
-    await loginAs(page, 'member@example.com');
 
-    // Create fund
-    await page.goto('/funds/new');
-    await page.fill('[data-testid="fund-name"]', 'Test Fund');
-    await page.fill('[data-testid="target-size"]', '200');
-    await page.selectOption('[data-testid="strategy"]', 'Private Equity - Growth');
-    await page.click('[data-testid="save-btn"]');
+class TestM2Matching:
+    """E2E tests for M2: Matching milestone."""
 
-    // Generate matches
-    await page.click('[data-testid="find-matches-btn"]');
-    await expect(page.locator('[data-testid="loading"]')).toBeVisible();
-    await expect(page.locator('[data-testid="loading"]')).not.toBeVisible({ timeout: 30000 });
+    def test_create_fund_and_generate_matches(self, page: Page, logged_in_user):
+        """User can create a fund and generate LP matches."""
+        # Create fund via form
+        page.goto("/funds/new")
+        page.fill('[data-testid="fund-name"]', "Test Fund")
+        page.fill('[data-testid="target-size"]', "200")
+        page.select_option('[data-testid="strategy"]', "Private Equity - Growth")
+        page.click('[data-testid="save-btn"]')
 
-    // Should have matches
-    await expect(page.locator('[data-testid="match-card"]')).toHaveCount({ min: 1 });
-  });
+        # Wait for redirect to fund page
+        page.wait_for_url(re.compile(r"/funds/\d+"))
 
-  test('match cards show scores', async ({ page }) => {
-    await loginAs(page, 'member@example.com');
-    await page.goto('/funds/123/matches');
+        # Generate matches (HTMX button)
+        page.click('[data-testid="find-matches-btn"]')
 
-    const scoreElements = page.locator('[data-testid="match-score"]');
-    await expect(scoreElements).toHaveCount({ min: 1 });
+        # Loading indicator should appear
+        expect(page.locator('[data-testid="loading"]')).to_be_visible()
 
-    // Scores should be visible numbers
-    const firstScore = await scoreElements.first().textContent();
-    expect(parseInt(firstScore!)).toBeGreaterThan(0);
-  });
+        # Wait for matches to load (may take time for AI processing)
+        page.wait_for_selector('[data-testid="match-card"]', timeout=30000)
+        expect(page.locator('[data-testid="loading"]')).not_to_be_visible()
 
-});
+        # Should have match results
+        expect(page.locator('[data-testid="match-card"]')).to_have_count(
+            greater_than_or_equal=1
+        )
+
+    def test_match_cards_show_scores(self, page: Page, logged_in_user, fund_with_matches):
+        """Match cards display score values."""
+        page.goto(f"/funds/{fund_with_matches.id}/matches")
+        page.wait_for_selector('[data-testid="match-card"]')
+
+        score_elements = page.locator('[data-testid="match-score"]')
+        expect(score_elements).to_have_count(greater_than_or_equal=1)
+
+        # First score should be a visible number
+        first_score = score_elements.first.text_content()
+        assert int(first_score) > 0
+
+    def test_htmx_match_sorting(self, page: Page, logged_in_user, fund_with_matches):
+        """User can sort matches via HTMX dropdown."""
+        page.goto(f"/funds/{fund_with_matches.id}/matches")
+        page.wait_for_selector('[data-testid="match-card"]')
+
+        # Change sort order
+        page.select_option('[data-testid="sort-select"]', "score_asc")
+
+        # Wait for HTMX to reload content
+        page.wait_for_load_state("networkidle")
+
+        # Verify matches are re-ordered (first score should be lowest)
+        scores = page.locator('[data-testid="match-score"]').all_text_contents()
+        int_scores = [int(s) for s in scores]
+        assert int_scores == sorted(int_scores)
 ```
 
 ---
@@ -817,34 +900,61 @@ class TestExplanationEndpoint:
 
 ### M3-E2E: End-to-End Tests
 
-```typescript
-// tests/e2e/m3-explanations.spec.ts
+```python
+# tests/e2e/test_m3_explanations.py
 
-test.describe('M3: Explanations', () => {
+import pytest
+from playwright.sync_api import Page, expect
 
-  test('view match explanation', async ({ page }) => {
-    await loginAs(page, 'member@example.com');
-    await page.goto('/funds/123/matches');
 
-    // Expand explanation
-    await page.click('[data-testid="expand-explanation-btn"]:first-child');
+class TestM3Explanations:
+    """E2E tests for M3: Explanations milestone."""
 
-    // Should see explanation content
-    await expect(page.locator('[data-testid="explanation-text"]')).toBeVisible();
-    await expect(page.locator('[data-testid="talking-points"]')).toBeVisible();
-  });
+    def test_view_match_explanation(self, page: Page, logged_in_user, fund_with_matches):
+        """User can expand match card to view AI explanation."""
+        page.goto(f"/funds/{fund_with_matches.id}/matches")
+        page.wait_for_selector('[data-testid="match-card"]')
 
-  test('explanation shows talking points', async ({ page }) => {
-    await loginAs(page, 'member@example.com');
-    await page.goto('/funds/123/matches');
+        # Expand explanation (HTMX lazy-loads content)
+        page.click('[data-testid="expand-explanation-btn"]:first-child')
 
-    await page.click('[data-testid="expand-explanation-btn"]:first-child');
+        # Wait for HTMX to load explanation content
+        page.wait_for_selector('[data-testid="explanation-text"]')
 
-    const points = page.locator('[data-testid="talking-point"]');
-    await expect(points).toHaveCount({ min: 3 });
-  });
+        # Should see explanation content
+        expect(page.locator('[data-testid="explanation-text"]')).to_be_visible()
+        expect(page.locator('[data-testid="talking-points"]')).to_be_visible()
 
-});
+    def test_explanation_shows_talking_points(self, page: Page, logged_in_user, fund_with_matches):
+        """Explanation includes actionable talking points."""
+        page.goto(f"/funds/{fund_with_matches.id}/matches")
+        page.wait_for_selector('[data-testid="match-card"]')
+
+        # Expand to load explanation
+        page.click('[data-testid="expand-explanation-btn"]:first-child')
+        page.wait_for_selector('[data-testid="talking-point"]')
+
+        # Should have at least 3 talking points
+        points = page.locator('[data-testid="talking-point"]')
+        expect(points).to_have_count(greater_than_or_equal=3)
+
+    def test_explanation_lazy_loads_on_expand(self, page: Page, logged_in_user, fund_with_matches):
+        """Explanation content is lazy-loaded via HTMX on expand."""
+        page.goto(f"/funds/{fund_with_matches.id}/matches")
+        page.wait_for_selector('[data-testid="match-card"]')
+
+        # Initially, explanation should not be in DOM (lazy loading)
+        expect(page.locator('[data-testid="explanation-text"]')).not_to_be_visible()
+
+        # Click expand button
+        page.click('[data-testid="expand-explanation-btn"]:first-child')
+
+        # Loading indicator should appear briefly
+        expect(page.locator('[data-testid="explanation-loading"]')).to_be_visible()
+
+        # Then explanation loads
+        page.wait_for_selector('[data-testid="explanation-text"]')
+        expect(page.locator('[data-testid="explanation-loading"]')).not_to_be_visible()
 ```
 
 ---
@@ -913,44 +1023,74 @@ class TestEmailGeneration:
 
 ### M4-E2E: End-to-End Tests
 
-```typescript
-// tests/e2e/m4-pitch.spec.ts
+```python
+# tests/e2e/test_m4_pitch.py
 
-test.describe('M4: Pitch Generation', () => {
+import pytest
+from playwright.sync_api import Page, expect
 
-  test('generate and download summary', async ({ page }) => {
-    await loginAs(page, 'member@example.com');
-    await page.goto('/funds/123/matches');
 
-    await page.click('[data-testid="generate-pitch-btn"]:first-child');
-    await page.click('[data-testid="summary-option"]');
+class TestM4PitchGeneration:
+    """E2E tests for M4: Pitch Generation milestone."""
 
-    await expect(page.locator('[data-testid="summary-content"]')).toBeVisible();
+    def test_generate_and_download_summary(self, page: Page, logged_in_user, fund_with_matches):
+        """User can generate executive summary and download as PDF."""
+        page.goto(f"/funds/{fund_with_matches.id}/matches")
+        page.wait_for_selector('[data-testid="match-card"]')
 
-    // Download PDF
-    const [download] = await Promise.all([
-      page.waitForEvent('download'),
-      page.click('[data-testid="download-pdf-btn"]')
-    ]);
-    expect(download.suggestedFilename()).toMatch(/\.pdf$/);
-  });
+        # Open pitch generation modal
+        page.click('[data-testid="generate-pitch-btn"]:first-child')
+        page.click('[data-testid="summary-option"]')
 
-  test('generate and copy email', async ({ page }) => {
-    await loginAs(page, 'member@example.com');
-    await page.goto('/funds/123/matches');
+        # Wait for AI-generated summary
+        page.wait_for_selector('[data-testid="summary-content"]')
+        expect(page.locator('[data-testid="summary-content"]')).to_be_visible()
 
-    await page.click('[data-testid="generate-pitch-btn"]:first-child');
-    await page.click('[data-testid="email-option"]');
-    await page.selectOption('[data-testid="tone-select"]', 'warm');
+        # Download PDF
+        with page.expect_download() as download_info:
+            page.click('[data-testid="download-pdf-btn"]')
 
-    await expect(page.locator('[data-testid="email-subject"]')).toBeVisible();
-    await expect(page.locator('[data-testid="email-body"]')).toBeVisible();
+        download = download_info.value
+        assert download.suggested_filename.endswith(".pdf")
 
-    await page.click('[data-testid="copy-btn"]');
-    await expect(page.locator('[data-testid="copied-toast"]')).toBeVisible();
-  });
+    def test_generate_and_copy_email(self, page: Page, logged_in_user, fund_with_matches):
+        """User can generate outreach email and copy to clipboard."""
+        page.goto(f"/funds/{fund_with_matches.id}/matches")
+        page.wait_for_selector('[data-testid="match-card"]')
 
-});
+        # Open pitch generation and select email
+        page.click('[data-testid="generate-pitch-btn"]:first-child')
+        page.click('[data-testid="email-option"]')
+
+        # Select tone
+        page.select_option('[data-testid="tone-select"]', "warm")
+
+        # Wait for email generation
+        page.wait_for_selector('[data-testid="email-subject"]')
+        expect(page.locator('[data-testid="email-subject"]')).to_be_visible()
+        expect(page.locator('[data-testid="email-body"]')).to_be_visible()
+
+        # Copy to clipboard
+        page.click('[data-testid="copy-btn"]')
+
+        # Toast notification should appear
+        expect(page.locator('[data-testid="copied-toast"]')).to_be_visible()
+
+    def test_pitch_modal_htmx_loads_content(self, page: Page, logged_in_user, fund_with_matches):
+        """Pitch modal content is loaded via HTMX when opened."""
+        page.goto(f"/funds/{fund_with_matches.id}/matches")
+        page.wait_for_selector('[data-testid="match-card"]')
+
+        # Modal should not be visible initially
+        expect(page.locator('[data-testid="pitch-modal"]')).not_to_be_visible()
+
+        # Click generate pitch
+        page.click('[data-testid="generate-pitch-btn"]:first-child')
+
+        # Modal appears with HTMX-loaded content
+        expect(page.locator('[data-testid="pitch-modal"]')).to_be_visible()
+        expect(page.locator('[data-testid="summary-option"]')).to_be_visible()
+        expect(page.locator('[data-testid="email-option"]')).to_be_visible()
 ```
 
 ---
@@ -1123,12 +1263,72 @@ async def auth_token(client, verified_user):
     return response.json()["access_token"]
 ```
 
+### Playwright E2E Fixtures
+
+```python
+# tests/e2e/conftest.py
+
+import pytest
+import re
+from playwright.sync_api import Page, Browser
+
+
+@pytest.fixture(scope="session")
+def browser_context_args(browser_context_args):
+    """Configure browser context for all E2E tests."""
+    return {
+        **browser_context_args,
+        "base_url": "http://localhost:8000",
+        "viewport": {"width": 1280, "height": 720},
+    }
+
+
+@pytest.fixture
+def logged_in_user(page: Page, test_user):
+    """Fixture that logs in a test user before each test."""
+    page.goto("/login")
+    page.fill('[data-testid="email"]', test_user.email)
+    page.fill('[data-testid="password"]', "TestPassword123!")
+    page.click('[data-testid="login-btn"]')
+    page.wait_for_url("/dashboard")
+    return test_user
+
+
+@pytest.fixture
+def fund_with_matches(db_session, logged_in_user):
+    """Create a fund with pre-generated matches for testing."""
+    fund = Fund(
+        name="Test Fund",
+        company_id=logged_in_user.company_id,
+        target_size_mm=200,
+        strategy="Private Equity - Growth",
+    )
+    db_session.add(fund)
+    db_session.commit()
+
+    # Create sample matches
+    for lp in sample_lps:
+        match = Match(fund_id=fund.id, lp_id=lp.id, total_score=80)
+        db_session.add(match)
+    db_session.commit()
+
+    return fund
+
+
+def greater_than_or_equal(n: int):
+    """Helper for Playwright count assertions."""
+    class CountMatcher:
+        def __ge__(self, other):
+            return other >= n
+    return CountMatcher()
+```
+
 ---
 
 ## Running Tests
 
 ```bash
-# All tests
+# All tests (unit + integration)
 uv run pytest
 
 # By milestone
@@ -1139,11 +1339,18 @@ uv run pytest tests/ -k "M2"
 # By type
 uv run pytest tests/unit/
 uv run pytest tests/integration/
-npm run test:e2e
+uv run pytest tests/e2e/  # Playwright browser tests
+
+# E2E tests only (Playwright)
+uv run pytest tests/e2e/ --headed  # Run with visible browser
+uv run pytest tests/e2e/ --browser=firefox  # Specific browser
 
 # With coverage
 uv run pytest --cov=backend --cov-report=html
 
 # Performance only
 uv run pytest -m benchmark
+
+# Install Playwright browsers (first time setup)
+uv run playwright install
 ```
