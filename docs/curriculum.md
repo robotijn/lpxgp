@@ -1,20 +1,10 @@
 # Curriculum: Building LPxGP with Claude Code
 
-**For:** Experienced Python developer (20+ years)
-**Tech stack:** Python (uv), FastAPI, Jinja2, HTMX, Tailwind (CDN for HTMX/Tailwind), Supabase
-**Pace:** Self-directed, milestone-based
-**Package manager:** `uv` (not pip/conda)
-**Deployment:** Railway (auto-deploys from GitHub) - no Docker needed
+Learn Claude Code customization while building LPxGP.
 
----
+**For:** Experienced Python developer | **Pace:** Self-directed, milestone-based
 
-## Course Overview
-
-Learn Claude Code customization while building LPxGP - a GP-LP intelligence platform.
-
-Each milestone delivers a demoable product AND teaches Claude CLI skills.
-
-**After M1, every push to main auto-deploys to lpxgp.com.**
+See CLAUDE.md for tech stack and commands.
 
 ---
 
@@ -51,28 +41,15 @@ Claude reads this file automatically at session start.
 ./CLAUDE.local.md              # Local only (gitignored)
 ```
 
-#### 1.2 LPxGP CLAUDE.md
-```markdown
-# LPxGP: GP-LP Intelligence Platform
+#### 1.2 Key sections
+A good CLAUDE.md includes: project overview, tech stack, common commands, code standards, and current status.
 
-## Overview
-AI-powered platform for GP-LP matching.
+See the actual CLAUDE.md in this repo for a complete example.
 
-## Tech Stack
-- Python 3.11+ (uv), FastAPI
-- Jinja2 + HTMX + Tailwind
-- Supabase (PostgreSQL + pgvector)
-
-## Commands
-- `uv run uvicorn src.main:app --reload` - start server
-- `uv run pytest` - run tests
-- `uv run ruff check .` - lint
-```
-
-#### 1.3 File imports with `@`
+#### 1.3 File references
+Use plain paths (not `@` imports) to avoid auto-loading large files:
 ```markdown
 See docs/milestones.md for roadmap.
-See docs/prd/PRD-v1.md for requirements.
 ```
 
 #### Exercise 1
@@ -762,37 +739,6 @@ async def submit_feedback(
 
 ---
 
-## Quick Reference
-
-### File Locations
-| Type | Location |
-|------|----------|
-| Memory | `./CLAUDE.md` |
-| Rules | `.claude/rules/*.md` |
-| Commands | `.claude/commands/*.md` |
-| Skills | `.claude/skills/*/SKILL.md` |
-| Agents | `.claude/agents/*.md` |
-
-### Commands
-```bash
-uv run uvicorn src.main:app --reload  # Dev server
-uv run pytest                          # Run tests
-uv run ruff check .                    # Lint
-git push origin main                   # Deploy
-```
-
-### CLI vs API
-| Task | Use |
-|------|-----|
-| Data cleaning | CLI (free) |
-| Writing scripts | CLI (free) |
-| Match explanations | API (production) |
-| Pitch generation | API (production) |
-
----
-
 ## Getting Started
 
-**Current:** Ready for Milestone 0
-
-Say "start M0" to begin.
+Say "start M0" to begin. See CLAUDE.md for commands and project structure.

@@ -2,9 +2,7 @@
 
 **Philosophy:** Each milestone is independently valuable, demoable, and **live on lpxgp.com**.
 
-**Tech Stack:** Python + FastAPI + Jinja2 + HTMX + Tailwind + Supabase + Railway
-
-**Total timeline:** ~15 working days (with Claude doing the coding)
+**Total timeline:** ~15 working days | See CLAUDE.md for tech stack
 
 ---
 
@@ -30,7 +28,7 @@
 | M4 | "AI explains matches + generates pitch" | 1-2 days | Auto-deploy |
 | M5 | "Production-ready with admin" | 2-3 days | Auto-deploy |
 
-**Post-MVP:** Enrichment pipeline (N8N + Puppeteer) - only if needed
+**Post-MVP:** Data integrations (APIs) - only if needed
 
 ---
 
@@ -271,8 +269,7 @@
 **Only if needed after real usage.**
 
 - Data integrations (Preqin API, partner feeds)
-- Automated enrichment
-- LinkedIn lookup
+- Automated enrichment from external APIs
 
 ---
 

@@ -1376,45 +1376,9 @@ Future (API integrations):
 
 ## 9. MVP Definition
 
-**See also:** docs/milestones.md for incremental delivery roadmap.
+**See docs/milestones.md for the detailed roadmap.**
 
-### 9.1 MVP Scope
-
-**M0: Setup + Data Import (1-2 days)**
-- Project structure (Python monolith)
-- Supabase project + tables
-- LP/GP data import and cleaning
-
-**M1: Auth + Search + Deploy (2-3 days)**
-- Authentication with Supabase
-- Row-Level Security
-- LP search with filters (Supabase full-text search, built-in, free)
-- HTMX-powered search UI
-- Deploy to Railway + CI/CD pipeline
-
-**M2: Semantic Search (1-2 days)**
-- Voyage AI integration (semantic search starts here)
-- LP embeddings
-- Natural language search
-
-**M3: GP Profiles + Matching (2-3 days)**
-- Fund profile creation
-- Pitch deck upload
-- Hard filter + soft scoring
-- Semantic matching
-
-**M4: AI Explanations + Pitch (1-2 days)**
-- Claude API integration
-- Match explanations
-- LP-specific summary + email generation
-
-**M5: Production Polish (2-3 days)**
-- Admin dashboard
-- Error tracking (Sentry)
-- Feedback collection
-- Performance optimization
-
-### 9.2 Out of Scope for MVP
+### 9.1 Out of Scope for MVP
 
 - OAuth providers (Google, LinkedIn login)
 - AI profile extraction from decks
@@ -1423,44 +1387,6 @@ Future (API integrations):
 - Advanced analytics
 - Mobile optimization
 - CRM integrations
-
-### 9.3 Milestone-Based Delivery
-
-**See docs/milestones.md for the detailed roadmap.**
-
-Each milestone delivers a demoable product increment:
-
-| Milestone | Demo | Duration |
-|-----------|------|----------|
-| M0: Setup + Data | "Data is imported and clean" | 1-2 days |
-| M1: Auth + Search + Deploy | "Search LPs on lpxgp.com" | 2-3 days |
-| M2: Semantic Search | "Natural language search works" | 1-2 days |
-| M3: GP Profiles + Matching | "See matching LPs for my fund" | 2-3 days |
-| M4: AI + Pitch | "AI explains matches + generates pitch" | 1-2 days |
-| M5: Production Polish | "Production-ready with admin" | 2-3 days |
-
-**Key Principles:**
-- Every milestone is independently valuable and demoable
-- You can stop at any milestone and have a useful product
-- Single Python app serves both API and UI (Jinja2 + HTMX)
-- Deployment happens in M1; after that, every push auto-deploys
-
-**Architecture:**
-```
-Railway (Python app) → Supabase (DB + Auth) → Voyage AI (embeddings) → Claude API (analysis)
-```
-
-**Future (data enrichment via APIs):**
-```
-External APIs (Preqin, PitchBook) → Adapter → Human Review → Supabase (store)
-```
-
-**Claude CLI vs API:**
-| Task | Tool | Cost |
-|------|------|------|
-| Data cleaning, scripts | CLI | $0 |
-| Match explanations | API | ~$0.01/call |
-| Pitch generation | API | ~$0.02/call |
 
 ---
 
@@ -1684,54 +1610,9 @@ Test: TEST-PITCH-02
 
 ## 11. Testing Strategy
 
-### 11.1 Testing Pyramid
+**See docs/prd/test-specifications.md for detailed test cases.**
 
-```
-                    ┌───────────┐
-                    │    E2E    │  Puppeteer (critical flows)
-                    │   Tests   │  ~20 tests
-                   ─┴───────────┴─
-                  ┌───────────────┐
-                  │  Integration  │  pytest + httpx
-                  │    Tests      │  ~100 tests
-                 ─┴───────────────┴─
-                ┌───────────────────┐
-                │     Unit Tests    │  pytest + Jest
-                │                   │  ~300 tests
-               ─┴───────────────────┴─
-```
-
-### 11.2 Test Files Structure
-
-```
-tests/
-├── unit/
-│   ├── test_cleaning.py        # Data cleaning functions
-│   ├── test_scoring.py         # Matching algorithm
-│   ├── test_embeddings.py      # Embedding generation
-│   └── test_models.py          # Pydantic models
-├── integration/
-│   ├── test_auth.py            # Auth endpoints
-│   ├── test_funds.py           # Fund CRUD
-│   ├── test_lps.py             # LP search/CRUD
-│   ├── test_matches.py         # Matching endpoints
-│   ├── test_pitches.py         # Pitch generation
-│   └── test_import.py          # Data import
-├── e2e/
-│   ├── test_registration.ts    # User signup flow
-│   ├── test_fund_creation.ts   # Create fund flow
-│   ├── test_lp_search.ts       # Search LPs flow
-│   ├── test_matching.ts        # Generate matches flow
-│   └── test_pitch_gen.ts       # Generate pitch flow
-└── fixtures/
-    ├── sample_lps.csv          # Test LP data
-    ├── sample_fund.json        # Test fund data
-    └── sample_deck.pdf         # Test pitch deck
-```
-
-### 11.3 Test Specifications
-
-See separate document: **docs/prd/test-specifications.md**
+TDD approach: Write test first (RED) → Implement (GREEN) → Refactor.
 
 ---
 
