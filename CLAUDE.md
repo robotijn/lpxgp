@@ -55,6 +55,7 @@ Note: Read these files on demand rather than auto-loading (to save context).
 # Development
 uv run uvicorn src.main:app --reload   # Start dev server (http://localhost:8000)
 uv run pytest                          # Run tests
+uv run ruff check .                    # Lint code
 
 # Deployment (push to main = auto-deploy to Railway)
 git push origin main
@@ -109,9 +110,9 @@ learnclaude/              # Git repo (learning project)
 
 ## Milestones
 
-**~15 working days total.** After M1, every push auto-deploys to lpxgp.com.
+After M1, every push auto-deploys to lpxgp.com.
 
-See docs/milestones.md for the full roadmap with deliverables.
+**See docs/milestones.md for the full roadmap.**
 
 ## Current Status
 

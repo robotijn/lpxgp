@@ -24,8 +24,6 @@ See CLAUDE.md for tech stack and commands.
 ## Milestone 0: Foundation
 ### "Data is imported and clean"
 
-**Duration:** 1-2 days
-
 ### Module 1: CLAUDE.md Foundation
 
 **Goal:** Create a memory file that teaches Claude about LPxGP.
@@ -126,30 +124,7 @@ Clean your LP data using Claude CLI. Target: data quality score > 0.7.
 
 ---
 
-### Data Schema Design Note
-
-Design for future data sources (APIs, partner feeds). Include audit fields in all tables:
-
-```sql
--- Example LP table with audit fields
-CREATE TABLE lps (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name TEXT NOT NULL,
-    type TEXT,
-    -- ... other fields ...
-
-    -- Audit fields for data provenance
-    data_source TEXT NOT NULL DEFAULT 'manual',  -- 'manual', 'pitchbook', 'partner_feed', etc.
-    last_verified TIMESTAMPTZ,
-    created_at TIMESTAMPTZ DEFAULT now(),
-    updated_at TIMESTAMPTZ DEFAULT now()
-);
-```
-
-**Why this matters:**
-- Track where data came from for quality assessment
-- Know when data was last verified as accurate
-- Enable future integrations without schema changes
+Design for future data sources. See PRD Section 6 for schema details.
 
 ---
 
@@ -159,8 +134,6 @@ CREATE TABLE lps (
 
 ## Milestone 1: Auth + Search + Deploy
 ### "Search LPs on lpxgp.com"
-
-**Duration:** 2-3 days
 
 ### Module 3: Project Rules
 
@@ -318,8 +291,6 @@ Build the LP search page with HTMX live filtering.
 ## Milestone 2: Semantic Search
 ### "Natural language search works"
 
-**Duration:** 1-2 days
-
 **Note:** This is when Voyage AI gets added to the project. M0 and M1 use only keyword/filter-based search.
 
 ### Module 6: Skills
@@ -397,7 +368,7 @@ You are a Python testing specialist for LPxGP.
 
 ## LPxGP Patterns
 - Fixtures in tests/conftest.py
-- Mock external APIs (Claude, Voyage)
+- Mock external APIs (OpenRouter, Voyage)
 - Use httpx for integration tests
 ```
 
@@ -412,8 +383,6 @@ Create `pytest-runner` and `search-debugger` agents.
 
 ## Milestone 3: GP Profiles + Matching
 ### "See matching LPs for my fund"
-
-**Duration:** 2-3 days
 
 ### Module 8: MCP Fundamentals
 
@@ -457,7 +426,7 @@ Puppeteer MCP is for **UI verification and screenshots**, not web scraping.
 
 ```
 1. GP uploads pitch deck (PDF/PPT)
-2. Claude extracts: fund name, size, strategy, thesis, team
+2. LLM extracts: fund name, size, strategy, thesis, team
 3. Show extracted info → GP confirms or edits
 4. Questionnaire for missing fields
 5. GP approves → generate embeddings
@@ -549,8 +518,6 @@ def calculate_score(fund: Fund, lp: LP) -> float:
 
 ## Milestone 4: AI Explanations + Pitch
 ### "AI explains matches + generates pitch"
-
-**Duration:** 1-2 days
 
 ### Module 9: OpenRouter API Integration
 
@@ -673,8 +640,6 @@ async def generate_email_draft(match: Match, tone: str = "professional") -> Emai
 
 ## Milestone 5: Production Polish
 ### "Production-ready with admin"
-
-**Duration:** 2-3 days
 
 ### Module 11: Production Monitoring
 

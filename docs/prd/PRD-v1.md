@@ -1,7 +1,7 @@
 # Product Requirements Document (PRD)
 # LPxGP: GP-LP Intelligence Platform
 
-**Version:** 1.4
+**Version:** 1.5
 **Last Updated:** 2025-12-20
 **Status:** Approved for MVP Development
 
@@ -298,7 +298,7 @@ Priority C (Third): Pitch Generation
 
 **Flow:**
 1. GP uploads PDF/PPT pitch deck
-2. LLM (Claude) extracts fund information (strategy, size, team, track record, etc.)
+2. LLM extracts fund information (strategy, size, team, track record, etc.)
 3. System displays extracted fields for GP review and confirmation
 4. Interactive questionnaire prompts GP for any missing required fields
 5. GP reviews complete profile and approves before saving
@@ -310,7 +310,7 @@ Priority C (Third): Pitch Generation
 **Description:** Auto-populate profile from uploaded deck
 **Requirements:**
 - Parse PDF/PPTX content
-- Use Claude to extract structured data
+- Use LLM to extract structured data
 - Present extracted data for user confirmation
 - Map to profile fields
 
@@ -439,7 +439,7 @@ Priority C (Third): Pitch Generation
 #### F-MATCH-04: Match Explanations [P0]
 **Description:** Human-readable explanation of why LP matched
 **Requirements:**
-- Claude-generated explanation (2-3 paragraphs)
+- AI-generated explanation (2-3 paragraphs)
 - Highlight key alignment points
 - Note potential concerns or gaps
 - Suggest talking points (3-5 bullets)
@@ -1781,6 +1781,7 @@ Regions:
 | 1.2 | 2024-12-20 | Claude | Removed web scraping, added human-in-the-loop requirements, updated F-GP-02 flow, added audit trail fields |
 | 1.3 | 2025-12-20 | Claude | Fixed F-LP-06 priority (P1), documentation consistency review |
 | 1.4 | 2025-12-20 | Claude | Updated AI/LLM from Claude API to OpenRouter for multi-model access |
+| 1.5 | 2025-12-20 | Claude | Terminology consistency: replaced Claude-specific references with generic LLM/AI terms |
 
 ---
 

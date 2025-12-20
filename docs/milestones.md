@@ -2,20 +2,20 @@
 
 **Philosophy:** Each milestone is independently valuable, demoable, and **live on lpxgp.com**.
 
-**Total timeline:** ~15 working days | See CLAUDE.md for tech stack
+**See CLAUDE.md for tech stack**
 
 ---
 
 ## Overview
 
-| Milestone | Demo Statement | Duration | Live URL |
-|-----------|---------------|----------|----------|
-| M0 | "Data is imported and clean" | 1-2 days | Local only |
-| M1 | "Search LPs on lpxgp.com" | 2-3 days | Yes |
-| M2 | "Natural language search works" | 1-2 days | Auto-deploy |
-| M3 | "See matching LPs for my fund" | 2-3 days | Auto-deploy |
-| M4 | "AI explains matches + generates pitch" | 1-2 days | Auto-deploy |
-| M5 | "Production-ready with admin" | 2-3 days | Auto-deploy |
+| Milestone | Demo Statement | Live URL |
+|-----------|---------------|----------|
+| M0 | "Data is imported and clean" | Local only |
+| M1 | "Search LPs on lpxgp.com" | Yes |
+| M2 | "Natural language search works" | Auto-deploy |
+| M3 | "See matching LPs for my fund" | Auto-deploy |
+| M4 | "AI explains matches + generates pitch" | Auto-deploy |
+| M5 | "Production-ready with admin" | Auto-deploy |
 
 **Post-MVP:** Data integrations (APIs) - only if needed
 
@@ -23,8 +23,6 @@
 
 ## M0: Setup + Data Import
 ### "Data is imported and clean"
-
-**Duration:** 1-2 days
 
 **What we build:**
 - Project structure (Python monolith)
@@ -52,8 +50,6 @@
 
 ## M1: Auth + Search + Deploy
 ### "Search LPs on lpxgp.com"
-
-**Duration:** 2-3 days
 
 **What we build:**
 - Supabase Auth UI (don't build custom login forms)
@@ -98,8 +94,6 @@
 
 **THIS milestone adds Voyage AI embeddings.** M0-M1 used Supabase full-text search, now we upgrade to semantic.
 
-**Duration:** 1-2 days
-
 **What we build:**
 - Voyage AI integration
 - LP embeddings
@@ -133,8 +127,6 @@
 
 ## M3: GP Profiles + Matching
 ### "See matching LPs for my fund"
-
-**Duration:** 2-3 days
 
 **What we build:**
 - Fund profile CRUD
@@ -176,8 +168,6 @@
 ## M4: AI Explanations + Pitch
 ### "AI explains matches + generates pitch"
 
-**Duration:** 1-2 days
-
 **What we build:**
 - LLM integration (via OpenRouter)
 - Explanation generation
@@ -218,8 +208,6 @@
 ## M5: Production Polish
 ### "Production-ready with admin"
 
-**Duration:** 2-3 days
-
 **What we build:**
 - Admin dashboard
 - Error tracking (Sentry)
@@ -259,23 +247,6 @@
 
 - Data integrations (Preqin API, partner feeds)
 - Automated enrichment from external APIs
-
----
-
-## Timeline
-
-```
-Day 1-2:    M0 - Setup + Data (local)
-Day 3-5:    M1 - Auth + Search + DEPLOY TO LPXGP.COM
-Day 6-7:    M2 - Semantic Search (auto-deploys)
-Day 8-10:   M3 - Matching (auto-deploys)
-Day 11-12:  M4 - AI + Pitch (auto-deploys)
-Day 13-15:  M5 - Polish (auto-deploys)
-```
-
-**Total: ~15 working days**
-
-After M1, every push to main auto-deploys to lpxgp.com.
 
 ---
 

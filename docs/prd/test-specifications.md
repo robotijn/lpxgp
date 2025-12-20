@@ -786,21 +786,21 @@ class TestM2SemanticSearch:
 class TestDeckExtraction:
     """Test pitch deck field extraction."""
 
-    async def test_extract_fund_name(self, mock_claude, sample_deck_text):
+    async def test_extract_fund_name(self, mock_llm, sample_deck_text):
         result = await extract_fund_fields(sample_deck_text)
         assert "fund_name" in result
         assert result["fund_name"] is not None
 
-    async def test_extract_target_size(self, mock_claude, sample_deck_text):
+    async def test_extract_target_size(self, mock_llm, sample_deck_text):
         result = await extract_fund_fields(sample_deck_text)
         assert "target_size_mm" in result
         assert isinstance(result["target_size_mm"], (int, float))
 
-    async def test_extract_strategy(self, mock_claude, sample_deck_text):
+    async def test_extract_strategy(self, mock_llm, sample_deck_text):
         result = await extract_fund_fields(sample_deck_text)
         assert "strategy" in result
 
-    async def test_missing_fields_flagged(self, mock_claude, incomplete_deck_text):
+    async def test_missing_fields_flagged(self, mock_llm, incomplete_deck_text):
         result = await extract_fund_fields(incomplete_deck_text)
         assert "missing_fields" in result
         assert len(result["missing_fields"]) > 0
