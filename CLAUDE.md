@@ -46,8 +46,8 @@ Note: Read these files on demand rather than auto-loading (to save context).
 
 | Tool | Purpose |
 |------|---------|
-| **Puppeteer MCP** | UI screenshots, visual verification, design iteration |
-| **Playwright** | Automated E2E tests in CI/CD |
+| **Puppeteer MCP** | UI screenshots during development (you see what Claude sees) |
+| **Playwright** | Automated E2E browser tests in CI/CD (runs headless in GitHub Actions) |
 
 ## Common Commands
 
@@ -151,7 +151,8 @@ TDD workflow:
 ## Learning Approach
 
 Learn Claude Code features while building LPxGP:
-- Modules 1-5: Claude CLI basics (CLAUDE.md, commands, rules, deployment)
+- Modules 1-2b: Foundation (CLAUDE.md, commands, data cleaning)
+- Modules 3-5: Auth, CI/CD, HTMX patterns
 - Modules 6-7: Skills and agents
 - Modules 8-11: MCP, OpenRouter API, production
 

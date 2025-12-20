@@ -1,8 +1,6 @@
 # Product Requirements Document (PRD)
 # LPxGP: GP-LP Intelligence Platform
 
-**Version:** 1.5
-**Last Updated:** 2025-12-20
 **Status:** Approved for MVP Development
 
 ---
@@ -1772,20 +1770,7 @@ Regions:
 
 ---
 
-## Document History
-
-| Version | Date | Author | Changes |
-|---------|------|--------|---------|
-| 1.0 | 2024-12-20 | Claude | Initial draft |
-| 1.1 | 2024-12-20 | Claude | Added data pipeline, enrichment, testing strategy, decisions |
-| 1.2 | 2024-12-20 | Claude | Removed web scraping, added human-in-the-loop requirements, updated F-GP-02 flow, added audit trail fields |
-| 1.3 | 2025-12-20 | Claude | Fixed F-LP-06 priority (P1), documentation consistency review |
-| 1.4 | 2025-12-20 | Claude | Updated AI/LLM from Claude API to OpenRouter for multi-model access |
-| 1.5 | 2025-12-20 | Claude | Terminology consistency: replaced Claude-specific references with generic LLM/AI terms |
-
----
-
 ## Related Documents
 
 - docs/prd/test-specifications.md - Detailed test cases
-- docs/curriculum.md - Learning curriculum (to be updated)
+- docs/curriculum.md - Learning curriculum

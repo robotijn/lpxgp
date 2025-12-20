@@ -1,8 +1,6 @@
 # Test Specifications
 # LPxGP: GP-LP Intelligence Platform
 
-**Version:** 2.0
-**Last Updated:** 2024-12-20
 **Structure:** Organized by Milestone
 
 ---
@@ -1492,8 +1490,8 @@ class TestSecurity:
 import pytest
 from httpx import AsyncClient
 from supabase import create_client
-from backend.main import app
-from backend.config import settings
+from src.main import app
+from src.config import settings
 
 @pytest.fixture
 async def client():
@@ -1574,7 +1572,7 @@ def browser_context_args(browser_context_args):
 @pytest.fixture
 def supabase():
     """Create Supabase client for test data setup."""
-    from backend.config import settings
+    from src.config import settings
     return create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_KEY)
 
 
