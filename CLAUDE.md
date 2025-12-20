@@ -13,6 +13,12 @@ An AI-powered platform helping investment fund managers (GPs) find and engage th
 
 Note: Read these files on demand rather than auto-loading (to save context).
 
+## Claude Preferences
+
+- **Progress updates:** Give frequent updates during long operations
+- **Deep thinking:** Always use Opus, don't switch to faster models
+- **Parallel execution:** Always run independent tool calls in parallel
+
 ## Tech Stack
 
 | Layer | Technology |
