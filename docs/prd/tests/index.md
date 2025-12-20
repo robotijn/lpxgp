@@ -1,82 +1,68 @@
-# Test Specifications Index
+# Test Specifications
 
-## Testing Philosophy
+**Format:** Gherkin/BDD (natural language)
+**Purpose:** Communicate requirements with product owner, generate tests later
 
-### TDD Approach
-1. Write test first (RED)
-2. Implement minimum code to pass (GREEN)
-3. Refactor while keeping tests green (REFACTOR)
+## Feature Coverage
 
-### Test Pyramid
+| Area | Features | Tests |
+|------|----------|-------|
+| [Authentication](auth.feature.md) | F-AUTH-01 to F-AUTH-04 | 4 features |
+| [GP Profile](gp-profile.feature.md) | F-GP-01 to F-GP-04 | 4 features |
+| [LP Database](lp-database.feature.md) | F-LP-01 to F-LP-06 | 6 features |
+| [Matching](matching.feature.md) | F-MATCH-01 to F-MATCH-05 | 5 features |
+| [Pitch Generation](pitch.feature.md) | F-PITCH-01 to F-PITCH-05 | 5 features |
+| [User Interface](ui.feature.md) | F-UI-01 to F-UI-05 | 5 features |
+| [Human-in-the-Loop](human-in-loop.feature.md) | F-HITL-01 to F-HITL-05 | 5 features |
+| [E2E User Journeys](e2e-journeys.feature.md) | Complete flows | 6 journeys |
+
+## Priority Coverage
+
+| Priority | Count | Status |
+|----------|-------|--------|
+| P0 (MVP) | 29 | All tested |
+| P1 | 5 | All tested |
+| P2 | 1 | All tested |
+
+## Milestone Mapping
+
+| Milestone | Features Tested |
+|-----------|-----------------|
+| M0: Foundation | F-LP-01, F-LP-04, F-LP-05 |
+| M1: Auth + Search | F-AUTH-01 to 04, F-LP-02, F-UI-01, F-UI-03 |
+| M2: Semantic Search | F-LP-03, F-LP-06 |
+| M3: Matching | F-GP-01 to 04, F-MATCH-01 to 05, F-HITL-02, F-HITL-03 |
+| M4: Pitch | F-PITCH-01 to 05, F-UI-04, F-HITL-01 |
+| M5: Production | F-AUTH-04, F-UI-05, F-HITL-04, F-HITL-05 |
+
+## How to Read These Specs
+
+```gherkin
+Feature: Feature Name
+  As a [role]
+  I want [capability]
+  So that [benefit]
+
+  Background:
+    Given [common preconditions]
+
+  Scenario: Scenario Name
+    Given [initial context]
+    When [action taken]
+    Then [expected outcome]
+    And [additional outcomes]
+
+  Scenario: Another Scenario
+    Given [context]
+    When [action]
+    Then [outcome]
 ```
-              ┌─────────┐
-              │   E2E   │  Playwright for HTMX pages (~20 tests)
-             ─┴─────────┴─
-            ┌─────────────┐
-            │ Integration │  pytest + httpx (~100 tests)
-           ─┴─────────────┴─
-          ┌─────────────────┐
-          │   Unit Tests    │  pytest (~200 tests)
-         ─┴─────────────────┴─
-```
 
-### Tools
-| Layer | Tool |
-|-------|------|
-| Unit (Python) | pytest |
-| Integration | pytest + httpx |
-| E2E | Playwright (server-rendered HTML + HTMX) |
+## Running Tests (Future)
 
-### Stack
-- **Frontend:** Jinja2 templates + HTMX + Tailwind CSS (server-rendered)
-- **Backend:** FastAPI + supabase-py (no SQLAlchemy)
-- **Testing:** pytest for all Python code, Playwright for browser E2E tests
-
----
-
-## Test Files by Milestone
-
-| Milestone | Description | File |
-|-----------|-------------|------|
-| M0 | Foundation - Data import & cleaning | [m0-foundation.md](m0-foundation.md) |
-| M1 | Auth + Full-Text Search | [m1-auth-search.md](m1-auth-search.md) |
-| M2 | Semantic Search | [m2-semantic.md](m2-semantic.md) |
-| M3 | Fund Profile + Matching | [m3-matching.md](m3-matching.md) |
-| M4 | Pitch Generation | [m4-pitch.md](m4-pitch.md) |
-| M5 | Production | [m5-production.md](m5-production.md) |
-
-## Other Files
-
-- [fixtures.md](fixtures.md) - Test fixtures and helpers
-
----
-
-## Running Tests
-
+Once implemented, tests will run with:
 ```bash
-# All tests (unit + integration)
-uv run pytest
-
-# By milestone
-uv run pytest tests/ -k "M0"
-uv run pytest tests/ -k "M1"
-uv run pytest tests/ -k "M2"
-
-# By type
-uv run pytest tests/unit/
-uv run pytest tests/integration/
-uv run pytest tests/e2e/  # Playwright browser tests
-
-# E2E tests only (Playwright)
-uv run pytest tests/e2e/ --headed  # Run with visible browser
-uv run pytest tests/e2e/ --browser=firefox  # Specific browser
-
-# With coverage
-uv run pytest --cov=src --cov-report=html
-
-# Performance only
-uv run pytest -m benchmark
-
-# Install Playwright browsers (first time setup)
-uv run playwright install
+uv run pytest tests/                    # All tests
+uv run pytest tests/ -k "auth"          # By feature area
+uv run pytest tests/e2e/                # E2E only
 ```

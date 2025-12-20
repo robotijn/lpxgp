@@ -1,18 +1,28 @@
 # Test Specifications
 
-This document has been split into smaller files for easier navigation.
+**Format:** Gherkin/BDD (natural language)
+**Purpose:** Communicate requirements with product owner, generate automated tests later
 
-**See [tests/index.md](tests/index.md) for the complete test specifications.**
+## Test Files by Milestone
 
-## Quick Links
+| Milestone | Description | File |
+|-----------|-------------|------|
+| M0 | Foundation - Data import & cleaning | [m0-foundation.feature.md](tests/m0-foundation.feature.md) |
+| M1 | Auth + Full-Text Search | [m1-auth-search.feature.md](tests/m1-auth-search.feature.md) |
+| M2 | Semantic Search | [m2-semantic.feature.md](tests/m2-semantic.feature.md) |
+| M3 | Fund Profile + Matching | [m3-matching.feature.md](tests/m3-matching.feature.md) |
+| M4 | Pitch Generation | [m4-pitch.feature.md](tests/m4-pitch.feature.md) |
+| M5 | Production | [m5-production.feature.md](tests/m5-production.feature.md) |
 
-| Milestone | File |
-|-----------|------|
-| Overview & Running Tests | [tests/index.md](tests/index.md) |
-| M0: Foundation | [tests/m0-foundation.md](tests/m0-foundation.md) |
-| M1: Auth + Search | [tests/m1-auth-search.md](tests/m1-auth-search.md) |
-| M2: Semantic Search | [tests/m2-semantic.md](tests/m2-semantic.md) |
-| M3: Matching | [tests/m3-matching.md](tests/m3-matching.md) |
-| M4: Pitch Generation | [tests/m4-pitch.md](tests/m4-pitch.md) |
-| M5: Production | [tests/m5-production.md](tests/m5-production.md) |
-| Fixtures | [tests/fixtures.md](tests/fixtures.md) |
+## User Journeys
+
+| Journey | File |
+|---------|------|
+| Complete E2E flows | [e2e-journeys.feature.md](tests/e2e-journeys.feature.md) |
+
+## Overview
+
+See [tests/index.md](tests/index.md) for:
+- Feature coverage matrix
+- Priority mapping
+- How to read the specs
