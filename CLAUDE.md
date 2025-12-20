@@ -91,7 +91,7 @@ git push origin main
 ## Project Structure
 
 ```
-learnclaude/              # Git repo (learning project)
+lpxgp/                    # Git repo
 ├── CLAUDE.md
 ├── pyproject.toml
 ├── src/
