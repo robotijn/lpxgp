@@ -18,6 +18,7 @@ Note: Read these files on demand rather than auto-loading (to save context).
 - **Progress updates:** Give frequent updates during long operations
 - **Deep thinking:** Always use Opus, don't switch to faster models
 - **Parallel execution:** Always run independent tool calls in parallel
+- **Use subagents:** Always use Task tool with subagents for parallel work when possible
 
 ## Tech Stack
 

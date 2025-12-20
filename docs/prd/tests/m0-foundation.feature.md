@@ -24,6 +24,111 @@ Feature: LP Profile Storage
     Then the LP is stored in the database
     And all fields are properly indexed
 
+  # Negative: Missing required fields
+  Scenario: Reject LP without name
+    Given I am importing LP data
+    When I create an LP with:
+      | Field | Value |
+      | Name | |
+      | Type | Public Pension |
+    Then I see error "Name is required"
+    And the LP is not created
+
+  Scenario: Reject LP with whitespace-only name
+    Given I am importing LP data
+    When I create an LP with:
+      | Field | Value |
+      | Name | "   " |
+      | Type | Public Pension |
+    Then I see error "Name is required"
+    And the LP is not created
+
+  Scenario: Reject LP without type
+    Given I am importing LP data
+    When I create an LP with:
+      | Field | Value |
+      | Name | Test LP |
+      | Type | |
+    Then I see error "Type is required"
+    And the LP is not created
+
+  # Negative: Invalid field values
+  Scenario: Reject invalid LP type
+    Given I am importing LP data
+    When I create an LP with:
+      | Field | Value |
+      | Name | Test LP |
+      | Type | Invalid Type XYZ |
+    Then I see error "Invalid LP type"
+    And the LP is not created
+
+  Scenario: Reject negative AUM
+    Given I am importing LP data
+    When I create an LP with:
+      | Field | Value |
+      | Name | Test LP |
+      | Type | Public Pension |
+      | Total AUM | -$10B |
+    Then I see error "AUM cannot be negative"
+
+  Scenario: Reject unrealistic AUM
+    Given I am importing LP data
+    When I create an LP with:
+      | Field | Value |
+      | Name | Test LP |
+      | Type | Public Pension |
+      | Total AUM | $999999999T |
+    Then I see error "AUM value is unrealistic"
+
+  # Negative: Name length limits
+  Scenario: Reject name that is too long
+    Given I am importing LP data
+    When I create an LP with a name longer than 500 characters
+    Then I see error "Name is too long (max 500 characters)"
+
+  Scenario: Accept minimum valid name
+    Given I am importing LP data
+    When I create an LP with:
+      | Field | Value |
+      | Name | AB |
+      | Type | Family Office |
+    Then the LP is created successfully
+
+  # Security: Injection attempts
+  Scenario: Sanitize SQL injection in name
+    Given I am importing LP data
+    When I create an LP with:
+      | Field | Value |
+      | Name | '; DROP TABLE lps; -- |
+      | Type | Public Pension |
+    Then the name is stored as literal text
+    And no SQL is executed
+    And the database is intact
+
+  Scenario: Sanitize XSS in name
+    Given I am importing LP data
+    When I create an LP with:
+      | Field | Value |
+      | Name | <script>alert('xss')</script> |
+      | Type | Public Pension |
+    Then the name is HTML-escaped when displayed
+    And no script is executed
+
+  # Edge cases: Unicode and special characters
+  Scenario: Handle unicode in LP name
+    Given I am importing LP data
+    When I create an LP with:
+      | Field | Value |
+      | Name | 北京投资基金 |
+      | Type | Sovereign Wealth Fund |
+    Then the LP is stored correctly
+    And the name displays properly
+
+  Scenario: Handle emojis in notes
+    Given I am importing LP data
+    When I create an LP with notes containing "Great partner 👍🏼"
+    Then the notes are stored correctly
+
   Scenario: Store LP investment criteria
     Given I am creating an LP profile
     When I set investment criteria:
@@ -36,6 +141,31 @@ Feature: LP Profile Storage
     Then the criteria are stored
     And they can be used for filtering
 
+  # Negative: Invalid investment criteria
+  Scenario: Reject check size min greater than max
+    Given I am creating an LP profile
+    When I set investment criteria:
+      | Field | Value |
+      | Check Size Min | $100M |
+      | Check Size Max | $10M |
+    Then I see error "Minimum check size cannot exceed maximum"
+
+  Scenario: Reject negative check sizes
+    Given I am creating an LP profile
+    When I set investment criteria:
+      | Field | Value |
+      | Check Size Min | -$10M |
+    Then I see error "Check size cannot be negative"
+
+  Scenario: Reject sweet spot outside min/max range
+    Given I am creating an LP profile
+    When I set investment criteria:
+      | Field | Value |
+      | Check Size Min | $10M |
+      | Check Size Max | $50M |
+      | Sweet Spot | $100M |
+    Then I see error "Sweet spot must be between min and max check size"
+
   Scenario: Store LP requirements
     Given I am creating an LP profile
     When I set LP requirements:
@@ -46,6 +176,28 @@ Feature: LP Profile Storage
       | ESG Required | Yes |
     Then the requirements are stored
     And they can be used for hard filtering
+
+  # Negative: Invalid requirements
+  Scenario: Reject negative track record years
+    Given I am creating an LP profile
+    When I set LP requirements:
+      | Field | Value |
+      | Min Track Record Years | -5 |
+    Then I see error "Track record years cannot be negative"
+
+  Scenario: Reject negative fund number
+    Given I am creating an LP profile
+    When I set LP requirements:
+      | Field | Value |
+      | Min Fund Number | -1 |
+    Then I see error "Fund number cannot be negative"
+
+  Scenario: Reject IRR threshold over 100%
+    Given I am creating an LP profile
+    When I set LP requirements:
+      | Field | Value |
+      | Min IRR Threshold | 150% |
+    Then I see error "IRR threshold must be between 0% and 100%"
 
   # Sub-feature: Contact Management
   Scenario: Store multiple contacts per LP
@@ -69,6 +221,65 @@ Feature: LP Profile Storage
       | LinkedIn | linkedin.com/in/jsmith |
       | Focus Areas | PE, VC, Real Estate |
     Then the contact is stored with all details
+
+  # Negative: Invalid contact data
+  Scenario: Reject contact without name
+    Given I am adding a contact to an LP
+    When I enter:
+      | Field | Value |
+      | Full Name | |
+      | Email | test@example.com |
+    Then I see error "Contact name is required"
+    And the contact is not created
+
+  Scenario: Reject invalid email format
+    Given I am adding a contact to an LP
+    When I enter:
+      | Field | Value |
+      | Full Name | John Smith |
+      | Email | not-a-valid-email |
+    Then I see error "Invalid email format"
+
+  Scenario: Reject invalid email formats (variations)
+    Given I am adding a contact to an LP
+    When I try these invalid emails:
+      | Invalid Email |
+      | @example.com |
+      | user@ |
+      | user@.com |
+      | user space@example.com |
+      | user@example |
+    Then each is rejected with "Invalid email format"
+
+  Scenario: Accept valid email edge cases
+    Given I am adding a contact to an LP
+    When I try these valid emails:
+      | Valid Email |
+      | user+tag@example.com |
+      | user.name@subdomain.example.com |
+      | user@example.co.uk |
+    Then each is accepted
+
+  Scenario: Reject invalid phone format
+    Given I am adding a contact to an LP
+    When I enter:
+      | Field | Value |
+      | Full Name | John Smith |
+      | Phone | abc123 |
+    Then I see error "Invalid phone number format"
+
+  Scenario: Reject invalid LinkedIn URL
+    Given I am adding a contact to an LP
+    When I enter:
+      | Field | Value |
+      | Full Name | John Smith |
+      | LinkedIn | facebook.com/jsmith |
+    Then I see error "LinkedIn URL must be from linkedin.com"
+
+  Scenario: Prevent duplicate contacts
+    Given an LP has contact "John Smith" with email "jsmith@yale.edu"
+    When I try to add another contact with email "jsmith@yale.edu"
+    Then I see error "A contact with this email already exists"
 
   # Sub-feature: Historical Data
   Scenario: Store LP commitment history
@@ -138,6 +349,55 @@ Feature: LP Data Import
     Then the file is accepted
     And processing happens in background
 
+  # Negative: File upload errors
+  Scenario: Reject empty file
+    Given I am on the import page
+    When I upload an empty CSV file
+    Then I see error "File is empty"
+
+  Scenario: Reject file with only headers
+    Given I am on the import page
+    When I upload a CSV with headers but no data rows
+    Then I see error "File contains no data rows"
+
+  Scenario: Reject file exceeding size limit
+    Given I am on the import page
+    When I upload a file larger than 50MB
+    Then I see error "File too large (max 50MB)"
+
+  Scenario: Reject malformed CSV
+    Given I am on the import page
+    When I upload a CSV with inconsistent column counts
+    Then I see error "Malformed CSV: inconsistent column count"
+
+  Scenario: Handle wrong encoding gracefully
+    Given I am on the import page
+    When I upload a CSV with non-UTF8 encoding
+    Then I see warning "File encoding detected as [encoding]"
+    And file is converted to UTF-8
+
+  Scenario: Reject file without headers
+    Given I am on the import page
+    When I upload a CSV without a header row
+    Then I see error "CSV must have a header row"
+
+  # Security: Malicious file uploads
+  Scenario: Reject file with executable content
+    Given I am on the import page
+    When I upload a file named "data.csv.exe"
+    Then I see error "Unsupported file format"
+
+  Scenario: Reject file with embedded macros
+    Given I am on the import page
+    When I upload an Excel file with macros (.xlsm)
+    Then I see error "Excel files with macros are not allowed"
+
+  Scenario: Scan for formula injection
+    Given I am on the import page
+    When I upload a CSV with cells starting with "=", "+", "-", or "@"
+    Then those cells are escaped or flagged
+    And no formulas are executed
+
   # Sub-feature: Field Mapping
   Scenario: Map CSV columns to LP fields
     Given I uploaded a CSV with columns:
@@ -164,6 +424,24 @@ Feature: LP Data Import
     Then I can skip this column
     Or I can map it to the "notes" field
 
+  # Negative: Field mapping errors
+  Scenario: Require mapping of required fields
+    Given I uploaded a CSV
+    When I try to proceed without mapping "name" column
+    Then I see error "Required field 'name' must be mapped"
+    And I cannot proceed to preview
+
+  Scenario: Prevent duplicate field mappings
+    Given I uploaded a CSV
+    When I map two columns to the same field "name"
+    Then I see error "Field 'name' is already mapped"
+
+  Scenario: Warn about unmapped columns
+    Given I uploaded a CSV with 10 columns
+    When I only map 3 columns
+    Then I see warning "7 columns will be ignored"
+    And I can proceed if I acknowledge
+
   # Sub-feature: Validation
   Scenario: Validate required fields
     Given I mapped the CSV columns
@@ -185,6 +463,31 @@ Feature: LP Data Import
       | Total | Valid | Errors |
       | 100 | 95 | 5 |
     And I can download error report
+
+  # Negative: Validation edge cases
+  Scenario: Handle all rows invalid
+    Given I imported 100 rows
+    And all rows have errors
+    Then I see error "No valid rows to import"
+    And I cannot proceed to import
+
+  Scenario: Show row-level error details
+    Given a row has multiple validation errors
+    Then I see all errors for that row:
+      | Error |
+      | Name is required |
+      | Invalid AUM format |
+      | Unknown LP type |
+
+  Scenario: Handle very long field values
+    Given a row has a name field with 10,000 characters
+    Then that row is marked as invalid
+    And I see "Name exceeds maximum length (500 characters)"
+
+  Scenario: Handle special characters in data
+    Given a row has a name containing "Acme & Partners, LLC (\"The Fund\")"
+    Then the name is stored correctly
+    And special characters are preserved
 
   # Sub-feature: Duplicate Detection
   Scenario: Detect duplicate by name and location
@@ -260,6 +563,30 @@ Feature: LP Data Cleaning Pipeline
     Then it passes through unchanged
     And it's flagged for review
 
+  # Negative: Normalization edge cases
+  Scenario: Handle empty strategy field
+    Given raw strategy is empty or null
+    When the cleaning pipeline runs
+    Then the field remains empty
+    And record is flagged for review
+
+  Scenario: Handle strategy with only whitespace
+    Given raw strategy "   "
+    When the cleaning pipeline runs
+    Then the field is set to null
+    And record is flagged for review
+
+  Scenario: Handle multiple strategies with typos
+    Given raw strategy "PE, VC, Real Esstate, Infrastucture"
+    When the cleaning pipeline runs
+    Then correctly spelled ones are normalized
+    And "Real Esstate" and "Infrastucture" are flagged for review
+
+  Scenario: Handle comma vs semicolon separators
+    Given raw strategy "PE; VC; Real Estate"
+    When the cleaning pipeline runs
+    Then all three strategies are parsed correctly
+
   # Sub-feature: Geography Normalization
   Scenario: Normalize country names
     Given raw geography data:
@@ -278,6 +605,31 @@ Feature: LP Data Cleaning Pipeline
     When the cleaning pipeline runs
     Then it's mapped to "US" country code
     And region is "North America"
+
+  # Negative: Geography edge cases
+  Scenario: Handle unknown geography
+    Given raw geography "Atlantis"
+    When the cleaning pipeline runs
+    Then it passes through unchanged
+    And record is flagged for review
+
+  Scenario: Handle ambiguous city names
+    Given raw geography "London" (could be UK or Canada)
+    When the cleaning pipeline runs
+    Then it's flagged as ambiguous
+    And admin can resolve manually
+
+  Scenario: Handle misspelled countries
+    Given raw geography "Unted States" or "Gerrmany"
+    When the cleaning pipeline runs
+    Then fuzzy matching suggests corrections
+    And record is flagged for review
+
+  Scenario: Handle mixed geography formats
+    Given raw geography "New York, NY, USA"
+    When the cleaning pipeline runs
+    Then country is extracted as "US"
+    And state/city info is preserved
 
   # Sub-feature: LP Type Normalization
   Scenario: Normalize LP types
@@ -308,6 +660,37 @@ Feature: LP Data Cleaning Pipeline
     Then the email is flagged as invalid
     And the record is queued for review
 
+  # Negative: Contact parsing edge cases
+  Scenario: Handle unparseable contact string
+    Given raw contact "asdfghjkl random text"
+    When the cleaning pipeline runs
+    Then the raw text is stored as notes
+    And record is flagged for manual entry
+
+  Scenario: Handle contact with missing components
+    Given raw contact "John Smith" (no title or email)
+    When the cleaning pipeline runs
+    Then name is extracted
+    And title and email remain empty
+    And record is flagged for enrichment
+
+  Scenario: Handle international phone formats
+    Given raw phone numbers:
+      | Input | Valid |
+      | +1 (555) 123-4567 | Yes |
+      | +44 20 7946 0958 | Yes |
+      | +86 21 1234 5678 | Yes |
+      | 555-1234 | Partial (missing area code) |
+    When the cleaning pipeline runs
+    Then valid formats are stored
+    And partial formats are flagged
+
+  Scenario: Handle multiple emails in one field
+    Given raw contact with "john@example.com; jane@example.com"
+    When the cleaning pipeline runs
+    Then both emails are extracted
+    And linked to the same LP (different contacts)
+
   # Sub-feature: Duplicate Detection and Merge
   Scenario: Detect duplicates
     Given two records:
@@ -324,6 +707,40 @@ Feature: LP Data Cleaning Pipeline
     Then the most complete data is kept
     And a single record remains
     And merge history is logged
+
+  # Negative: Duplicate detection edge cases
+  Scenario: Handle false positive duplicates
+    Given two genuinely different LPs with similar names:
+      | Name |
+      | Capital One Ventures |
+      | Capital Two Partners |
+    When the cleaning pipeline runs
+    Then they are NOT flagged as duplicates
+
+  Scenario: Handle exact duplicate entries
+    Given two records with identical data
+    When the cleaning pipeline runs
+    Then one is automatically removed
+    And the other is kept
+
+  Scenario: Handle partial duplicates with conflicts
+    Given two records with same name but different data:
+      | Field | Record 1 | Record 2 |
+      | Name | CalPERS | CalPERS |
+      | AUM | $450B | $480B |
+      | Contact | John | Jane |
+    When they are merged
+    Then admin must resolve conflicts
+    And merge is not automatic
+
+  Scenario: Prevent merge of different LP types
+    Given two records with same name but different types:
+      | Name | Type |
+      | Alpha Capital | Family Office |
+      | Alpha Capital | Public Pension |
+    When duplicate is flagged
+    Then merge requires explicit confirmation
+    And type mismatch is highlighted
 
   # Sub-feature: Data Quality Flags
   Scenario: Flag low-quality records
@@ -413,4 +830,36 @@ Feature: Complete Data Import Journey
     When I go to Review Queue
     Then I see 15 low-quality records
     And I can fix or delete each one
+
+  # Error scenarios for E2E
+  Scenario: Handle import failure gracefully
+    Given I am logged in as admin
+    And I have a spreadsheet with 500 LPs
+
+    When I upload "lp_database.xlsx"
+    And the file is corrupted
+    Then I see error "Unable to read file. Please check the file format."
+    And no partial data is imported
+
+  Scenario: Handle network failure during import
+    Given I approved an import of 500 LPs
+    And 250 records have been imported
+    When the network connection fails
+    Then the import is paused
+    And I can resume from where it stopped
+    And no data is lost or duplicated
+
+  Scenario: Handle validation blocking import
+    Given I uploaded a CSV
+    And 100% of rows have validation errors
+    Then I cannot proceed to import
+    And I see "No valid rows to import"
+    And I must fix errors or cancel
+
+  Scenario: Timeout handling for large imports
+    Given I am importing 50,000 LPs
+    When the import takes longer than 30 minutes
+    Then it continues in background
+    And I receive email notification on completion
+    And I can check status anytime
 ```

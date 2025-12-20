@@ -106,6 +106,121 @@ Feature: Admin Panel
     When I try to access /admin
     Then I see 403 Forbidden
     And I am redirected to dashboard
+
+  # NEGATIVE TESTS: Admin Access Denied
+  Scenario: Company admin cannot access super admin panel
+    Given I am a company admin (not super admin)
+    When I try to access /admin/companies
+    Then I see 403 Forbidden
+    And access attempt is logged
+
+  Scenario: Deactivated admin cannot access admin panel
+    Given I was a super admin but am now deactivated
+    When I try to access /admin
+    Then I see 401 Unauthorized
+    And I am redirected to login
+
+  Scenario: Expired session cannot access admin
+    Given my session has expired
+    When I try to access /admin
+    Then I see 401 Unauthorized
+    And I am redirected to login with return URL preserved
+
+  Scenario: Admin access via direct URL manipulation
+    Given I am a regular user
+    When I try to access /admin/users/123/edit by typing URL directly
+    Then I see 403 Forbidden
+    And no user data is returned in response
+
+  # NEGATIVE TESTS: Invalid Company Operations
+  Scenario: Create company with duplicate name
+    Given company "Acme Capital" already exists
+    When I try to create company with name "Acme Capital"
+    Then I see error "Company name already exists"
+    And no company is created
+
+  Scenario: Create company with invalid email
+    When I try to create company with admin email "not-an-email"
+    Then I see validation error "Invalid email format"
+    And no company is created
+
+  Scenario: Create company with empty name
+    When I try to create company with empty name
+    Then I see validation error "Company name is required"
+    And form is not submitted
+
+  Scenario: Create company with excessively long name
+    When I try to create company with name of 500 characters
+    Then I see validation error "Company name must be under 255 characters"
+    And no company is created
+
+  Scenario: Edit non-existent company
+    When I try to access /admin/companies/99999/edit
+    Then I see 404 Not Found
+    And error is logged
+
+  Scenario: Delete company with active users
+    Given company "Acme Capital" has 5 active users
+    When I try to delete "Acme Capital" without deactivating users first
+    Then I see error "Cannot delete company with active users"
+    And company is not deleted
+    And I see option to "Deactivate all users first"
+
+  # NEGATIVE TESTS: Invalid User Operations
+  Scenario: Add user with duplicate email
+    Given user "john@acme.com" already exists
+    When I try to add user with email "john@acme.com"
+    Then I see error "User with this email already exists"
+    And no duplicate user is created
+
+  Scenario: Add user with invalid email domain
+    Given company has email domain restriction "@acme.com"
+    When I try to add user with email "user@gmail.com"
+    Then I see warning "Email domain does not match company domain"
+    And I must confirm to proceed
+
+  Scenario: Change role of last admin to member
+    Given company has only one admin
+    When I try to change that admin's role to "Member"
+    Then I see error "Cannot remove last admin from company"
+    And role is not changed
+
+  Scenario: Deactivate yourself
+    Given I am the logged-in admin
+    When I try to deactivate my own account
+    Then I see error "Cannot deactivate your own account"
+    And my account remains active
+
+  Scenario: Assign non-existent role
+    When I try to assign role "SuperMegaAdmin" via API manipulation
+    Then I see 400 Bad Request
+    And error "Invalid role" is returned
+    And attempt is logged as suspicious activity
+
+  # NEGATIVE TESTS: LP Database Edge Cases
+  Scenario: Edit LP with concurrent modification
+    Given another admin is editing LP "CalPERS"
+    When I try to save my changes to LP "CalPERS"
+    Then I see error "LP was modified by another user"
+    And I see option to refresh and review changes
+    And my changes are not lost (shown in diff view)
+
+  Scenario: Delete LP referenced by active matches
+    Given LP "CalPERS" has 50 active matches
+    When I try to delete LP "CalPERS"
+    Then I see warning "LP has 50 active matches"
+    And I must confirm deletion
+    And matches are updated to show "LP no longer available"
+
+  Scenario: Edit LP with invalid AUM format
+    When I try to set LP AUM to "lots of money"
+    Then I see validation error "AUM must be a number"
+    And changes are not saved
+
+  Scenario: Edit LP with negative AUM
+    When I try to set LP AUM to -5000000000
+    Then I see validation error "AUM cannot be negative"
+    And changes are not saved
 ```
 
 ---
@@ -194,6 +309,50 @@ Feature: Admin Interface
       | Supabase Auth | Healthy |
       | OpenRouter API | Healthy |
       | Voyage AI | Healthy |
+
+  # NEGATIVE TESTS: Admin Interface Errors
+  Scenario: Dashboard fails to load due to database error
+    Given database connection is temporarily unavailable
+    When I try to load admin dashboard
+    Then I see graceful error message "Unable to load dashboard data"
+    And I see "Retry" button
+    And partial data that was cached is shown
+
+  Scenario: User table with no users
+    Given company has no users (edge case from data migration)
+    When I view user management for that company
+    Then I see empty state "No users found"
+    And I see "Add first user" button
+
+  Scenario: LP browser with zero results
+    When I search for "XYZ123NonExistentLP"
+    Then I see empty state "No LPs match your search"
+    And I see suggestion to adjust filters
+
+  Scenario: LP edit form loses connection mid-save
+    Given I am editing LP data
+    When network connection is lost during save
+    Then I see error "Save failed - please check your connection"
+    And my changes are preserved in the form
+    And I can retry saving
+
+  Scenario: System health shows degraded service
+    Given OpenRouter API is responding slowly
+    When I view system health
+    Then I see:
+      | Service | Status |
+      | OpenRouter API | Degraded (2.5s response) |
+    And I see warning indicator
+    And I see "Last checked: 30 seconds ago"
+
+  Scenario: System health shows service failure
+    Given Voyage AI is completely unavailable
+    When I view system health
+    Then I see:
+      | Service | Status |
+      | Voyage AI | Down |
+    And I see red alert indicator
+    And I see "Semantic search is unavailable"
 ```
 
 ---
@@ -270,6 +429,92 @@ Feature: Data Import Preview (Human-in-the-Loop)
     When I view import history
     Then "Rollback" is disabled
     And I see "Rollback window expired"
+
+  # NEGATIVE TESTS: Data Import Failures
+  Scenario: Upload corrupted CSV file
+    When I upload a corrupted CSV file
+    Then I see error "File could not be parsed"
+    And I see suggestions:
+      | "Check file encoding (UTF-8 recommended)" |
+      | "Ensure proper CSV formatting" |
+    And no import is started
+
+  Scenario: Upload empty file
+    When I upload an empty CSV file
+    Then I see error "File contains no data"
+    And I cannot proceed to mapping step
+
+  Scenario: Upload file exceeding size limit
+    When I upload a CSV file over 50MB
+    Then I see error "File size exceeds limit (50MB max)"
+    And upload is rejected before completion
+
+  Scenario: Upload non-CSV file with CSV extension
+    When I upload a binary file renamed to .csv
+    Then I see error "Invalid file format - not a valid CSV"
+    And no import is started
+
+  Scenario: Column mapping with missing required fields
+    Given I uploaded a CSV
+    When I try to proceed without mapping required "name" field
+    Then I see error "Required field 'LP Name' must be mapped"
+    And I cannot proceed to preview
+
+  Scenario: Import with all rows failing validation
+    Given I uploaded a CSV with 100% invalid data
+    When I view preview
+    Then I see "All rows failed validation"
+    And "Approve & Import" is disabled
+    And I see "Fix data and re-upload"
+
+  # NEGATIVE TESTS: Rollback Failures
+  Scenario: Rollback when data has been modified
+    Given I imported 100 LPs 2 hours ago
+    And 5 of those LPs have been edited since import
+    When I try to rollback
+    Then I see warning "5 records have been modified since import"
+    And I can choose:
+      | "Rollback all anyway" |
+      | "Rollback only unmodified records" |
+      | "Cancel rollback" |
+
+  Scenario: Rollback fails mid-operation
+    Given I am rolling back an import
+    When database connection fails during rollback
+    Then I see error "Rollback failed - partial state"
+    And I see which records were reverted
+    And I see which records still need attention
+    And error is logged for admin review
+
+  Scenario: Rollback when LPs have active matches
+    Given I imported 100 LPs
+    And 20 of those LPs have been used in matches
+    When I try to rollback
+    Then I see warning "20 LPs have associated matches"
+    And I must confirm matches will be marked as invalid
+    And I can proceed or cancel
+
+  Scenario: Double rollback attempt
+    Given I already rolled back an import
+    When I try to rollback the same import again
+    Then I see error "Import has already been rolled back"
+    And no action is taken
+
+  Scenario: Import fails mid-process
+    Given I approved an import of 500 LPs
+    And 250 LPs have been inserted
+    When database connection fails
+    Then import is paused
+    And I see "Import failed at row 250"
+    And I can "Resume" or "Rollback partial import"
+    And data integrity is preserved (transaction)
+
+  Scenario: Import timeout
+    Given I approved an import of 10,000 LPs
+    When import takes longer than 5 minutes
+    Then I see progress indicator
+    And I can continue working (import runs in background)
+    And I receive notification when complete or failed
 ```
 
 ---
@@ -327,6 +572,50 @@ Feature: LP Data Corrections (Human-in-the-Loop)
     When admin views LP's flag history
     Then they see all historical flags
     And can see patterns (frequently flagged)
+
+  # NEGATIVE TESTS: Invalid Corrections
+  Scenario: Submit correction with invalid data
+    When I suggest AUM correction with value "lots"
+    Then I see validation error "AUM must be a valid number"
+    And correction is not submitted
+
+  Scenario: Submit correction identical to current value
+    Given LP AUM is currently $10B
+    When I suggest correction with same value $10B
+    Then I see error "Suggested value is same as current value"
+    And correction is not submitted
+
+  Scenario: Submit empty correction
+    When I submit correction with no changes
+    Then I see error "At least one field must be changed"
+    And correction is not submitted
+
+  Scenario: Flag spam - excessive flagging by single user
+    Given I have flagged 50 LPs in the last hour
+    When I try to flag another LP
+    Then I see "Flagging limit reached"
+    And I am asked to wait before flagging more
+    And admin is notified of potential spam
+
+  Scenario: Submit correction for non-existent LP
+    Given LP was deleted after I loaded the page
+    When I try to submit correction
+    Then I see error "LP no longer exists"
+    And correction is discarded
+
+  Scenario: Admin approves correction with stale data
+    Given correction was submitted for AUM $10B -> $15B
+    And another admin already changed AUM to $12B
+    When I try to approve the correction
+    Then I see warning "LP was modified since correction was submitted"
+    And I see current value ($12B) vs suggested ($15B)
+    And I can approve, reject, or modify
+
+  Scenario: Submit correction with malicious note
+    When I submit correction with note containing script tags
+    Then HTML is sanitized in the note
+    And correction is saved safely
+    And no XSS attack is possible
 ```
 
 ---
@@ -371,6 +660,65 @@ Feature: Performance Requirements
     Given 50 LPs per page
     When I load LP search results
     Then page renders in < 1 second
+
+  # NEGATIVE TESTS: Performance Degradation
+  Scenario: System under heavy load
+    Given 500 concurrent users (5x normal load)
+    When all users perform searches
+    Then system remains responsive (degraded but functional)
+    And response time < 5 seconds (graceful degradation)
+    And no requests timeout completely
+    And error rate stays below 5%
+
+  Scenario: Database query timeout
+    Given a complex search query
+    When query takes longer than 30 seconds
+    Then query is cancelled
+    And user sees "Search taking too long, please simplify"
+    And connection is released back to pool
+
+  Scenario: Memory exhaustion prevention
+    Given user requests export of all 50,000 LPs
+    When export would exceed memory limit
+    Then export is streamed (not loaded to memory)
+    Or export is chunked with progress indicator
+    And server memory stays within limits
+
+  Scenario: Slow external API (OpenRouter)
+    Given OpenRouter is responding slowly (5+ seconds)
+    When I request pitch generation
+    Then I see "Generation in progress" with spinner
+    And I can continue using other features
+    And request doesn't block other users
+
+  Scenario: Slow external API (Voyage AI)
+    Given Voyage AI is responding slowly (5+ seconds)
+    When I perform semantic search
+    Then search falls back to keyword search
+    And I see "Semantic search unavailable, using keyword search"
+    And results are still returned
+
+  Scenario: Connection pool exhaustion
+    Given all database connections are in use
+    When new request arrives
+    Then request waits with timeout
+    And if timeout expires, returns 503 Service Unavailable
+    And includes Retry-After header
+
+  Scenario: Large result set pagination
+    Given search would return 10,000 results
+    When I perform search
+    Then only first page (50 results) is loaded
+    And total count is shown
+    And pagination is available
+    And response time stays under 1 second
+
+  Scenario: Slow admin dashboard with large dataset
+    Given platform has 1,000 companies and 50,000 users
+    When admin loads dashboard
+    Then dashboard loads with cached summary data
+    And detailed data loads progressively
+    And page is interactive within 3 seconds
 ```
 
 ---
@@ -416,6 +764,165 @@ Feature: Security Requirements
     When I try to access Company B's fund by ID
     Then I get 404 Not Found
     And no data is leaked
+
+  # NEGATIVE TESTS: SQL Injection Attacks
+  Scenario: SQL injection in search field
+    When I enter "'; DELETE FROM users; --" in search
+    Then search returns no results (or empty)
+    And no data is deleted
+    And attempt is logged as security event
+
+  Scenario: SQL injection in sort parameter
+    When I try to sort by "name; DROP TABLE lps"
+    Then request is rejected
+    And I see 400 Bad Request
+    And database is unaffected
+
+  Scenario: SQL injection in filter values
+    When I filter by LP type "Pension' OR '1'='1"
+    Then filter returns no results (treated as literal)
+    And no data leak occurs
+    And query is parameterized
+
+  Scenario: SQL injection in import data
+    When I import CSV with LP name "'; DROP TABLE--"
+    Then LP is created with literal name
+    And no SQL is executed
+    And import completes successfully
+
+  Scenario: Second-order SQL injection
+    Given I created LP with name containing SQL
+    When admin searches for that LP
+    Then search works safely
+    And stored SQL fragment is not executed
+
+  # NEGATIVE TESTS: XSS and Injection Attacks
+  Scenario: XSS in LP name
+    When I create LP with name "<script>alert('xss')</script>"
+    Then name is HTML-escaped when displayed
+    And no script executes
+
+  Scenario: XSS in correction notes
+    When I submit correction with note containing JavaScript
+    Then note is sanitized
+    And no XSS is possible in admin view
+
+  Scenario: HTML injection in email fields
+    When I register with email containing HTML
+    Then email is validated and rejected
+    And no HTML injection occurs
+
+  # NEGATIVE TESTS: Authentication Attacks
+  Scenario: Brute force login prevention
+    When I fail login 5 times in a row
+    Then account is temporarily locked
+    And I see "Too many attempts, try again in 15 minutes"
+    And lockout is logged
+
+  Scenario: Session fixation prevention
+    Given I have a session ID
+    When I login successfully
+    Then a new session ID is generated
+    And old session ID is invalidated
+
+  Scenario: Session hijacking prevention
+    Given attacker obtains my session token
+    When token is used from different IP/User-Agent
+    Then session is flagged as suspicious
+    And additional verification may be required
+
+  Scenario: Token replay attack
+    Given I logged out
+    When someone tries to use my old token
+    Then token is rejected (revoked on logout)
+    And 401 Unauthorized is returned
+
+  Scenario: Password reset token expiration
+    Given I requested password reset 25 hours ago
+    When I try to use the reset token
+    Then token is rejected as expired
+    And I must request new reset link
+
+  # NEGATIVE TESTS: Rate Limiting Edge Cases
+  Scenario: Rate limit per user not per IP
+    Given user A and user B share same IP
+    When user A hits rate limit
+    Then user B can still make requests
+    And rate limiting is per-user
+
+  Scenario: Rate limit reset after window
+    Given I hit rate limit at 10:00
+    When I wait until 10:01 (window resets)
+    Then I can make requests again
+    And rate limit counter is reset
+
+  Scenario: Rate limit on expensive operations
+    When I try to generate 100 pitches in 1 minute
+    Then pitch generation is rate-limited more strictly
+    And I see "Limit: 10 pitches per minute"
+
+  Scenario: Rate limit bypass attempt via API
+    When I try to manipulate rate limit headers
+    Then server ignores client-provided limits
+    And server-side tracking is enforced
+
+  Scenario: Distributed rate limiting (multiple instances)
+    Given app runs on 3 Railway instances
+    When I make requests spread across instances
+    Then total rate limit is still enforced
+    And Redis/central store tracks request count
+
+  # NEGATIVE TESTS: Authorization Bypass
+  Scenario: IDOR - accessing other user's data
+    Given I am user 123
+    When I try to access /api/users/456/profile
+    Then I get 403 Forbidden (or 404)
+    And user 456's data is not returned
+
+  Scenario: Privilege escalation via API
+    Given I am a regular member
+    When I POST to /api/users/me/role with body {"role": "admin"}
+    Then request is rejected
+    And my role is unchanged
+    And attempt is logged
+
+  Scenario: Access admin API endpoints as user
+    Given I am a regular user
+    When I try to access /api/admin/users
+    Then I get 403 Forbidden
+    And admin data is not exposed
+
+  Scenario: Modify other company's fund
+    Given I am admin of Company A
+    When I try to PUT /api/funds/999 (Company B's fund)
+    Then I get 404 Not Found (not 403, to avoid enumeration)
+    And fund is not modified
+
+  # NEGATIVE TESTS: Input Validation Attacks
+  Scenario: Oversized request body
+    When I send POST with 100MB body
+    Then request is rejected before full upload
+    And I see 413 Payload Too Large
+
+  Scenario: Malformed JSON
+    When I send {"name": "test with unclosed JSON
+    Then I get 400 Bad Request
+    And error message doesn't expose internal details
+
+  Scenario: Invalid UTF-8 characters
+    When I send request with invalid UTF-8 bytes
+    Then request is handled safely
+    And either sanitized or rejected with clear error
+
+  Scenario: Path traversal in file upload
+    When I upload file named "../../../etc/passwd"
+    Then filename is sanitized
+    And file is saved safely (no path traversal)
+
+  Scenario: Null byte injection
+    When I enter "admin%00.txt" in filename
+    Then null byte is removed or request rejected
+    And no security bypass occurs
 ```
 
 ---
@@ -458,6 +965,85 @@ Feature: Production Monitoring
       | Total Feedback | 500 |
       | Positive | 350 (70%) |
       | Negative | 150 (30%) |
+
+  # NEGATIVE TESTS: Error Tracking Failures
+  Scenario: Sentry service unavailable
+    Given Sentry is temporarily down
+    When an error occurs in production
+    Then error is logged locally as fallback
+    And application continues to function
+    And errors are batched for later submission
+
+  Scenario: Error flood protection
+    Given 1000 of the same error occurs per minute
+    When Sentry receives these errors
+    Then errors are deduplicated/sampled
+    And Sentry quota is not exhausted
+    And alert is still triggered for new error type
+
+  Scenario: Sensitive data in error context
+    When an error includes user password in context
+    Then password is scrubbed before sending to Sentry
+    And sensitive fields are masked
+
+  Scenario: Error in error handler
+    When error tracking code itself fails
+    Then original error is not lost
+    And fallback logging captures both errors
+    And application doesn't crash
+
+  # NEGATIVE TESTS: Health Check Failures
+  Scenario: Health check with database down
+    Given database is unreachable
+    When I call /health
+    Then I get 503 Service Unavailable
+    And response includes:
+      | database: "disconnected" |
+      | details: "Connection timeout" |
+    And other services still report their status
+
+  Scenario: Health check with partial failure
+    Given OpenRouter is down but database is up
+    When I call /health
+    Then I get 200 OK (degraded)
+    And response includes:
+      | database: "connected" |
+      | openrouter: "unavailable" |
+      | status: "degraded" |
+
+  Scenario: Health check timeout
+    Given health check takes too long
+    When /health doesn't respond in 5 seconds
+    Then load balancer marks instance unhealthy
+    And traffic is routed to other instances
+
+  Scenario: Deep health check vs shallow health check
+    When I call /health
+    Then response is fast (< 100ms, shallow check)
+    When I call /health?deep=true
+    Then response includes actual DB query result
+    And response may take longer (< 2 seconds)
+
+  # NEGATIVE TESTS: Logging and Audit
+  Scenario: Audit log write failure
+    Given audit log storage is full
+    When admin performs sensitive action
+    Then action is blocked until logging works
+    And error is escalated immediately
+    And no audit trail gap is allowed
+
+  Scenario: Log retention compliance
+    Given logs older than 90 days exist
+    When retention policy runs
+    Then old logs are archived/deleted
+    And compliance requirements are met
+    And audit trail for active investigations is preserved
+
+  Scenario: Sensitive data in logs
+    When request includes credit card or SSN
+    Then these are masked in all logs
+    And only last 4 digits are visible if needed
+    And PII compliance is maintained
 ```
 
 ---
@@ -506,4 +1092,218 @@ Feature: Admin Daily Operations
     And I approve the company
     Then company is created
     And admin invitation is sent
+
+  # NEGATIVE TESTS: Admin Workflow Errors
+  Scenario: Admin dashboard unavailable
+    Given I am a super admin
+    When I login and dashboard fails to load
+    Then I see error "Dashboard temporarily unavailable"
+    And I can still navigate to specific admin sections
+    And I can access emergency tools
+
+  Scenario: Bulk operation fails partway
+    Given I am processing 100 flagged LPs
+    When operation fails at item 50
+    Then I see "50 of 100 processed before error"
+    And I see option to "Resume from item 51"
+    And successfully processed items remain processed
+
+  Scenario: Conflicting admin actions
+    Given admin A is approving company "NewCo"
+    And admin B is rejecting company "NewCo" simultaneously
+    When both click submit
+    Then first action wins
+    And second admin sees "Company status already changed"
+    And data integrity is maintained
+
+  Scenario: Admin session timeout during operation
+    Given I started a large import job
+    When my session times out mid-operation
+    Then import continues in background
+    And I can re-login and see progress
+    And operation is not duplicated
+
+  Scenario: Admin makes destructive mistake
+    Given I accidentally deleted wrong LP
+    When I realize the mistake within seconds
+    Then I can find deleted LP in "Recently Deleted" (soft delete)
+    And I can restore it within 30 days
+    And all relationships are preserved
+
+  Scenario: System under maintenance
+    Given platform is undergoing scheduled maintenance
+    When admin tries to make changes
+    Then I see "System in maintenance mode"
+    And read-only access is available
+    And no data modifications are permitted
+```
+
+---
+
+## Edge Case Tests
+
+```gherkin
+Feature: Edge Cases and Boundary Conditions
+  As a system
+  I want to handle edge cases gracefully
+  So that no scenario causes failure
+
+  # Data Edge Cases
+  Scenario: LP with maximum field lengths
+    When I create LP with all fields at maximum length
+    Then LP is created successfully
+    And data is not truncated unexpectedly
+    And display handles long text gracefully
+
+  Scenario: LP with minimum/empty optional fields
+    When I create LP with only required fields
+    Then LP is created successfully
+    And optional fields show appropriate defaults/placeholders
+
+  Scenario: LP with Unicode characters
+    When I create LP with name "Deutsche Bank AG"
+    And headquarters in "Munchen"
+    And contact in Japanese characters
+    Then all Unicode is stored correctly
+    And search works with Unicode
+    And display renders correctly
+
+  Scenario: LP with special characters in all fields
+    When I create LP with ampersands, quotes, slashes
+    Then characters are handled correctly
+    And no injection vulnerabilities exist
+    And display escapes appropriately
+
+  Scenario: Zero AUM LP
+    When I create LP with AUM of $0
+    Then LP is created (valid edge case)
+    And matching algorithms handle zero gracefully
+    And no division by zero errors
+
+  Scenario: Very large AUM
+    When I create LP with AUM of $999,999,999,999,999
+    Then numeric precision is maintained
+    And display formats correctly (abbreviated)
+    And calculations don't overflow
+
+  # Timing Edge Cases
+  Scenario: Action at exact midnight
+    When I submit form at 23:59:59.999
+    And server processes at 00:00:00.001
+    Then date handling is consistent
+    And audit logs show correct timestamps
+    And daily counters handle boundary correctly
+
+  Scenario: Leap second handling
+    Given system encounters leap second
+    When operations occur during leap second
+    Then no duplicate timestamps occur
+    And audit trail remains consistent
+
+  Scenario: Timezone edge cases
+    Given user is in timezone UTC-12
+    And server is in UTC
+    When user creates record at local midnight
+    Then timestamps are stored in UTC
+    And displayed back in user's timezone
+    And date filters work correctly
+
+  # Concurrent Operation Edge Cases
+  Scenario: Two admins edit same LP simultaneously
+    Given admin A loads LP profile
+    And admin B loads same LP profile
+    When both make different changes and save
+    Then second save warns of conflict
+    And merge resolution is available
+    And no data is silently lost
+
+  Scenario: User deleted while viewing their data
+    Given admin is viewing user profile
+    When another admin deletes that user
+    And first admin clicks "Edit"
+    Then I see "User no longer exists"
+    And graceful error is shown
+
+  Scenario: Company deleted while user logged in
+    Given I am logged in as user of Company A
+    When admin deletes Company A
+    Then my session is invalidated
+    And I see "Your company has been deactivated"
+    And I am logged out gracefully
+
+  # Empty/Null State Edge Cases
+  Scenario: Search with no database records
+    Given LP database is empty
+    When I perform any search
+    Then I see "No LPs in database"
+    And I see option to import data
+    And no errors occur
+
+  Scenario: Dashboard with zero activity
+    Given no activity in last 24 hours
+    When admin views dashboard
+    Then I see appropriate zero states
+    And dashboard renders correctly
+    And no "undefined" or NaN values
+
+  Scenario: Analytics with no data
+    Given new company with no funds or matches
+    When I view analytics
+    Then I see "Not enough data for analytics"
+    And charts show empty state
+    And no calculation errors
+```
+
+---
+
+## Error Recovery Tests
+
+```gherkin
+Feature: Error Recovery and Resilience
+  As a system
+  I want to recover from errors gracefully
+  So that users can continue working
+
+  Scenario: Database connection recovery
+    Given database connection is lost
+    When connection is restored
+    Then system automatically reconnects
+    And pending operations are retried
+    And user sees minimal disruption
+
+  Scenario: External API recovery
+    Given OpenRouter was unavailable
+    When OpenRouter comes back online
+    Then pending pitch generations resume
+    And users are notified of completion
+    And no duplicate generations occur
+
+  Scenario: Partial page load failure
+    Given dashboard main content loads
+    But analytics widget fails
+    When page renders
+    Then main content is shown
+    And failed widget shows "Unable to load"
+    And user can manually refresh widget
+
+  Scenario: Background job recovery
+    Given import job was running
+    When server restarts unexpectedly
+    Then job status shows "Interrupted"
+    And I can resume from last checkpoint
+    And no data duplication occurs
+
+  Scenario: Transaction rollback on error
+    Given I am saving complex multi-table update
+    When error occurs in second table update
+    Then first table update is rolled back
+    And data remains consistent
+    And user can retry entire operation
+
+  Scenario: Cache invalidation on error
+    Given stale data is cached
+    When I detect data inconsistency
+    Then cache is invalidated
+    And fresh data is fetched
+    And user sees correct information
 ```
