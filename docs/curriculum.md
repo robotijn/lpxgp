@@ -71,8 +71,8 @@ AI-powered platform for GP-LP matching.
 
 #### 1.3 File imports with `@`
 ```markdown
-See @docs/milestones.md for roadmap.
-See @docs/prd/PRD-v1.md for requirements.
+See docs/milestones.md for roadmap.
+See docs/prd/PRD-v1.md for requirements.
 ```
 
 #### Exercise 1

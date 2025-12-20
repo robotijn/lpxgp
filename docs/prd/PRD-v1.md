@@ -1376,7 +1376,7 @@ Future (API integrations):
 
 ## 9. MVP Definition
 
-**See also:** @docs/milestones.md for incremental delivery roadmap.
+**See also:** docs/milestones.md for incremental delivery roadmap.
 
 ### 9.1 MVP Scope
 
@@ -1426,7 +1426,7 @@ Future (API integrations):
 
 ### 9.3 Milestone-Based Delivery
 
-**See @docs/milestones.md for the detailed roadmap.**
+**See docs/milestones.md for the detailed roadmap.**
 
 Each milestone delivers a demoable product increment:
 
@@ -1731,7 +1731,7 @@ tests/
 
 ### 11.3 Test Specifications
 
-See separate document: **@docs/prd/test-specifications.md**
+See separate document: **docs/prd/test-specifications.md**
 
 ---
 
@@ -1903,5 +1903,5 @@ Regions:
 
 ## Related Documents
 
-- @docs/prd/test-specifications.md - Detailed test cases
-- @docs/curriculum.md - Learning curriculum (to be updated)
+- docs/prd/test-specifications.md - Detailed test cases
+- docs/curriculum.md - Learning curriculum (to be updated)

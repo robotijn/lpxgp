@@ -6,10 +6,12 @@ An AI-powered platform helping investment fund managers (GPs) find and engage th
 
 ## Project Documents
 
-- @docs/milestones.md - Milestone roadmap (start here!)
-- @docs/prd/PRD-v1.md - Product Requirements Document
-- @docs/prd/test-specifications.md - Test specifications (TDD)
-- @docs/curriculum.md - Learning curriculum (Claude Code + LPxGP)
+- docs/milestones.md - Milestone roadmap (start here!)
+- docs/prd/PRD-v1.md - Product Requirements Document
+- docs/prd/test-specifications.md - Test specifications (TDD)
+- docs/curriculum.md - Learning curriculum (Claude Code + LPxGP)
+
+Note: Read these files on demand rather than auto-loading (to save context).
 
 ## Tech Stack
 
@@ -101,7 +103,7 @@ lpxgp/
 
 **Total: ~15 working days** - After M1, every push auto-deploys to lpxgp.com.
 
-See @docs/milestones.md for full roadmap.
+See docs/milestones.md for full roadmap.
 
 ## Current Status
 
@@ -132,7 +134,7 @@ Claude-generated content:
 ## Testing Approach
 
 TDD workflow:
-1. Write test first (see @docs/prd/test-specifications.md)
+1. Write test first (see docs/prd/test-specifications.md)
 2. Run `uv run pytest` - should fail
 3. Implement minimum code to pass
 4. Refactor while green
@@ -144,4 +146,4 @@ Learn Claude Code features while building LPxGP:
 - Modules 6-7: Skills and agents
 - Modules 8-11: MCP, Claude API, production
 
-See @docs/curriculum.md for the full learning path.
+See docs/curriculum.md for the full learning path.
