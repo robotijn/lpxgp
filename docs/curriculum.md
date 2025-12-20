@@ -12,8 +12,8 @@ See CLAUDE.md for tech stack and commands.
 
 | Milestone | Modules | What You Learn | What You Build |
 |-----------|---------|----------------|----------------|
-| M0 | 1-2 | CLAUDE.md, commands | Data imported + clean (local) |
-| M1 | 3-5 | Rules, CI/CD, deployment | LP search live on lpxgp.com |
+| M0 | 1, 2, 2b | CLAUDE.md, commands, data cleaning | Data imported + clean (local) |
+| M1 | 3-5 | Rules, CI/CD, HTMX | LP search live on lpxgp.com |
 | M2 | 6-7 | Skills, agents | Semantic search |
 | M3 | 8 | MCP fundamentals | GP profiles + matching |
 | M4 | 9-10 | Claude API, prompting | AI explanations + pitch |
@@ -114,7 +114,7 @@ Cost: $0 (your subscription)
 ```
 
 #### 2b.2 Cleaning workflow
-1. Load CSV into conversation: `@data/raw_lps.csv`
+1. Load CSV into conversation: `data/raw_lps.csv`
 2. Claude analyzes issues (missing fields, inconsistent naming)
 3. Claude writes `clean_lps.py` script
 4. You run: `uv run python clean_lps.py`
@@ -153,12 +153,7 @@ CREATE TABLE lps (
 
 ---
 
-### M0 Deliverables Checklist
-- [ ] Project structure (main.py + base.html)
-- [ ] Supabase tables + RLS (with audit fields)
-- [ ] LP data imported and cleaned
-- [ ] Data quality score > 0.7
-- [ ] Basic /lps page working
+**M0 Deliverables:** See milestones.md
 
 ---
 
@@ -316,13 +311,7 @@ Build the LP search page with HTMX live filtering.
 
 ---
 
-### M1 Deliverables Checklist
-- [ ] Auth: Use Supabase Auth UI (no custom login forms needed)
-- [ ] RLS policies configured
-- [ ] API: GET /lps with filters
-- [ ] UI: Login + LP search page (HTMX)
-- [ ] GitHub Actions: test -> deploy
-- [ ] **Live at lpxgp.com**
+**M1 Deliverables:** See milestones.md
 
 ---
 
@@ -417,13 +406,7 @@ Create `pytest-runner` and `search-debugger` agents.
 
 ---
 
-### M2 Deliverables Checklist
-- [ ] Voyage AI configured
-- [ ] Embeddings for all LPs
-- [ ] API: POST /lps/semantic-search
-- [ ] UI: Natural language search box
-- [ ] Skills: `supabase-helper`, `voyage-helper`
-- [ ] Agents: `pytest-runner`, `search-debugger`
+**M2 Deliverables:** See milestones.md
 
 ---
 
@@ -482,6 +465,8 @@ Puppeteer MCP is for **UI verification and screenshots**, not web scraping.
 
 #### Pitch deck extraction
 ```python
+client = anthropic.AsyncAnthropic()
+
 async def extract_fund_info(file_path: str) -> FundDraft:
     """Extract fund information from pitch deck."""
     text = await extract_text(file_path)  # PDF/PPT to text
@@ -560,13 +545,7 @@ def calculate_score(fund: Fund, lp: LP) -> float:
 
 ---
 
-### M3 Deliverables Checklist
-- [ ] Fund profile creation form
-- [ ] Pitch deck upload + text extraction
-- [ ] Fund thesis embeddings
-- [ ] Matching algorithm (hard + soft)
-- [ ] Match results page with scores
-- [ ] Score breakdown visualization
+**M3 Deliverables:** See milestones.md
 
 ---
 
@@ -583,7 +562,7 @@ def calculate_score(fund: Fund, lp: LP) -> float:
 ```python
 import anthropic
 
-client = anthropic.Anthropic()
+client = anthropic.AsyncAnthropic()
 
 async def generate_explanation(fund: Fund, lp: LP, score: float) -> str:
     response = await client.messages.create(
@@ -681,13 +660,7 @@ async def generate_email_draft(match: Match, tone: str = "professional") -> Emai
 
 ---
 
-### M4 Deliverables Checklist
-- [ ] Claude API integration
-- [ ] Explanation generation
-- [ ] Caching layer
-- [ ] Talking points extraction
-- [ ] Email generation (multiple tones)
-- [ ] PDF export
+**M4 Deliverables:** See milestones.md
 
 ---
 
@@ -709,9 +682,10 @@ async def generate_email_draft(match: Match, tone: str = "professional") -> Emai
 #### 11.2 Sentry setup
 ```python
 import sentry_sdk
+from src.config import settings
 
 sentry_sdk.init(
-    dsn=os.environ["SENTRY_DSN"],
+    dsn=settings.SENTRY_DSN,
     traces_sample_rate=0.1,
 )
 ```
@@ -729,13 +703,7 @@ async def submit_feedback(
 
 ---
 
-### M5 Deliverables Checklist
-- [ ] Admin dashboard
-- [ ] User management
-- [ ] Data quality stats
-- [ ] Sentry integration
-- [ ] Feedback collection
-- [ ] All endpoints < 500ms p95
+**M5 Deliverables:** See milestones.md
 
 ---
 

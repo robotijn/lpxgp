@@ -4,6 +4,8 @@ AI-powered platform helping investment fund managers (GPs) find and engage insti
 
 **Live at:** [lpxgp.com](https://lpxgp.com)
 
+> **Learning Project:** This repo is also a hands-on curriculum for learning Claude Code while building a real product. See [docs/curriculum.md](docs/curriculum.md) for the learning path.
+
 ## Quick Start
 
 ```bash

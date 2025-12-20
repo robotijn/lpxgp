@@ -1,8 +1,8 @@
 # Product Requirements Document (PRD)
 # LPxGP: GP-LP Intelligence Platform
 
-**Version:** 1.2
-**Last Updated:** 2024-12-20
+**Version:** 1.3
+**Last Updated:** 2025-12-20
 **Status:** Approved for MVP Development
 
 ---
@@ -217,7 +217,7 @@ Priority A (First): LP Search & Database
 ├── F-LP-03: Semantic Search [P0]
 ├── F-LP-04: LP Data Import [P0]
 ├── F-LP-05: LP Data Cleaning Pipeline [P0]
-└── F-LP-06: LP Data Enrichment [P0]
+└── F-LP-06: LP Data Enrichment [P1] (post-MVP)
 
 Priority B (Second): Matching Engine
 ├── F-MATCH-01: Hard Filter Matching [P0]
@@ -1779,6 +1779,7 @@ Regions:
 | 1.0 | 2024-12-20 | Claude | Initial draft |
 | 1.1 | 2024-12-20 | Claude | Added data pipeline, enrichment, testing strategy, decisions |
 | 1.2 | 2024-12-20 | Claude | Removed web scraping, added human-in-the-loop requirements, updated F-GP-02 flow, added audit trail fields |
+| 1.3 | 2025-12-20 | Claude | Fixed F-LP-06 priority (P1), documentation consistency review |
 
 ---
 

@@ -36,13 +36,13 @@
 
 ### Stack
 - **Frontend:** Jinja2 templates + HTMX + Tailwind CSS (server-rendered)
-- **Backend:** FastAPI + SQLAlchemy
+- **Backend:** FastAPI + supabase-py (no SQLAlchemy)
 - **Testing:** pytest for all Python code, Playwright for browser E2E tests
 
 ---
 
 ## Milestone 0: Foundation
-### "I can search my LP database"
+### "Data is imported and clean"
 
 ### M0-UNIT: Unit Tests
 

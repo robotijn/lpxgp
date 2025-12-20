@@ -26,6 +26,22 @@ Note: Read these files on demand rather than auto-loading (to save context).
 **M2+:** Voyage AI for semantic search
 **Post-MVP:** Data integrations (external APIs, partner feeds)
 
+## Architecture
+
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│   Browser       │────▶│   Railway       │────▶│   Supabase      │
+│   (HTMX)        │◀────│   (FastAPI)     │◀────│   (PostgreSQL)  │
+└─────────────────┘     └────────┬────────┘     └─────────────────┘
+                                 │
+                    ┌────────────┼────────────┐
+                    ▼            ▼            ▼
+             ┌──────────┐ ┌──────────┐ ┌──────────┐
+             │ Claude   │ │ Voyage   │ │ Supabase │
+             │ API      │ │ AI (M2+) │ │ Auth     │
+             └──────────┘ └──────────┘ └──────────┘
+```
+
 ## Development Tools
 
 | Tool | Purpose |
@@ -74,15 +90,16 @@ git push origin main
 ## Project Structure
 
 ```
-lpxgp/
+learnclaude/              # Git repo (learning project)
 ├── CLAUDE.md
 ├── pyproject.toml
 ├── src/
-│   ├── main.py                 # FastAPI app + all routes
+│   ├── main.py           # FastAPI app + all routes
+│   ├── config.py         # Settings (env vars)
 │   ├── templates/
-│   │   ├── base.html           # Layout with CDN links
+│   │   ├── base.html     # Layout with CDN links
 │   │   └── pages/
-│   └── static/                 # Images only (CSS/JS via CDN)
+│   └── static/           # Images only (CSS/JS via CDN)
 ├── tests/
 │   └── test_main.py
 ├── supabase/
@@ -92,18 +109,9 @@ lpxgp/
 
 ## Milestones
 
-| Milestone | Demo | Duration | Live |
-|-----------|------|----------|------|
-| M0 | "Data is imported and clean" | 1-2 days | Local only |
-| M1 | "Search LPs on lpxgp.com" | 2-3 days | Yes |
-| M2 | "Natural language search works" | 1-2 days | Auto-deploy |
-| M3 | "See matching LPs for my fund" | 2-3 days | Auto-deploy |
-| M4 | "AI explains matches + generates pitch" | 1-2 days | Auto-deploy |
-| M5 | "Production-ready with admin" | 2-3 days | Auto-deploy |
+**~15 working days total.** After M1, every push auto-deploys to lpxgp.com.
 
-**Total: ~15 working days** - After M1, every push auto-deploys to lpxgp.com.
-
-See docs/milestones.md for full roadmap.
+See docs/milestones.md for the full roadmap with deliverables.
 
 ## Current Status
 
@@ -147,3 +155,21 @@ Learn Claude Code features while building LPxGP:
 - Modules 8-11: MCP, Claude API, production
 
 See docs/curriculum.md for the full learning path.
+
+## Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| `uv run` fails | Run `uv sync` first to install dependencies |
+| Supabase connection error | Check SUPABASE_URL and SUPABASE_ANON_KEY env vars |
+| Auth redirect fails | Verify callback URL in Supabase dashboard |
+| HTMX not loading | Check CDN script tag in base.html |
+| Tests fail on CI | Ensure test env vars are set in GitHub secrets |
+| Railway deploy fails | Check build logs, verify pyproject.toml is valid |
+
+**Common env vars needed:**
+- `SUPABASE_URL` - Your Supabase project URL
+- `SUPABASE_ANON_KEY` - Public anon key
+- `SUPABASE_SERVICE_KEY` - Service role key (for admin ops)
+- `ANTHROPIC_API_KEY` - For Claude API (M4+)
+- `VOYAGE_API_KEY` - For embeddings (M2+)
