@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% block title %}Settings - Team - LPxGP{% endblock %}
+{% block body %}
+<div class="min-h-screen bg-slate-50">
+    <!-- Top Navigation -->
+    <header class="bg-white border-b border-slate-200">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-8">
+                    <span class="text-xl font-bold text-navy-900">LPxGP</span>
+                    <nav class="hidden md:flex space-x-6">
+                        <a href="#" class="text-sm font-medium text-navy-500 hover:text-navy-700">Dashboard</a>
+                        <a href="#" class="text-sm font-medium text-navy-500 hover:text-navy-700">Funds</a>
+                        <a href="#" class="text-sm font-medium text-navy-500 hover:text-navy-700">Search</a>
+                        <a href="#" class="text-sm font-medium text-navy-500 hover:text-navy-700">Outreach</a>
+                    </nav>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-sm text-navy-600">Acme Capital</span>
+                    <div class="w-8 h-8 rounded-full bg-navy-100 flex items-center justify-center">
+                        <span class="text-sm font-medium text-navy-600">JP</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-5xl mx-auto px-6 py-8">
+        <div class="flex gap-8">
+            <!-- Sidebar -->
+            <div class="w-56 shrink-0">
+                <h2 class="text-lg font-semibold text-navy-900 mb-4">Settings</h2>
+                <nav class="space-y-1">
+                    <a href="#" class="block px-4 py-2 text-sm font-medium text-navy-500 hover:bg-slate-50 rounded-lg">Profile</a>
+                    <a href="#" class="block px-4 py-2 text-sm font-medium text-navy-900 bg-slate-100 rounded-lg">Team</a>
+                    <a href="#" class="block px-4 py-2 text-sm font-medium text-navy-500 hover:bg-slate-50 rounded-lg">Company</a>
+                    <a href="#" class="block px-4 py-2 text-sm font-medium text-navy-500 hover:bg-slate-50 rounded-lg">Notifications</a>
+                    <a href="#" class="block px-4 py-2 text-sm font-medium text-navy-500 hover:bg-slate-50 rounded-lg">Security</a>
+                </nav>
+            </div>
+
+            <!-- Content -->
+            <div class="flex-1">
+                <div class="card">
+                    <div class="px-8 py-6 border-b border-slate-100 flex justify-between items-center">
+                        <div>
+                            <h1 class="text-xl font-semibold text-navy-900">Team Members</h1>
+                            <p class="text-sm text-navy-500 mt-1">Manage who has access to Acme Capital</p>
+                        </div>
+                        <button class="btn-primary">
+                            <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                            </svg>
+                            Invite Member
+                        </button>
+                    </div>
+
+                    <!-- Team List -->
+                    <div class="divide-y divide-slate-100">
+                        <div class="px-8 py-4 flex items-center justify-between">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-full bg-navy-100 flex items-center justify-center mr-4">
+                                    <span class="text-sm font-medium text-navy-600">JP</span>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-navy-900">John Partner</p>
+                                    <p class="text-sm text-navy-500">john@acmecapital.com</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-4">
+                                <span class="px-2 py-1 text-xs font-medium bg-amber-50 text-amber-700 rounded">Admin</span>
+                                <span class="text-xs text-navy-400">You</span>
+                            </div>
+                        </div>
+                        <div class="px-8 py-4 flex items-center justify-between">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mr-4">
+                                    <span class="text-sm font-medium text-green-600">SJ</span>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-navy-900">Sarah Johnson</p>
+                                    <p class="text-sm text-navy-500">sarah@acmecapital.com</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-4">
+                                <span class="px-2 py-1 text-xs font-medium bg-blue-50 text-blue-700 rounded">Member</span>
+                                <button class="text-sm text-navy-500 hover:text-navy-700">Edit</button>
+                            </div>
+                        </div>
+                        <div class="px-8 py-4 flex items-center justify-between">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center mr-4">
+                                    <span class="text-sm font-medium text-purple-600">MC</span>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-navy-900">Mike Chen</p>
+                                    <p class="text-sm text-navy-500">mike@acmecapital.com</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-4">
+                                <span class="px-2 py-1 text-xs font-medium bg-blue-50 text-blue-700 rounded">Member</span>
+                                <button class="text-sm text-navy-500 hover:text-navy-700">Edit</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pending Invitations -->
+                <div class="card mt-6">
+                    <div class="px-8 py-6 border-b border-slate-100">
+                        <h2 class="text-lg font-semibold text-navy-900">Pending Invitations</h2>
+                    </div>
+                    <div class="divide-y divide-slate-100">
+                        <div class="px-8 py-4 flex items-center justify-between">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mr-4">
+                                    <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-navy-900">emily@acmecapital.com</p>
+                                    <p class="text-sm text-navy-500">Invited 2 days ago</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-4">
+                                <span class="px-2 py-1 text-xs font-medium bg-slate-100 text-slate-600 rounded">Pending</span>
+                                <button class="text-sm text-navy-500 hover:text-navy-700">Resend</button>
+                                <button class="text-sm text-red-500 hover:text-red-700">Cancel</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Roles Info -->
+                <div class="card p-8 mt-6">
+                    <h2 class="text-lg font-semibold text-navy-900 mb-4">Role Permissions</h2>
+                    <div class="grid grid-cols-2 gap-6">
+                        <div class="p-4 bg-slate-50 rounded-lg">
+                            <div class="flex items-center mb-2">
+                                <span class="px-2 py-1 text-xs font-medium bg-amber-50 text-amber-700 rounded">Admin</span>
+                            </div>
+                            <ul class="text-sm text-navy-600 space-y-1">
+                                <li>• Manage team members</li>
+                                <li>• Create and edit funds</li>
+                                <li>• Access all features</li>
+                                <li>• View billing</li>
+                            </ul>
+                        </div>
+                        <div class="p-4 bg-slate-50 rounded-lg">
+                            <div class="flex items-center mb-2">
+                                <span class="px-2 py-1 text-xs font-medium bg-blue-50 text-blue-700 rounded">Member</span>
+                            </div>
+                            <ul class="text-sm text-navy-600 space-y-1">
+                                <li>• View funds</li>
+                                <li>• Search LPs</li>
+                                <li>• Generate pitches</li>
+                                <li>• Manage shortlists</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+{% endblock %}

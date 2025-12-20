@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard - LPxGP{% endblock %}
+{% block body %}
+<div class="min-h-screen bg-slate-50">
+    <!-- Top Navigation -->
+    <header class="bg-navy-900 text-white">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-8">
+                    <div>
+                        <span class="text-xl font-bold">LPxGP</span>
+                        <span class="ml-2 px-2 py-0.5 text-xs bg-amber-500 text-navy-900 rounded font-medium">ADMIN</span>
+                    </div>
+                    <nav class="hidden md:flex space-x-6">
+                        <a href="#" class="text-sm font-medium text-white border-b-2 border-white pb-4 -mb-px">Dashboard</a>
+                        <a href="#" class="text-sm font-medium text-navy-300 hover:text-white">Companies</a>
+                        <a href="#" class="text-sm font-medium text-navy-300 hover:text-white">Users</a>
+                        <a href="#" class="text-sm font-medium text-navy-300 hover:text-white">People</a>
+                        <a href="#" class="text-sm font-medium text-navy-300 hover:text-white">LPs</a>
+                        <a href="#" class="text-sm font-medium text-navy-300 hover:text-white">Data Quality</a>
+                    </nav>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-sm text-navy-300">Super Admin</span>
+                    <div class="w-8 h-8 rounded-full bg-navy-700 flex items-center justify-center">
+                        <span class="text-sm font-medium text-white">SA</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-6 py-8">
+        <!-- Page Header -->
+        <div class="mb-8">
+            <h1 class="text-2xl font-semibold text-navy-900">Platform Dashboard</h1>
+            <p class="text-sm text-navy-500 mt-1">Overview of LPxGP platform activity</p>
+        </div>
+
+        <!-- Platform Stats -->
+        <div class="grid grid-cols-4 gap-6 mb-8">
+            <div class="card p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <div class="text-sm font-medium text-navy-500 uppercase tracking-wide">Companies</div>
+                        <div class="mt-2 text-3xl font-semibold text-navy-900">25</div>
+                        <div class="mt-1 text-sm text-green-600">+3 this month</div>
+                    </div>
+                    <div class="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center">
+                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            <div class="card p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <div class="text-sm font-medium text-navy-500 uppercase tracking-wide">Total Users</div>
+                        <div class="mt-2 text-3xl font-semibold text-navy-900">156</div>
+                        <div class="mt-1 text-sm text-green-600">+12 this month</div>
+                    </div>
+                    <div class="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center">
+                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            <div class="card p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <div class="text-sm font-medium text-navy-500 uppercase tracking-wide">LP Database</div>
+                        <div class="mt-2 text-3xl font-semibold text-navy-900">5,247</div>
+                        <div class="mt-1 text-sm text-navy-400">+50 this week</div>
+                    </div>
+                    <div class="w-12 h-12 rounded-full bg-purple-50 flex items-center justify-center">
+                        <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            <div class="card p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <div class="text-sm font-medium text-navy-500 uppercase tracking-wide">Matches Generated</div>
+                        <div class="mt-2 text-3xl font-semibold text-navy-900">12,450</div>
+                        <div class="mt-1 text-sm text-navy-400">all time</div>
+                    </div>
+                    <div class="w-12 h-12 rounded-full bg-amber-50 flex items-center justify-center">
+                        <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-6">
+            <!-- Pending Actions -->
+            <div class="col-span-2">
+                <div class="card">
+                    <div class="px-6 py-4 border-b border-slate-100">
+                        <h2 class="font-semibold text-navy-900">Pending Actions</h2>
+                    </div>
+                    <div class="divide-y divide-slate-100">
+                        <div class="px-6 py-4 flex items-center justify-between">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center mr-4">
+                                    <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-navy-900">3 companies awaiting activation</p>
+                                    <p class="text-xs text-navy-400">Admin invitations pending acceptance</p>
+                                </div>
+                            </div>
+                            <button class="text-sm text-accent hover:text-accent-dark font-medium">View →</button>
+                        </div>
+                        <div class="px-6 py-4 flex items-center justify-between">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center mr-4">
+                                    <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"></path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-navy-900">12 LPs flagged for review</p>
+                                    <p class="text-xs text-navy-400">Data corrections submitted by users</p>
+                                </div>
+                            </div>
+                            <button class="text-sm text-accent hover:text-accent-dark font-medium">Review →</button>
+                        </div>
+                        <div class="px-6 py-4 flex items-center justify-between">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center mr-4">
+                                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-navy-900">Import job in progress</p>
+                                    <p class="text-xs text-navy-400">500 LPs processing - 78% complete</p>
+                                </div>
+                            </div>
+                            <button class="text-sm text-accent hover:text-accent-dark font-medium">Monitor →</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Health -->
+            <div>
+                <div class="card">
+                    <div class="px-6 py-4 border-b border-slate-100">
+                        <h2 class="font-semibold text-navy-900">System Health</h2>
+                    </div>
+                    <div class="p-6 space-y-4">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-navy-600">Database</span>
+                            <span class="flex items-center text-sm text-green-600">
+                                <span class="w-2 h-2 rounded-full bg-green-500 mr-2"></span>
+                                Healthy
+                            </span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-navy-600">Supabase Auth</span>
+                            <span class="flex items-center text-sm text-green-600">
+                                <span class="w-2 h-2 rounded-full bg-green-500 mr-2"></span>
+                                Healthy
+                            </span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-navy-600">OpenRouter API</span>
+                            <span class="flex items-center text-sm text-green-600">
+                                <span class="w-2 h-2 rounded-full bg-green-500 mr-2"></span>
+                                Healthy
+                            </span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-navy-600">Voyage AI</span>
+                            <span class="flex items-center text-sm text-green-600">
+                                <span class="w-2 h-2 rounded-full bg-green-500 mr-2"></span>
+                                Healthy
+                            </span>
+                        </div>
+                        <div class="pt-4 border-t border-slate-100">
+                            <div class="text-xs text-navy-400">Last checked: 30 seconds ago</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="mt-6">
+            <div class="card">
+                <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                    <h2 class="font-semibold text-navy-900">Recent Platform Activity</h2>
+                    <button class="text-sm text-accent hover:text-accent-dark">View All</button>
+                </div>
+                <div class="divide-y divide-slate-100">
+                    <div class="px-6 py-3 flex items-center">
+                        <span class="text-xs text-navy-400 w-32">2 hours ago</span>
+                        <span class="text-sm text-navy-600">New company <span class="font-medium text-navy-900">Beta Ventures</span> created</span>
+                    </div>
+                    <div class="px-6 py-3 flex items-center">
+                        <span class="text-xs text-navy-400 w-32">5 hours ago</span>
+                        <span class="text-sm text-navy-600">User <span class="font-medium text-navy-900">jane@acme.com</span> joined Acme Capital</span>
+                    </div>
+                    <div class="px-6 py-3 flex items-center">
+                        <span class="text-xs text-navy-400 w-32">Yesterday</span>
+                        <span class="text-sm text-navy-600">LP import completed: <span class="font-medium text-navy-900">500 records</span> added</span>
+                    </div>
+                    <div class="px-6 py-3 flex items-center">
+                        <span class="text-xs text-navy-400 w-32">2 days ago</span>
+                        <span class="text-sm text-navy-600">Company <span class="font-medium text-navy-900">Gamma Partners</span> deactivated</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+{% endblock %}

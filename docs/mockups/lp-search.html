@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search LPs - LPxGP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        // Conservative financial color palette
+                        navy: {
+                            50: '#f0f4f8',
+                            100: '#d9e2ec',
+                            200: '#bcccdc',
+                            300: '#9fb3c8',
+                            400: '#829ab1',
+                            500: '#627d98',
+                            600: '#486581',
+                            700: '#334e68',
+                            800: '#243b53',
+                            900: '#102a43',
+                        },
+                        accent: {
+                            DEFAULT: '#0d6efd',
+                            dark: '#0b5ed7',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Professional financial styling */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            background-color: #f8fafc;
+        }
+
+        /* Subtle table styling */
+        .data-table {
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        .data-table th {
+            background-color: #f1f5f9;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            color: #64748b;
+        }
+        .data-table td {
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .data-table tr:hover td {
+            background-color: #f8fafc;
+        }
+
+        /* Card shadows */
+        .card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05);
+        }
+
+        /* Form inputs */
+        .form-input {
+            border: 1px solid #cbd5e1;
+            border-radius: 0.375rem;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.875rem;
+            transition: border-color 0.15s;
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.1);
+        }
+
+        /* Buttons */
+        .btn-primary {
+            background-color: #102a43;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            font-weight: 500;
+            font-size: 0.875rem;
+            transition: background-color 0.15s;
+        }
+        .btn-primary:hover {
+            background-color: #243b53;
+        }
+
+        .btn-secondary {
+            background-color: white;
+            color: #334e68;
+            border: 1px solid #cbd5e1;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+        .btn-secondary:hover {
+            background-color: #f8fafc;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+    
+<div class="min-h-screen bg-slate-50">
+    <!-- Top Navigation -->
+    <header class="bg-white border-b border-slate-200">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-8">
+                    <span class="text-xl font-bold text-navy-900">LPxGP</span>
+                    <nav class="hidden md:flex space-x-6">
+                        <a href="#" class="text-sm font-medium text-navy-500 hover:text-navy-700">Dashboard</a>
+                        <a href="#" class="text-sm font-medium text-navy-500 hover:text-navy-700">Funds</a>
+                        <a href="#" class="text-sm font-medium text-navy-900 border-b-2 border-navy-900 pb-4 -mb-px">Search</a>
+                        <a href="#" class="text-sm font-medium text-navy-500 hover:text-navy-700">Outreach</a>
+                    </nav>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-sm text-navy-600">Acme Capital</span>
+                    <div class="w-8 h-8 rounded-full bg-navy-100 flex items-center justify-center">
+                        <span class="text-sm font-medium text-navy-600">JP</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-6 py-8">
+        <!-- Search Header -->
+        <div class="mb-6">
+            <h1 class="text-2xl font-semibold text-navy-900">Search LPs</h1>
+            <p class="text-sm text-navy-500 mt-1">Find institutional investors for your funds</p>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="card p-4 mb-6">
+            <div class="flex space-x-4">
+                <div class="flex-1">
+                    <input type="text"
+                           class="form-input w-full"
+                           placeholder="Search by name, mandate, or keyword..."
+                           value="technology growth equity">
+                </div>
+                <button class="btn-primary">Search</button>
+            </div>
+        </div>
+
+        <div class="flex gap-6">
+            <!-- Filters Sidebar -->
+            <div class="w-64 shrink-0">
+                <div class="card p-4">
+                    <h3 class="font-semibold text-navy-900 mb-4">Filters</h3>
+
+                    <!-- LP Type -->
+                    <div class="mb-6">
+                        <label class="text-sm font-medium text-navy-700 block mb-2">LP Type</label>
+                        <div class="space-y-2">
+                            <label class="flex items-center">
+                                <input type="checkbox" checked class="rounded border-slate-300 text-navy-900 mr-2">
+                                <span class="text-sm text-navy-600">Pension (245)</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" checked class="rounded border-slate-300 text-navy-900 mr-2">
+                                <span class="text-sm text-navy-600">Endowment (89)</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" class="rounded border-slate-300 text-navy-900 mr-2">
+                                <span class="text-sm text-navy-600">Foundation (67)</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" checked class="rounded border-slate-300 text-navy-900 mr-2">
+                                <span class="text-sm text-navy-600">Family Office (312)</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" class="rounded border-slate-300 text-navy-900 mr-2">
+                                <span class="text-sm text-navy-600">Sovereign Wealth (23)</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- AUM Range -->
+                    <div class="mb-6">
+                        <label class="text-sm font-medium text-navy-700 block mb-2">AUM Range</label>
+                        <div class="flex items-center space-x-2">
+                            <input type="text" class="form-input w-20 text-sm" placeholder="Min" value="$1B">
+                            <span class="text-navy-400">to</span>
+                            <input type="text" class="form-input w-20 text-sm" placeholder="Max" value="">
+                        </div>
+                    </div>
+
+                    <!-- Geography -->
+                    <div class="mb-6">
+                        <label class="text-sm font-medium text-navy-700 block mb-2">Geography</label>
+                        <select class="form-input w-full text-sm">
+                            <option>All Regions</option>
+                            <option selected>North America</option>
+                            <option>Europe</option>
+                            <option>Asia Pacific</option>
+                        </select>
+                    </div>
+
+                    <!-- Strategy -->
+                    <div class="mb-6">
+                        <label class="text-sm font-medium text-navy-700 block mb-2">Invests In</label>
+                        <div class="space-y-2">
+                            <label class="flex items-center">
+                                <input type="checkbox" checked class="rounded border-slate-300 text-navy-900 mr-2">
+                                <span class="text-sm text-navy-600">Private Equity</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" class="rounded border-slate-300 text-navy-900 mr-2">
+                                <span class="text-sm text-navy-600">Venture Capital</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" class="rounded border-slate-300 text-navy-900 mr-2">
+                                <span class="text-sm text-navy-600">Real Estate</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <button class="btn-secondary w-full text-sm">Clear Filters</button>
+                </div>
+            </div>
+
+            <!-- Results -->
+            <div class="flex-1">
+                <div class="flex justify-between items-center mb-4">
+                    <span class="text-sm text-navy-500">247 LPs found</span>
+                    <select class="form-input text-sm">
+                        <option>Sort by: AUM (High to Low)</option>
+                        <option>Sort by: Name A-Z</option>
+                        <option>Sort by: Recently Updated</option>
+                    </select>
+                </div>
+
+                <div class="card overflow-hidden">
+                    <table class="data-table w-full">
+                        <thead>
+                            <tr>
+                                <th class="text-left px-6 py-3">Name</th>
+                                <th class="text-left px-6 py-3">Type</th>
+                                <th class="text-left px-6 py-3">Location</th>
+                                <th class="text-right px-6 py-3">AUM</th>
+                                <th class="text-center px-6 py-3">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="px-6 py-4">
+                                    <div class="font-medium text-navy-900">CalPERS</div>
+                                    <div class="text-xs text-navy-400">California Public Employees' Retirement System</div>
+                                </td>
+                                <td class="px-6 py-4 text-sm text-navy-600">Pension</td>
+                                <td class="px-6 py-4 text-sm text-navy-600">Sacramento, CA</td>
+                                <td class="px-6 py-4 text-sm text-navy-900 text-right font-medium">$450B</td>
+                                <td class="px-6 py-4 text-center">
+                                    <button class="text-sm text-accent hover:text-accent-dark mr-3">View</button>
+                                    <button class="text-sm text-navy-500 hover:text-navy-700">+ Shortlist</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-4">
+                                    <div class="font-medium text-navy-900">Yale Endowment</div>
+                                    <div class="text-xs text-navy-400">Yale University Investments Office</div>
+                                </td>
+                                <td class="px-6 py-4 text-sm text-navy-600">Endowment</td>
+                                <td class="px-6 py-4 text-sm text-navy-600">New Haven, CT</td>
+                                <td class="px-6 py-4 text-sm text-navy-900 text-right font-medium">$41B</td>
+                                <td class="px-6 py-4 text-center">
+                                    <button class="text-sm text-accent hover:text-accent-dark mr-3">View</button>
+                                    <button class="text-sm text-navy-500 hover:text-navy-700">+ Shortlist</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-4">
+                                    <div class="font-medium text-navy-900">Harvard Management</div>
+                                    <div class="text-xs text-navy-400">Harvard Management Company</div>
+                                </td>
+                                <td class="px-6 py-4 text-sm text-navy-600">Endowment</td>
+                                <td class="px-6 py-4 text-sm text-navy-600">Boston, MA</td>
+                                <td class="px-6 py-4 text-sm text-navy-900 text-right font-medium">$53B</td>
+                                <td class="px-6 py-4 text-center">
+                                    <button class="text-sm text-accent hover:text-accent-dark mr-3">View</button>
+                                    <button class="text-sm text-navy-500 hover:text-navy-700">+ Shortlist</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-4">
+                                    <div class="font-medium text-navy-900">Ford Foundation</div>
+                                    <div class="text-xs text-navy-400">Ford Foundation Endowment</div>
+                                </td>
+                                <td class="px-6 py-4 text-sm text-navy-600">Foundation</td>
+                                <td class="px-6 py-4 text-sm text-navy-600">New York, NY</td>
+                                <td class="px-6 py-4 text-sm text-navy-900 text-right font-medium">$16B</td>
+                                <td class="px-6 py-4 text-center">
+                                    <button class="text-sm text-accent hover:text-accent-dark mr-3">View</button>
+                                    <button class="text-sm text-navy-500 hover:text-navy-700">+ Shortlist</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-4">
+                                    <div class="font-medium text-navy-900">Texas Teachers</div>
+                                    <div class="text-xs text-navy-400">Teacher Retirement System of Texas</div>
+                                </td>
+                                <td class="px-6 py-4 text-sm text-navy-600">Pension</td>
+                                <td class="px-6 py-4 text-sm text-navy-600">Austin, TX</td>
+                                <td class="px-6 py-4 text-sm text-navy-900 text-right font-medium">$180B</td>
+                                <td class="px-6 py-4 text-center">
+                                    <button class="text-sm text-accent hover:text-accent-dark mr-3">View</button>
+                                    <button class="text-sm text-navy-500 hover:text-navy-700">+ Shortlist</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="flex justify-between items-center mt-4">
+                    <span class="text-sm text-navy-500">Showing 1-5 of 247</span>
+                    <div class="flex space-x-2">
+                        <button class="btn-secondary text-sm px-3">Previous</button>
+                        <button class="btn-secondary text-sm px-3">1</button>
+                        <button class="btn-primary text-sm px-3">2</button>
+                        <button class="btn-secondary text-sm px-3">3</button>
+                        <button class="btn-secondary text-sm px-3">Next</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+</body>
+</html>

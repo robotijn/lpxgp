@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block title %}Import Wizard - Admin - LPxGP{% endblock %}
+{% block body %}
+<div class="min-h-screen bg-slate-50">
+    <!-- Top Navigation -->
+    <header class="bg-navy-900 text-white">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-8">
+                    <div>
+                        <span class="text-xl font-bold">LPxGP</span>
+                        <span class="ml-2 px-2 py-0.5 text-xs bg-amber-500 text-navy-900 rounded font-medium">ADMIN</span>
+                    </div>
+                    <nav class="hidden md:flex space-x-6">
+                        <a href="#" class="text-sm font-medium text-navy-300 hover:text-white">Dashboard</a>
+                        <a href="#" class="text-sm font-medium text-navy-300 hover:text-white">Companies</a>
+                        <a href="#" class="text-sm font-medium text-navy-300 hover:text-white">Users</a>
+                        <a href="#" class="text-sm font-medium text-navy-300 hover:text-white">People</a>
+                        <a href="#" class="text-sm font-medium text-white border-b-2 border-white pb-4 -mb-px">LPs</a>
+                        <a href="#" class="text-sm font-medium text-navy-300 hover:text-white">Data Quality</a>
+                    </nav>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-sm text-navy-300">Super Admin</span>
+                    <div class="w-8 h-8 rounded-full bg-navy-700 flex items-center justify-center">
+                        <span class="text-sm font-medium text-white">SA</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-4xl mx-auto px-6 py-8">
+        <!-- Breadcrumb -->
+        <div class="flex items-center text-sm mb-6">
+            <a href="#" class="text-navy-500 hover:text-navy-700">LPs</a>
+            <span class="mx-2 text-navy-300">/</span>
+            <span class="text-navy-900">Import Wizard</span>
+        </div>
+
+        <!-- Progress Steps -->
+        <div class="mb-8">
+            <div class="flex items-center">
+                <div class="flex items-center">
+                    <div class="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center text-sm font-medium">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                        </svg>
+                    </div>
+                    <span class="ml-2 text-sm font-medium text-navy-900">Upload</span>
+                </div>
+                <div class="flex-1 h-0.5 mx-4 bg-green-500"></div>
+                <div class="flex items-center">
+                    <div class="w-8 h-8 rounded-full bg-accent text-white flex items-center justify-center text-sm font-medium">2</div>
+                    <span class="ml-2 text-sm font-medium text-navy-900">Map Fields</span>
+                </div>
+                <div class="flex-1 h-0.5 mx-4 bg-slate-200"></div>
+                <div class="flex items-center">
+                    <div class="w-8 h-8 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-sm font-medium">3</div>
+                    <span class="ml-2 text-sm font-medium text-navy-500">Preview</span>
+                </div>
+                <div class="flex-1 h-0.5 mx-4 bg-slate-200"></div>
+                <div class="flex items-center">
+                    <div class="w-8 h-8 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-sm font-medium">4</div>
+                    <span class="ml-2 text-sm font-medium text-navy-500">Import</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Map Fields Card -->
+        <div class="card p-8">
+            <h1 class="text-xl font-semibold text-navy-900 mb-2">Map CSV Fields</h1>
+            <p class="text-sm text-navy-500 mb-6">Match your CSV columns to LPxGP fields. 500 rows detected.</p>
+
+            <div class="bg-slate-50 rounded-lg p-4 mb-6">
+                <p class="text-sm text-navy-600">
+                    <strong>File:</strong> lp_database_export_2024.csv
+                    <span class="text-navy-400 ml-4">500 rows × 12 columns</span>
+                </p>
+            </div>
+
+            <!-- Field Mapping -->
+            <div class="space-y-4">
+                <div class="grid grid-cols-2 gap-4 p-4 bg-slate-50 rounded-lg font-medium text-sm text-navy-700">
+                    <div>CSV Column</div>
+                    <div>LPxGP Field</div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 p-4 border border-slate-200 rounded-lg">
+                    <div class="text-sm text-navy-900">organization_name</div>
+                    <select class="form-input text-sm">
+                        <option selected>LP Name *</option>
+                        <option>Full Name</option>
+                        <option>— Skip —</option>
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 p-4 border border-slate-200 rounded-lg">
+                    <div class="text-sm text-navy-900">investor_type</div>
+                    <select class="form-input text-sm">
+                        <option>LP Name *</option>
+                        <option selected>Type *</option>
+                        <option>— Skip —</option>
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 p-4 border border-slate-200 rounded-lg">
+                    <div class="text-sm text-navy-900">hq_location</div>
+                    <select class="form-input text-sm">
+                        <option selected>Location</option>
+                        <option>— Skip —</option>
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 p-4 border border-slate-200 rounded-lg">
+                    <div class="text-sm text-navy-900">aum_usd</div>
+                    <select class="form-input text-sm">
+                        <option selected>Total AUM</option>
+                        <option>— Skip —</option>
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 p-4 border border-slate-200 rounded-lg">
+                    <div class="text-sm text-navy-900">pe_allocation_pct</div>
+                    <select class="form-input text-sm">
+                        <option selected>PE Allocation %</option>
+                        <option>— Skip —</option>
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 p-4 border border-slate-200 rounded-lg bg-amber-50">
+                    <div class="text-sm text-navy-900">internal_notes</div>
+                    <select class="form-input text-sm border-amber-300">
+                        <option selected>— Skip —</option>
+                        <option>Notes</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Warnings -->
+            <div class="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                <div class="flex items-start">
+                    <svg class="w-5 h-5 text-amber-500 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                    </svg>
+                    <div class="text-sm text-amber-800">
+                        <p class="font-medium">1 column will be skipped</p>
+                        <p class="mt-1">The "internal_notes" column is not mapped and won't be imported.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex justify-between mt-8 pt-6 border-t border-slate-100">
+                <button class="btn-secondary">← Back</button>
+                <button class="btn-primary">Preview Import →</button>
+            </div>
+        </div>
+    </main>
+</div>
+{% endblock %}

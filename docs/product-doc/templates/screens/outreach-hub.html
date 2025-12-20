@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+{% block title %}Outreach Hub - LPxGP{% endblock %}
+{% block body %}
+<div class="min-h-screen bg-slate-50">
+    <!-- Top Navigation -->
+    <header class="bg-white border-b border-slate-200">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-8">
+                    <span class="text-xl font-bold text-navy-900">LPxGP</span>
+                    <nav class="hidden md:flex space-x-6">
+                        <a href="#" class="text-sm font-medium text-navy-500 hover:text-navy-700">Dashboard</a>
+                        <a href="#" class="text-sm font-medium text-navy-500 hover:text-navy-700">Funds</a>
+                        <a href="#" class="text-sm font-medium text-navy-500 hover:text-navy-700">Search</a>
+                        <a href="#" class="text-sm font-medium text-navy-900 border-b-2 border-navy-900 pb-4 -mb-px">Outreach</a>
+                    </nav>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-sm text-navy-600">Acme Capital</span>
+                    <div class="w-8 h-8 rounded-full bg-navy-100 flex items-center justify-center">
+                        <span class="text-sm font-medium text-navy-600">JP</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-6 py-8">
+        <!-- Page Header -->
+        <div class="mb-8">
+            <h1 class="text-2xl font-semibold text-navy-900">Outreach Hub</h1>
+            <p class="text-sm text-navy-500 mt-1">Manage LP communications across all funds</p>
+        </div>
+
+        <!-- Stats Row -->
+        <div class="grid grid-cols-4 gap-6 mb-8">
+            <div class="card p-6">
+                <div class="text-sm font-medium text-navy-500 uppercase tracking-wide">Shortlisted</div>
+                <div class="mt-2 text-3xl font-semibold text-navy-900">34</div>
+                <div class="mt-1 text-sm text-navy-400">across 3 funds</div>
+            </div>
+            <div class="card p-6">
+                <div class="text-sm font-medium text-navy-500 uppercase tracking-wide">Contacted</div>
+                <div class="mt-2 text-3xl font-semibold text-navy-900">18</div>
+                <div class="mt-1 text-sm text-green-600">+5 this week</div>
+            </div>
+            <div class="card p-6">
+                <div class="text-sm font-medium text-navy-500 uppercase tracking-wide">Meetings</div>
+                <div class="mt-2 text-3xl font-semibold text-navy-900">8</div>
+                <div class="mt-1 text-sm text-green-600">+3 scheduled</div>
+            </div>
+            <div class="card p-6">
+                <div class="text-sm font-medium text-navy-500 uppercase tracking-wide">Response Rate</div>
+                <div class="mt-2 text-3xl font-semibold text-navy-900">44%</div>
+                <div class="mt-1 text-sm text-navy-400">8 of 18 replied</div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-6">
+            <!-- Activity Feed -->
+            <div class="col-span-2">
+                <div class="card">
+                    <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                        <h2 class="font-semibold text-navy-900">Recent Activity</h2>
+                        <select class="form-input text-sm py-1">
+                            <option>All Funds</option>
+                            <option>Growth Fund III</option>
+                            <option>Growth Fund II</option>
+                        </select>
+                    </div>
+                    <div class="divide-y divide-slate-100">
+                        <div class="px-6 py-4">
+                            <div class="flex items-start">
+                                <div class="w-8 h-8 rounded-full bg-green-50 flex items-center justify-center mr-3 mt-0.5">
+                                    <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                    </svg>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-sm text-navy-900">
+                                        Meeting scheduled with <span class="font-medium">Yale Endowment</span>
+                                    </p>
+                                    <p class="text-xs text-navy-400 mt-1">January 15, 2025 at 2:00 PM EST</p>
+                                    <p class="text-xs text-navy-500 mt-1">Growth Fund III</p>
+                                </div>
+                                <span class="text-xs text-navy-400">2 hours ago</span>
+                            </div>
+                        </div>
+                        <div class="px-6 py-4">
+                            <div class="flex items-start">
+                                <div class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center mr-3 mt-0.5">
+                                    <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                                    </svg>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-sm text-navy-900">
+                                        Email sent to <span class="font-medium">CalPERS</span> (Michael Smith)
+                                    </p>
+                                    <p class="text-xs text-navy-500 mt-1">Growth Fund III</p>
+                                </div>
+                                <span class="text-xs text-navy-400">Yesterday</span>
+                            </div>
+                        </div>
+                        <div class="px-6 py-4">
+                            <div class="flex items-start">
+                                <div class="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center mr-3 mt-0.5">
+                                    <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                    </svg>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-sm text-navy-900">
+                                        Pitch generated for <span class="font-medium">Ontario Teachers</span>
+                                    </p>
+                                    <p class="text-xs text-navy-500 mt-1">Growth Fund III</p>
+                                </div>
+                                <span class="text-xs text-navy-400">2 days ago</span>
+                            </div>
+                        </div>
+                        <div class="px-6 py-4">
+                            <div class="flex items-start">
+                                <div class="w-8 h-8 rounded-full bg-amber-50 flex items-center justify-center mr-3 mt-0.5">
+                                    <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                    </svg>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-sm text-navy-900">
+                                        Added <span class="font-medium">3 LPs</span> to shortlist
+                                    </p>
+                                    <p class="text-xs text-navy-500 mt-1">Growth Fund III</p>
+                                </div>
+                                <span class="text-xs text-navy-400">3 days ago</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="px-6 py-4 border-t border-slate-100">
+                        <button class="text-sm text-accent hover:text-accent-dark">View All Activity →</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="space-y-6">
+                <!-- Quick Actions -->
+                <div class="card p-6">
+                    <h2 class="font-semibold text-navy-900 mb-4">Quick Actions</h2>
+                    <div class="space-y-2">
+                        <a href="#" class="block w-full text-left px-4 py-3 text-sm text-navy-600 hover:bg-slate-50 rounded-lg transition">
+                            Generate Batch Pitches
+                        </a>
+                        <a href="#" class="block w-full text-left px-4 py-3 text-sm text-navy-600 hover:bg-slate-50 rounded-lg transition">
+                            Export Shortlist to CSV
+                        </a>
+                        <a href="#" class="block w-full text-left px-4 py-3 text-sm text-navy-600 hover:bg-slate-50 rounded-lg transition">
+                            View All Meetings
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Upcoming -->
+                <div class="card p-6">
+                    <h2 class="font-semibold text-navy-900 mb-4">Upcoming Meetings</h2>
+                    <div class="space-y-4">
+                        <div class="p-3 bg-slate-50 rounded-lg">
+                            <p class="text-sm font-medium text-navy-900">Yale Endowment</p>
+                            <p class="text-xs text-navy-500">Jan 15, 2:00 PM</p>
+                        </div>
+                        <div class="p-3 bg-slate-50 rounded-lg">
+                            <p class="text-sm font-medium text-navy-900">Stanford Endowment</p>
+                            <p class="text-xs text-navy-500">Jan 18, 10:00 AM</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Follow-ups -->
+                <div class="card p-6">
+                    <h2 class="font-semibold text-navy-900 mb-4">Needs Follow-up</h2>
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-navy-600">Ontario Teachers</span>
+                            <span class="text-xs text-amber-600">5 days</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-navy-600">CalPERS</span>
+                            <span class="text-xs text-amber-600">3 days</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-navy-600">CPPIB</span>
+                            <span class="text-xs text-red-600">7 days</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+{% endblock %}

@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+{% block title %}Edit CalPERS - Admin - LPxGP{% endblock %}
+{% block body %}
+<div class="min-h-screen bg-slate-50">
+    <!-- Top Navigation -->
+    <header class="bg-navy-900 text-white">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-8">
+                    <div>
+                        <span class="text-xl font-bold">LPxGP</span>
+                        <span class="ml-2 px-2 py-0.5 text-xs bg-amber-500 text-navy-900 rounded font-medium">ADMIN</span>
+                    </div>
+                    <nav class="hidden md:flex space-x-6">
+                        <a href="#" class="text-sm font-medium text-navy-300 hover:text-white">Dashboard</a>
+                        <a href="#" class="text-sm font-medium text-navy-300 hover:text-white">Companies</a>
+                        <a href="#" class="text-sm font-medium text-navy-300 hover:text-white">Users</a>
+                        <a href="#" class="text-sm font-medium text-navy-300 hover:text-white">People</a>
+                        <a href="#" class="text-sm font-medium text-white border-b-2 border-white pb-4 -mb-px">LPs</a>
+                        <a href="#" class="text-sm font-medium text-navy-300 hover:text-white">Data Quality</a>
+                    </nav>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-sm text-navy-300">Super Admin</span>
+                    <div class="w-8 h-8 rounded-full bg-navy-700 flex items-center justify-center">
+                        <span class="text-sm font-medium text-white">SA</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-4xl mx-auto px-6 py-8">
+        <!-- Breadcrumb -->
+        <div class="flex items-center text-sm mb-6">
+            <a href="#" class="text-navy-500 hover:text-navy-700">LPs</a>
+            <span class="mx-2 text-navy-300">/</span>
+            <span class="text-navy-900">CalPERS</span>
+        </div>
+
+        <div class="card p-8">
+            <div class="flex justify-between items-start mb-6">
+                <div>
+                    <h1 class="text-xl font-semibold text-navy-900">Edit LP: CalPERS</h1>
+                    <p class="text-sm text-navy-500 mt-1">Last updated: 2 weeks ago</p>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="px-2 py-1 text-xs font-medium bg-green-50 text-green-700 rounded">High Quality</span>
+                </div>
+            </div>
+
+            <form class="space-y-8">
+                <!-- Basic Info -->
+                <div>
+                    <h2 class="text-lg font-medium text-navy-900 mb-4">Basic Information</h2>
+                    <div class="grid grid-cols-2 gap-6">
+                        <div class="col-span-2">
+                            <label class="block text-sm font-medium text-navy-700 mb-2">LP Name *</label>
+                            <input type="text" class="form-input w-full" value="CalPERS">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-sm font-medium text-navy-700 mb-2">Full Name</label>
+                            <input type="text" class="form-input w-full" value="California Public Employees' Retirement System">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-2">Type *</label>
+                            <select class="form-input w-full">
+                                <option selected>Public Pension</option>
+                                <option>Corporate Pension</option>
+                                <option>Endowment</option>
+                                <option>Foundation</option>
+                                <option>Family Office</option>
+                                <option>Sovereign Wealth</option>
+                                <option>Insurance</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-2">Location</label>
+                            <input type="text" class="form-input w-full" value="Sacramento, CA, USA">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Financial Info -->
+                <div>
+                    <h2 class="text-lg font-medium text-navy-900 mb-4">Financial Information</h2>
+                    <div class="grid grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-2">Total AUM</label>
+                            <div class="relative">
+                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-navy-400">$</span>
+                                <input type="text" class="form-input w-full pl-7" value="450B">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-2">PE Allocation %</label>
+                            <input type="text" class="form-input w-full" value="13%">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-2">Target PE Return</label>
+                            <input type="text" class="form-input w-full" value="11% Net IRR">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-2">Typical Commitment</label>
+                            <input type="text" class="form-input w-full" value="$100M - $500M">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Investment Mandate -->
+                <div>
+                    <h2 class="text-lg font-medium text-navy-900 mb-4">Investment Mandate</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-2">Strategy Focus</label>
+                            <div class="flex flex-wrap gap-2">
+                                <label class="inline-flex items-center px-3 py-1 border border-slate-200 rounded-lg">
+                                    <input type="checkbox" checked class="rounded border-slate-300 text-accent mr-2">
+                                    <span class="text-sm">Buyout</span>
+                                </label>
+                                <label class="inline-flex items-center px-3 py-1 border border-slate-200 rounded-lg">
+                                    <input type="checkbox" checked class="rounded border-slate-300 text-accent mr-2">
+                                    <span class="text-sm">Growth Equity</span>
+                                </label>
+                                <label class="inline-flex items-center px-3 py-1 border border-slate-200 rounded-lg">
+                                    <input type="checkbox" class="rounded border-slate-300 text-accent mr-2">
+                                    <span class="text-sm">Venture Capital</span>
+                                </label>
+                                <label class="inline-flex items-center px-3 py-1 border border-slate-200 rounded-lg">
+                                    <input type="checkbox" class="rounded border-slate-300 text-accent mr-2">
+                                    <span class="text-sm">Real Estate</span>
+                                </label>
+                                <label class="inline-flex items-center px-3 py-1 border border-slate-200 rounded-lg">
+                                    <input type="checkbox" checked class="rounded border-slate-300 text-accent mr-2">
+                                    <span class="text-sm">Infrastructure</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-2">Geographic Focus</label>
+                            <input type="text" class="form-input w-full" value="North America, Europe">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-2">Investment Mandate (for AI matching)</label>
+                            <textarea class="form-input w-full h-32">CalPERS maintains a diversified private equity portfolio with allocations across buyout, growth equity, and venture capital strategies. The system prioritizes partnerships with established managers demonstrating strong track records and operational value creation capabilities. ESG integration is a key priority, with all investments assessed against sustainability criteria.</textarea>
+                            <p class="mt-1 text-xs text-navy-400">Used for semantic matching with fund profiles</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Data Quality -->
+                <div>
+                    <h2 class="text-lg font-medium text-navy-900 mb-4">Data Quality</h2>
+                    <div class="grid grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-2">Quality Score</label>
+                            <select class="form-input w-full">
+                                <option selected>High</option>
+                                <option>Medium</option>
+                                <option>Low</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-2">Source</label>
+                            <input type="text" class="form-input w-full" value="Public filings, website">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex justify-between pt-6 border-t border-slate-100">
+                    <button type="button" class="px-4 py-2 text-sm font-medium text-red-600 hover:text-red-700">
+                        Delete LP
+                    </button>
+                    <div class="flex space-x-4">
+                        <button type="button" class="btn-secondary">Cancel</button>
+                        <button type="submit" class="btn-primary">Save Changes</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </main>
+</div>
+{% endblock %}

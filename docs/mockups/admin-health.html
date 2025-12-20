@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Health - Admin - LPxGP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        // Conservative financial color palette
+                        navy: {
+                            50: '#f0f4f8',
+                            100: '#d9e2ec',
+                            200: '#bcccdc',
+                            300: '#9fb3c8',
+                            400: '#829ab1',
+                            500: '#627d98',
+                            600: '#486581',
+                            700: '#334e68',
+                            800: '#243b53',
+                            900: '#102a43',
+                        },
+                        accent: {
+                            DEFAULT: '#0d6efd',
+                            dark: '#0b5ed7',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Professional financial styling */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            background-color: #f8fafc;
+        }
+
+        /* Subtle table styling */
+        .data-table {
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        .data-table th {
+            background-color: #f1f5f9;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            color: #64748b;
+        }
+        .data-table td {
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .data-table tr:hover td {
+            background-color: #f8fafc;
+        }
+
+        /* Card shadows */
+        .card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05);
+        }
+
+        /* Form inputs */
+        .form-input {
+            border: 1px solid #cbd5e1;
+            border-radius: 0.375rem;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.875rem;
+            transition: border-color 0.15s;
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.1);
+        }
+
+        /* Buttons */
+        .btn-primary {
+            background-color: #102a43;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            font-weight: 500;
+            font-size: 0.875rem;
+            transition: background-color 0.15s;
+        }
+        .btn-primary:hover {
+            background-color: #243b53;
+        }
+
+        .btn-secondary {
+            background-color: white;
+            color: #334e68;
+            border: 1px solid #cbd5e1;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+        .btn-secondary:hover {
+            background-color: #f8fafc;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+    
+<div class="min-h-screen bg-slate-50">
+    <!-- Top Navigation -->
+    <header class="bg-navy-900 text-white">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-8">
+                    <div>
+                        <span class="text-xl font-bold">LPxGP</span>
+                        <span class="ml-2 px-2 py-0.5 text-xs bg-amber-500 text-navy-900 rounded font-medium">ADMIN</span>
+                    </div>
+                    <nav class="hidden md:flex space-x-6">
+                        <a href="#" class="text-sm font-medium text-navy-300 hover:text-white">Dashboard</a>
+                        <a href="#" class="text-sm font-medium text-navy-300 hover:text-white">Companies</a>
+                        <a href="#" class="text-sm font-medium text-navy-300 hover:text-white">Users</a>
+                        <a href="#" class="text-sm font-medium text-navy-300 hover:text-white">People</a>
+                        <a href="#" class="text-sm font-medium text-navy-300 hover:text-white">LPs</a>
+                        <a href="#" class="text-sm font-medium text-navy-300 hover:text-white">Data Quality</a>
+                    </nav>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="#" class="text-sm font-medium text-white border-b-2 border-white pb-4 -mb-px">System</a>
+                    <span class="text-sm text-navy-300">Super Admin</span>
+                    <div class="w-8 h-8 rounded-full bg-navy-700 flex items-center justify-center">
+                        <span class="text-sm font-medium text-white">SA</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-6 py-8">
+        <!-- Page Header -->
+        <div class="flex justify-between items-center mb-8">
+            <div>
+                <h1 class="text-2xl font-semibold text-navy-900">System Health</h1>
+                <p class="text-sm text-navy-500 mt-1">Monitor platform status and integrations</p>
+            </div>
+            <div class="flex items-center space-x-2">
+                <span class="flex items-center text-sm text-green-600">
+                    <span class="w-2 h-2 rounded-full bg-green-500 mr-2 animate-pulse"></span>
+                    All systems operational
+                </span>
+            </div>
+        </div>
+
+        <!-- Services Grid -->
+        <div class="grid grid-cols-2 gap-6 mb-8">
+            <!-- Database -->
+            <div class="card p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center mr-3">
+                            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-navy-900">Supabase PostgreSQL</h3>
+                            <p class="text-xs text-navy-500">Primary database</p>
+                        </div>
+                    </div>
+                    <span class="px-2 py-1 text-xs font-medium bg-green-50 text-green-700 rounded">Healthy</span>
+                </div>
+                <div class="grid grid-cols-3 gap-4 text-sm">
+                    <div>
+                        <div class="text-navy-500">Response</div>
+                        <div class="font-medium text-navy-900">12ms</div>
+                    </div>
+                    <div>
+                        <div class="text-navy-500">Connections</div>
+                        <div class="font-medium text-navy-900">8/100</div>
+                    </div>
+                    <div>
+                        <div class="text-navy-500">Storage</div>
+                        <div class="font-medium text-navy-900">2.4GB</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Auth -->
+            <div class="card p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center mr-3">
+                            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-navy-900">Supabase Auth</h3>
+                            <p class="text-xs text-navy-500">Authentication service</p>
+                        </div>
+                    </div>
+                    <span class="px-2 py-1 text-xs font-medium bg-green-50 text-green-700 rounded">Healthy</span>
+                </div>
+                <div class="grid grid-cols-3 gap-4 text-sm">
+                    <div>
+                        <div class="text-navy-500">Response</div>
+                        <div class="font-medium text-navy-900">45ms</div>
+                    </div>
+                    <div>
+                        <div class="text-navy-500">Active Sessions</div>
+                        <div class="font-medium text-navy-900">24</div>
+                    </div>
+                    <div>
+                        <div class="text-navy-500">Logins (24h)</div>
+                        <div class="font-medium text-navy-900">156</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- OpenRouter -->
+            <div class="card p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center mr-3">
+                            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-navy-900">OpenRouter API</h3>
+                            <p class="text-xs text-navy-500">LLM inference (Claude)</p>
+                        </div>
+                    </div>
+                    <span class="px-2 py-1 text-xs font-medium bg-green-50 text-green-700 rounded">Healthy</span>
+                </div>
+                <div class="grid grid-cols-3 gap-4 text-sm">
+                    <div>
+                        <div class="text-navy-500">Response</div>
+                        <div class="font-medium text-navy-900">1.2s avg</div>
+                    </div>
+                    <div>
+                        <div class="text-navy-500">Requests (24h)</div>
+                        <div class="font-medium text-navy-900">89</div>
+                    </div>
+                    <div>
+                        <div class="text-navy-500">Cost (24h)</div>
+                        <div class="font-medium text-navy-900">$2.34</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Voyage AI -->
+            <div class="card p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center mr-3">
+                            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-navy-900">Voyage AI</h3>
+                            <p class="text-xs text-navy-500">Embedding service</p>
+                        </div>
+                    </div>
+                    <span class="px-2 py-1 text-xs font-medium bg-green-50 text-green-700 rounded">Healthy</span>
+                </div>
+                <div class="grid grid-cols-3 gap-4 text-sm">
+                    <div>
+                        <div class="text-navy-500">Response</div>
+                        <div class="font-medium text-navy-900">180ms</div>
+                    </div>
+                    <div>
+                        <div class="text-navy-500">Embeddings (24h)</div>
+                        <div class="font-medium text-navy-900">450</div>
+                    </div>
+                    <div>
+                        <div class="text-navy-500">Vectors</div>
+                        <div class="font-medium text-navy-900">5,247</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Events -->
+        <div class="card">
+            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                <h2 class="font-semibold text-navy-900">Recent System Events</h2>
+                <button class="text-sm text-accent hover:text-accent-dark">View All</button>
+            </div>
+            <div class="divide-y divide-slate-100">
+                <div class="px-6 py-4 flex items-center">
+                    <div class="w-8 h-8 rounded-full bg-green-50 flex items-center justify-center mr-4">
+                        <svg class="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-sm text-navy-900">LP import completed successfully</p>
+                        <p class="text-xs text-navy-500">500 records processed, 498 imported, 2 duplicates skipped</p>
+                    </div>
+                    <span class="text-xs text-navy-400">2 hours ago</span>
+                </div>
+                <div class="px-6 py-4 flex items-center">
+                    <div class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center mr-4">
+                        <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-sm text-navy-900">Embedding regeneration completed</p>
+                        <p class="text-xs text-navy-500">5,247 LP embeddings updated for semantic search</p>
+                    </div>
+                    <span class="text-xs text-navy-400">Yesterday</span>
+                </div>
+                <div class="px-6 py-4 flex items-center">
+                    <div class="w-8 h-8 rounded-full bg-amber-50 flex items-center justify-center mr-4">
+                        <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-sm text-navy-900">OpenRouter rate limit approached</p>
+                        <p class="text-xs text-navy-500">80% of daily limit reached, consider upgrading</p>
+                    </div>
+                    <span class="text-xs text-navy-400">2 days ago</span>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+</body>
+</html>

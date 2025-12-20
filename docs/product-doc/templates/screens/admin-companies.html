@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+{% block title %}Companies - Admin - LPxGP{% endblock %}
+{% block body %}
+<div class="min-h-screen bg-slate-50">
+    <!-- Top Navigation -->
+    <header class="bg-navy-900 text-white">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-8">
+                    <div>
+                        <span class="text-xl font-bold">LPxGP</span>
+                        <span class="ml-2 px-2 py-0.5 text-xs bg-amber-500 text-navy-900 rounded font-medium">ADMIN</span>
+                    </div>
+                    <nav class="hidden md:flex space-x-6">
+                        <a href="#" class="text-sm font-medium text-navy-300 hover:text-white">Dashboard</a>
+                        <a href="#" class="text-sm font-medium text-white border-b-2 border-white pb-4 -mb-px">Companies</a>
+                        <a href="#" class="text-sm font-medium text-navy-300 hover:text-white">Users</a>
+                        <a href="#" class="text-sm font-medium text-navy-300 hover:text-white">People</a>
+                        <a href="#" class="text-sm font-medium text-navy-300 hover:text-white">LPs</a>
+                        <a href="#" class="text-sm font-medium text-navy-300 hover:text-white">Data Quality</a>
+                    </nav>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-sm text-navy-300">Super Admin</span>
+                    <div class="w-8 h-8 rounded-full bg-navy-700 flex items-center justify-center">
+                        <span class="text-sm font-medium text-white">SA</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-6 py-8">
+        <!-- Page Header -->
+        <div class="flex justify-between items-center mb-6">
+            <div>
+                <h1 class="text-2xl font-semibold text-navy-900">Companies</h1>
+                <p class="text-sm text-navy-500 mt-1">Manage GP firms on the platform</p>
+            </div>
+            <button class="btn-primary">
+                <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                Add Company
+            </button>
+        </div>
+
+        <!-- Search & Filters -->
+        <div class="card p-4 mb-6">
+            <div class="flex space-x-4">
+                <div class="flex-1">
+                    <input type="text" class="form-input w-full" placeholder="Search companies...">
+                </div>
+                <select class="form-input w-48">
+                    <option>All Status</option>
+                    <option>Active</option>
+                    <option>Pending</option>
+                    <option>Inactive</option>
+                </select>
+                <button class="btn-secondary">Filter</button>
+            </div>
+        </div>
+
+        <!-- Companies Table -->
+        <div class="card overflow-hidden">
+            <table class="data-table w-full">
+                <thead>
+                    <tr>
+                        <th class="text-left px-6 py-3">Company</th>
+                        <th class="text-left px-6 py-3">Admin</th>
+                        <th class="text-center px-6 py-3">Users</th>
+                        <th class="text-center px-6 py-3">Funds</th>
+                        <th class="text-left px-6 py-3">Status</th>
+                        <th class="text-left px-6 py-3">Created</th>
+                        <th class="text-right px-6 py-3">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="px-6 py-4">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded bg-navy-100 flex items-center justify-center mr-3">
+                                    <span class="text-sm font-bold text-navy-600">AC</span>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-navy-900">Acme Capital</div>
+                                    <div class="text-xs text-navy-400">Private Equity</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-navy-600">john@acmecapital.com</td>
+                        <td class="px-6 py-4 text-sm text-navy-600 text-center">4</td>
+                        <td class="px-6 py-4 text-sm text-navy-600 text-center">3</td>
+                        <td class="px-6 py-4">
+                            <span class="px-2 py-1 text-xs font-medium bg-green-50 text-green-700 rounded">Active</span>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-navy-500">Dec 1, 2024</td>
+                        <td class="px-6 py-4 text-right">
+                            <button class="text-sm text-accent hover:text-accent-dark">View →</button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="px-6 py-4">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded bg-green-100 flex items-center justify-center mr-3">
+                                    <span class="text-sm font-bold text-green-600">BV</span>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-navy-900">Beta Ventures</div>
+                                    <div class="text-xs text-navy-400">Venture Capital</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-navy-600">—</td>
+                        <td class="px-6 py-4 text-sm text-navy-600 text-center">0</td>
+                        <td class="px-6 py-4 text-sm text-navy-600 text-center">0</td>
+                        <td class="px-6 py-4">
+                            <span class="px-2 py-1 text-xs font-medium bg-amber-50 text-amber-700 rounded">Pending</span>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-navy-500">Dec 18, 2024</td>
+                        <td class="px-6 py-4 text-right">
+                            <button class="text-sm text-accent hover:text-accent-dark">View →</button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="px-6 py-4">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded bg-purple-100 flex items-center justify-center mr-3">
+                                    <span class="text-sm font-bold text-purple-600">GP</span>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-navy-900">Gamma Partners</div>
+                                    <div class="text-xs text-navy-400">Growth Equity</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-navy-600">alex@gammapartners.com</td>
+                        <td class="px-6 py-4 text-sm text-navy-600 text-center">2</td>
+                        <td class="px-6 py-4 text-sm text-navy-600 text-center">1</td>
+                        <td class="px-6 py-4">
+                            <span class="px-2 py-1 text-xs font-medium bg-slate-100 text-slate-600 rounded">Inactive</span>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-navy-500">Oct 15, 2024</td>
+                        <td class="px-6 py-4 text-right">
+                            <button class="text-sm text-accent hover:text-accent-dark">View →</button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="px-6 py-4">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded bg-blue-100 flex items-center justify-center mr-3">
+                                    <span class="text-sm font-bold text-blue-600">DC</span>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-navy-900">Delta Capital</div>
+                                    <div class="text-xs text-navy-400">Private Equity</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-navy-600">sarah@deltacap.com</td>
+                        <td class="px-6 py-4 text-sm text-navy-600 text-center">6</td>
+                        <td class="px-6 py-4 text-sm text-navy-600 text-center">4</td>
+                        <td class="px-6 py-4">
+                            <span class="px-2 py-1 text-xs font-medium bg-green-50 text-green-700 rounded">Active</span>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-navy-500">Sep 20, 2024</td>
+                        <td class="px-6 py-4 text-right">
+                            <button class="text-sm text-accent hover:text-accent-dark">View →</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="flex justify-between items-center mt-4">
+            <span class="text-sm text-navy-500">Showing 1-4 of 25</span>
+            <div class="flex space-x-2">
+                <button class="btn-secondary text-sm px-3">Previous</button>
+                <button class="btn-primary text-sm px-3">1</button>
+                <button class="btn-secondary text-sm px-3">2</button>
+                <button class="btn-secondary text-sm px-3">3</button>
+                <button class="btn-secondary text-sm px-3">Next</button>
+            </div>
+        </div>
+    </main>
+</div>
+{% endblock %}

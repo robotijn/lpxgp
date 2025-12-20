@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - Profile - LPxGP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        // Conservative financial color palette
+                        navy: {
+                            50: '#f0f4f8',
+                            100: '#d9e2ec',
+                            200: '#bcccdc',
+                            300: '#9fb3c8',
+                            400: '#829ab1',
+                            500: '#627d98',
+                            600: '#486581',
+                            700: '#334e68',
+                            800: '#243b53',
+                            900: '#102a43',
+                        },
+                        accent: {
+                            DEFAULT: '#0d6efd',
+                            dark: '#0b5ed7',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Professional financial styling */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            background-color: #f8fafc;
+        }
+
+        /* Subtle table styling */
+        .data-table {
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        .data-table th {
+            background-color: #f1f5f9;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            color: #64748b;
+        }
+        .data-table td {
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .data-table tr:hover td {
+            background-color: #f8fafc;
+        }
+
+        /* Card shadows */
+        .card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05);
+        }
+
+        /* Form inputs */
+        .form-input {
+            border: 1px solid #cbd5e1;
+            border-radius: 0.375rem;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.875rem;
+            transition: border-color 0.15s;
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.1);
+        }
+
+        /* Buttons */
+        .btn-primary {
+            background-color: #102a43;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            font-weight: 500;
+            font-size: 0.875rem;
+            transition: background-color 0.15s;
+        }
+        .btn-primary:hover {
+            background-color: #243b53;
+        }
+
+        .btn-secondary {
+            background-color: white;
+            color: #334e68;
+            border: 1px solid #cbd5e1;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+        .btn-secondary:hover {
+            background-color: #f8fafc;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+    
+<div class="min-h-screen bg-slate-50">
+    <!-- Top Navigation -->
+    <header class="bg-white border-b border-slate-200">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-8">
+                    <span class="text-xl font-bold text-navy-900">LPxGP</span>
+                    <nav class="hidden md:flex space-x-6">
+                        <a href="#" class="text-sm font-medium text-navy-500 hover:text-navy-700">Dashboard</a>
+                        <a href="#" class="text-sm font-medium text-navy-500 hover:text-navy-700">Funds</a>
+                        <a href="#" class="text-sm font-medium text-navy-500 hover:text-navy-700">Search</a>
+                        <a href="#" class="text-sm font-medium text-navy-500 hover:text-navy-700">Outreach</a>
+                    </nav>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-sm text-navy-600">Acme Capital</span>
+                    <div class="w-8 h-8 rounded-full bg-navy-100 flex items-center justify-center">
+                        <span class="text-sm font-medium text-navy-600">JP</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-5xl mx-auto px-6 py-8">
+        <div class="flex gap-8">
+            <!-- Sidebar -->
+            <div class="w-56 shrink-0">
+                <h2 class="text-lg font-semibold text-navy-900 mb-4">Settings</h2>
+                <nav class="space-y-1">
+                    <a href="#" class="block px-4 py-2 text-sm font-medium text-navy-900 bg-slate-100 rounded-lg">Profile</a>
+                    <a href="#" class="block px-4 py-2 text-sm font-medium text-navy-500 hover:bg-slate-50 rounded-lg">Team</a>
+                    <a href="#" class="block px-4 py-2 text-sm font-medium text-navy-500 hover:bg-slate-50 rounded-lg">Company</a>
+                    <a href="#" class="block px-4 py-2 text-sm font-medium text-navy-500 hover:bg-slate-50 rounded-lg">Notifications</a>
+                    <a href="#" class="block px-4 py-2 text-sm font-medium text-navy-500 hover:bg-slate-50 rounded-lg">Security</a>
+                </nav>
+            </div>
+
+            <!-- Content -->
+            <div class="flex-1">
+                <div class="card p-8">
+                    <h1 class="text-xl font-semibold text-navy-900 mb-6">Profile Settings</h1>
+
+                    <form class="space-y-6">
+                        <!-- Avatar -->
+                        <div class="flex items-center space-x-6">
+                            <div class="w-20 h-20 rounded-full bg-navy-100 flex items-center justify-center">
+                                <span class="text-2xl font-bold text-navy-600">JP</span>
+                            </div>
+                            <div>
+                                <button type="button" class="btn-secondary text-sm">Change Photo</button>
+                                <p class="text-xs text-navy-400 mt-1">JPG, PNG. Max 5MB.</p>
+                            </div>
+                        </div>
+
+                        <!-- Name -->
+                        <div class="grid grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-navy-700 mb-2">First Name</label>
+                                <input type="text" class="form-input w-full" value="John">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-navy-700 mb-2">Last Name</label>
+                                <input type="text" class="form-input w-full" value="Partner">
+                            </div>
+                        </div>
+
+                        <!-- Email -->
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-2">Email</label>
+                            <input type="email" class="form-input w-full" value="john@acmecapital.com" disabled>
+                            <p class="text-xs text-navy-400 mt-1">Contact support to change your email address</p>
+                        </div>
+
+                        <!-- Title -->
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-2">Title</label>
+                            <input type="text" class="form-input w-full" value="Managing Partner">
+                        </div>
+
+                        <!-- Phone -->
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-2">Phone</label>
+                            <input type="tel" class="form-input w-full" value="+1 (555) 123-4567">
+                        </div>
+
+                        <!-- Bio -->
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-2">Bio</label>
+                            <textarea class="form-input w-full h-24">20+ years of private equity experience focused on growth investments in technology and healthcare sectors.</textarea>
+                            <p class="text-xs text-navy-400 mt-1">Brief description for your profile</p>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="flex justify-end space-x-4 pt-6 border-t border-slate-100">
+                            <button type="button" class="btn-secondary">Cancel</button>
+                            <button type="submit" class="btn-primary">Save Changes</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Danger Zone -->
+                <div class="card p-8 mt-6 border-red-200">
+                    <h2 class="text-lg font-semibold text-red-600 mb-4">Danger Zone</h2>
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-navy-900">Delete Account</p>
+                            <p class="text-sm text-navy-500">Permanently remove your account and all data</p>
+                        </div>
+                        <button class="px-4 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50">
+                            Delete Account
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+</body>
+</html>

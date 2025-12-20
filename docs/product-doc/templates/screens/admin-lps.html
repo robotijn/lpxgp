@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+{% block title %}LPs - Admin - LPxGP{% endblock %}
+{% block body %}
+<div class="min-h-screen bg-slate-50">
+    <!-- Top Navigation -->
+    <header class="bg-navy-900 text-white">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-8">
+                    <div>
+                        <span class="text-xl font-bold">LPxGP</span>
+                        <span class="ml-2 px-2 py-0.5 text-xs bg-amber-500 text-navy-900 rounded font-medium">ADMIN</span>
+                    </div>
+                    <nav class="hidden md:flex space-x-6">
+                        <a href="#" class="text-sm font-medium text-navy-300 hover:text-white">Dashboard</a>
+                        <a href="#" class="text-sm font-medium text-navy-300 hover:text-white">Companies</a>
+                        <a href="#" class="text-sm font-medium text-navy-300 hover:text-white">Users</a>
+                        <a href="#" class="text-sm font-medium text-navy-300 hover:text-white">People</a>
+                        <a href="#" class="text-sm font-medium text-white border-b-2 border-white pb-4 -mb-px">LPs</a>
+                        <a href="#" class="text-sm font-medium text-navy-300 hover:text-white">Data Quality</a>
+                    </nav>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-sm text-navy-300">Super Admin</span>
+                    <div class="w-8 h-8 rounded-full bg-navy-700 flex items-center justify-center">
+                        <span class="text-sm font-medium text-white">SA</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-6 py-8">
+        <!-- Page Header -->
+        <div class="flex justify-between items-center mb-6">
+            <div>
+                <h1 class="text-2xl font-semibold text-navy-900">LP Database</h1>
+                <p class="text-sm text-navy-500 mt-1">5,247 institutional investors</p>
+            </div>
+            <div class="flex space-x-3">
+                <button class="btn-secondary">
+                    <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+                    </svg>
+                    Import LPs
+                </button>
+                <button class="btn-primary">
+                    <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    Add LP
+                </button>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="grid grid-cols-5 gap-4 mb-6">
+            <div class="card p-4">
+                <div class="text-sm text-navy-500">Total LPs</div>
+                <div class="text-2xl font-semibold text-navy-900">5,247</div>
+            </div>
+            <div class="card p-4">
+                <div class="text-sm text-navy-500">Pensions</div>
+                <div class="text-2xl font-semibold text-navy-900">1,245</div>
+            </div>
+            <div class="card p-4">
+                <div class="text-sm text-navy-500">Endowments</div>
+                <div class="text-2xl font-semibold text-navy-900">892</div>
+            </div>
+            <div class="card p-4">
+                <div class="text-sm text-navy-500">Family Offices</div>
+                <div class="text-2xl font-semibold text-navy-900">2,156</div>
+            </div>
+            <div class="card p-4">
+                <div class="text-sm text-navy-500">Other</div>
+                <div class="text-2xl font-semibold text-navy-900">954</div>
+            </div>
+        </div>
+
+        <!-- Search & Filters -->
+        <div class="card p-4 mb-6">
+            <div class="flex space-x-4">
+                <div class="flex-1">
+                    <input type="text" class="form-input w-full" placeholder="Search LPs...">
+                </div>
+                <select class="form-input w-40">
+                    <option>All Types</option>
+                    <option>Pension</option>
+                    <option>Endowment</option>
+                    <option>Foundation</option>
+                    <option>Family Office</option>
+                    <option>Sovereign Wealth</option>
+                </select>
+                <select class="form-input w-40">
+                    <option>All Regions</option>
+                    <option>North America</option>
+                    <option>Europe</option>
+                    <option>Asia Pacific</option>
+                </select>
+                <select class="form-input w-40">
+                    <option>Data Quality</option>
+                    <option>High</option>
+                    <option>Medium</option>
+                    <option>Low</option>
+                </select>
+                <button class="btn-secondary">Filter</button>
+            </div>
+        </div>
+
+        <!-- LPs Table -->
+        <div class="card overflow-hidden">
+            <table class="data-table w-full">
+                <thead>
+                    <tr>
+                        <th class="text-left px-6 py-3">LP Name</th>
+                        <th class="text-left px-6 py-3">Type</th>
+                        <th class="text-left px-6 py-3">Location</th>
+                        <th class="text-right px-6 py-3">AUM</th>
+                        <th class="text-center px-6 py-3">Contacts</th>
+                        <th class="text-left px-6 py-3">Quality</th>
+                        <th class="text-right px-6 py-3">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="px-6 py-4">
+                            <div class="font-medium text-navy-900">CalPERS</div>
+                            <div class="text-xs text-navy-400">California Public Employees' Retirement</div>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-navy-600">Pension</td>
+                        <td class="px-6 py-4 text-sm text-navy-600">Sacramento, CA</td>
+                        <td class="px-6 py-4 text-sm text-navy-900 text-right font-medium">$450B</td>
+                        <td class="px-6 py-4 text-sm text-navy-600 text-center">12</td>
+                        <td class="px-6 py-4">
+                            <span class="px-2 py-0.5 text-xs font-medium bg-green-50 text-green-700 rounded">High</span>
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            <button class="text-sm text-accent hover:text-accent-dark">Edit →</button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="px-6 py-4">
+                            <div class="font-medium text-navy-900">Yale Endowment</div>
+                            <div class="text-xs text-navy-400">Yale University Investments Office</div>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-navy-600">Endowment</td>
+                        <td class="px-6 py-4 text-sm text-navy-600">New Haven, CT</td>
+                        <td class="px-6 py-4 text-sm text-navy-900 text-right font-medium">$41B</td>
+                        <td class="px-6 py-4 text-sm text-navy-600 text-center">5</td>
+                        <td class="px-6 py-4">
+                            <span class="px-2 py-0.5 text-xs font-medium bg-green-50 text-green-700 rounded">High</span>
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            <button class="text-sm text-accent hover:text-accent-dark">Edit →</button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="px-6 py-4">
+                            <div class="font-medium text-navy-900">Smith Family Office</div>
+                            <div class="text-xs text-navy-400">Multi-family office</div>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-navy-600">Family Office</td>
+                        <td class="px-6 py-4 text-sm text-navy-600">New York, NY</td>
+                        <td class="px-6 py-4 text-sm text-navy-900 text-right font-medium">$2B</td>
+                        <td class="px-6 py-4 text-sm text-navy-600 text-center">2</td>
+                        <td class="px-6 py-4">
+                            <span class="px-2 py-0.5 text-xs font-medium bg-amber-50 text-amber-700 rounded">Medium</span>
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            <button class="text-sm text-accent hover:text-accent-dark">Edit →</button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="px-6 py-4">
+                            <div class="font-medium text-navy-900">Unknown Pension Fund</div>
+                            <div class="text-xs text-navy-400">State pension</div>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-navy-600">Pension</td>
+                        <td class="px-6 py-4 text-sm text-navy-600">—</td>
+                        <td class="px-6 py-4 text-sm text-navy-500 text-right italic">Unknown</td>
+                        <td class="px-6 py-4 text-sm text-navy-600 text-center">0</td>
+                        <td class="px-6 py-4">
+                            <span class="px-2 py-0.5 text-xs font-medium bg-red-50 text-red-700 rounded">Low</span>
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            <button class="text-sm text-accent hover:text-accent-dark">Edit →</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="flex justify-between items-center mt-4">
+            <span class="text-sm text-navy-500">Showing 1-4 of 5,247 LPs</span>
+            <div class="flex space-x-2">
+                <button class="btn-secondary text-sm px-3">Previous</button>
+                <button class="btn-primary text-sm px-3">1</button>
+                <button class="btn-secondary text-sm px-3">2</button>
+                <button class="btn-secondary text-sm px-3">3</button>
+                <button class="btn-secondary text-sm px-3">Next</button>
+            </div>
+        </div>
+    </main>
+</div>
+{% endblock %}
