@@ -704,97 +704,148 @@ The platform prioritizes human oversight for critical actions. AI assists but hu
 ### 6.1 Entity Relationship Diagram
 
 ```
-ORGANIZATIONS                    PEOPLE (Global)
-─────────────                    ───────────────
-┌─────────────┐                  ┌─────────────┐
-│   Company   │──────────────────│   People    │ (all industry professionals)
-│  (GP firm)  │                  │  (global)   │
-└──────┬──────┘                  └──────┬──────┘
-       │                                │
-       │ owns                           │ employment history
-       ▼                                ▼
-┌─────────────┐                  ┌─────────────┐
-│    Fund     │<─────────────────│ Employment  │ (person ↔ org with dates)
-└──────┬──────┘    fund_team     └──────┬──────┘
-       │                                │
-       │ matches with                   │ works at
-       ▼                                ▼
-┌─────────────┐                  ┌─────────────┐
-│   Match     │─────────────────>│     LP      │ (LP organizations)
-└──────┬──────┘                  └─────────────┘
-       │
-       ▼
-┌─────────────┐
-│   Pitch     │
-└─────────────┘
+ORGANIZATIONS (unified: GPs and LPs)
+────────────────────────────────────
+┌─────────────────────────────────────────────────────────┐
+│                     organizations                        │
+│  type: 'gp' | 'lp'                                      │
+├─────────────────────────────────────────────────────────┤
+│  GP organizations (type='gp'):                          │
+│  └── own Funds                                          │
+│                                                         │
+│  LP organizations (type='lp'):                          │
+│  └── receive Matches from Funds                         │
+│  └── have LP-specific fields (lp_type, preferences)     │
+└─────────────────────────────────────────────────────────┘
+                         │
+                         │ employs
+                         ▼
+┌─────────────────────────────────────────────────────────┐
+│                      people                              │
+│  (all industry professionals)                            │
+├─────────────────────────────────────────────────────────┤
+│  primary_org_id → organizations.id (current employer)   │
+│  auth_user_id → auth.users.id (nullable: login access)  │
+│                                                         │
+│  Employment history tracks moves between organizations  │
+└─────────────────────────────────────────────────────────┘
 
-PLATFORM USERS (subset of People)
-─────────────────────────────────
-┌─────────────┐
-│    User     │ (can login to platform)
-│  person_id  │────> references People
-└─────────────┘
+RELATIONSHIPS
+─────────────
+organizations (type='gp') ──owns──> funds
+funds ──matched_with──> organizations (type='lp') via matches
+people ──works_at──> organizations via employment
+people ──member_of──> funds via fund_team
+matches ──generates──> pitches
 ```
 
 **Key Design Decisions:**
-- **People are global:** All industry professionals in one table (LP contacts + GP team members)
-- **Employment tracks history:** People can move between organizations, with start/end dates
-- **Users are a subset:** Platform users (who can login) reference the global People table
-- **LP contacts are shared:** All GP companies benefit from the shared contact database
+- **Unified organizations:** GPs and LPs are both organizations with a `type` discriminator
+- **People work at organizations:** Clean FK to `organizations.id` (no polymorphic relationships)
+- **People can move:** Employment history tracks job changes between any organization
+- **Platform users are people:** `auth_user_id` field determines who can login (nullable)
+- **No separate users table:** Authentication is just a flag on the people table
+- **Referential integrity:** All FKs are real constraints, not polymorphic
 
 ### 6.2 Core Tables
 
-#### Companies
+#### Organizations (Unified GPs and LPs)
+Single table for all organizations - both GP firms and LP investors.
 ```sql
-CREATE TABLE companies (
+CREATE TABLE organizations (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    type            TEXT NOT NULL CHECK (type IN ('gp', 'lp')),
     name            TEXT NOT NULL,
-    domain          TEXT,
+
+    -- Common fields
+    website         TEXT,
+    hq_city         TEXT,
+    hq_country      TEXT,
+    total_aum_bn    DECIMAL(12,2),
+    description     TEXT,
     settings        JSONB DEFAULT '{}',
+
+    -- LP-specific fields (NULL for GPs)
+    lp_type         TEXT CHECK (lp_type IN ('pension', 'endowment', 'foundation',
+                                            'family_office', 'sovereign_wealth',
+                                            'insurance', 'fund_of_funds', 'other')),
+    pe_allocation_pct       DECIMAL(5,2),
+    pe_target_allocation_pct DECIMAL(5,2),
+    strategies              TEXT[] DEFAULT '{}',
+    sub_strategies          TEXT[] DEFAULT '{}',
+    check_size_min_mm       DECIMAL(12,2),
+    check_size_max_mm       DECIMAL(12,2),
+    sweet_spot_mm           DECIMAL(12,2),
+    geographic_preferences  TEXT[] DEFAULT '{}',
+    sector_preferences      TEXT[] DEFAULT '{}',
+    fund_size_preference    TEXT,
+    min_track_record_years  INTEGER,
+    min_fund_number         INTEGER,
+    min_irr_threshold       DECIMAL(5,2),
+    min_fund_size_mm        DECIMAL(12,2),
+    max_fund_size_mm        DECIMAL(12,2),
+    esg_required            BOOLEAN DEFAULT FALSE,
+    dei_requirements        BOOLEAN DEFAULT FALSE,
+    commitments_per_year    INTEGER,
+    avg_commitment_size_mm  DECIMAL(12,2),
+    co_investment_interest  BOOLEAN DEFAULT FALSE,
+    secondary_activity      BOOLEAN DEFAULT FALSE,
+    direct_investment       BOOLEAN DEFAULT FALSE,
+    mandate_description     TEXT,
+    investment_process      TEXT,
+    emerging_manager_program BOOLEAN DEFAULT FALSE,
+    emerging_manager_allocation_mm DECIMAL(12,2),
+
+    -- Vector embedding for semantic search (LPs only)
+    mandate_embedding       VECTOR(1024),
+
+    -- Data quality (primarily for LPs)
+    data_source             TEXT DEFAULT 'manual',
+    last_verified           TIMESTAMPTZ,
+    verification_status     TEXT CHECK (verification_status IN ('unverified', 'pending', 'verified', 'outdated')) DEFAULT 'unverified',
+    data_quality_score      DECIMAL(3,2) DEFAULT 0.0,
+    enrichment_status       TEXT CHECK (enrichment_status IN ('pending', 'in_progress', 'completed', 'failed')) DEFAULT 'pending',
+
+    -- Audit
+    created_by      UUID REFERENCES auth.users(id),
+    updated_by      UUID REFERENCES auth.users(id),
     created_at      TIMESTAMPTZ DEFAULT NOW(),
     updated_at      TIMESTAMPTZ DEFAULT NOW()
 );
+
+CREATE INDEX idx_organizations_type ON organizations(type);
+CREATE INDEX idx_organizations_name_trgm ON organizations USING GIN(name gin_trgm_ops);
+CREATE INDEX idx_organizations_strategies ON organizations USING GIN(strategies);
+CREATE INDEX idx_organizations_geographic ON organizations USING GIN(geographic_preferences);
+CREATE INDEX idx_organizations_mandate_embedding ON organizations USING ivfflat (mandate_embedding vector_cosine_ops);
 ```
 
-#### Users
-```sql
-CREATE TABLE users (
-    id              UUID PRIMARY KEY REFERENCES auth.users(id),
-    person_id       UUID REFERENCES people(id), -- Link to global person record
-    company_id      UUID REFERENCES companies(id),
-    email           TEXT UNIQUE NOT NULL,
-    role            TEXT CHECK (role IN ('admin', 'member', 'viewer')) DEFAULT 'member',
-    is_super_admin  BOOLEAN DEFAULT FALSE,
-    invited_by      UUID REFERENCES users(id),  -- who invited this user
-    first_login_at  TIMESTAMPTZ,                -- track first login for welcome screen
-    created_at      TIMESTAMPTZ DEFAULT NOW(),
-    updated_at      TIMESTAMPTZ DEFAULT NOW()
-);
-
-CREATE INDEX idx_users_person ON users(person_id);
-CREATE INDEX idx_users_company ON users(company_id);
-```
-
-#### People (Global Contact Database)
-All professionals in the industry - both LP contacts and GP team members.
+#### People (All Industry Professionals)
+All professionals in the industry. Platform users have `auth_user_id` set.
 ```sql
 CREATE TABLE people (
     id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
     -- Identity
     full_name           TEXT NOT NULL,
-    email               TEXT,                    -- may be NULL or outdated
+    email               TEXT UNIQUE,
     phone               TEXT,
     linkedin_url        TEXT,
 
-    -- Professional info (current, denormalized for convenience)
-    current_title       TEXT,                    -- "Managing Director"
-    current_org_type    TEXT,                    -- 'lp' or 'gp'
-    current_org_id      UUID,                    -- FK to lps or companies
+    -- Current position (denormalized for convenience)
+    primary_org_id      UUID REFERENCES organizations(id),
+    current_title       TEXT,
+
+    -- Platform authentication (NULL = cannot login, SET = can login)
+    auth_user_id        UUID UNIQUE REFERENCES auth.users(id),
+    role                TEXT CHECK (role IN ('admin', 'member', 'viewer')) DEFAULT 'member',
+    is_super_admin      BOOLEAN DEFAULT FALSE,
+    invited_by          UUID REFERENCES people(id),
+    first_login_at      TIMESTAMPTZ,
 
     -- Attributes
-    focus_areas         TEXT[] DEFAULT '{}',     -- "Private Equity", "Healthcare"
-    is_decision_maker   BOOLEAN DEFAULT FALSE,   -- for LP contacts
+    focus_areas         TEXT[] DEFAULT '{}',
+    is_decision_maker   BOOLEAN DEFAULT FALSE,
     bio                 TEXT,
     notes               TEXT,
 
@@ -810,25 +861,24 @@ CREATE TABLE people (
     updated_at          TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Index for finding platform users (people who can login)
+CREATE INDEX idx_people_auth ON people(auth_user_id) WHERE auth_user_id IS NOT NULL;
 CREATE INDEX idx_people_email ON people(email);
+CREATE INDEX idx_people_org ON people(primary_org_id);
 CREATE INDEX idx_people_name_trgm ON people USING GIN(full_name gin_trgm_ops);
-CREATE INDEX idx_people_current_org ON people(current_org_type, current_org_id);
 ```
 
 #### Employment (Career History)
-Links people to organizations over time.
+Links people to organizations over time. Clean FK to organizations.id.
 ```sql
 CREATE TABLE employment (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    person_id       UUID REFERENCES people(id) ON DELETE CASCADE NOT NULL,
-
-    -- Organization reference (polymorphic)
-    org_type        TEXT CHECK (org_type IN ('lp', 'gp')) NOT NULL,
-    org_id          UUID NOT NULL,              -- FK to lps.id or companies.id
+    person_id       UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
+    org_id          UUID NOT NULL REFERENCES organizations(id),  -- Clean FK!
 
     -- Role info
     title           TEXT,
-    department      TEXT,                       -- "Private Markets", "Alternatives"
+    department      TEXT,
     is_current      BOOLEAN DEFAULT TRUE,
 
     -- Dates
@@ -846,7 +896,7 @@ CREATE TABLE employment (
 );
 
 CREATE INDEX idx_employment_person ON employment(person_id);
-CREATE INDEX idx_employment_org ON employment(org_type, org_id);
+CREATE INDEX idx_employment_org ON employment(org_id);
 CREATE INDEX idx_employment_current ON employment(is_current) WHERE is_current = TRUE;
 ```
 
@@ -855,14 +905,14 @@ CREATE INDEX idx_employment_current ON employment(is_current) WHERE is_current =
 CREATE TABLE invitations (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email           TEXT NOT NULL,
-    company_id      UUID REFERENCES companies(id) NOT NULL,
+    org_id          UUID NOT NULL REFERENCES organizations(id),
     role            TEXT CHECK (role IN ('admin', 'member', 'viewer')) NOT NULL,
-    token           TEXT UNIQUE NOT NULL,       -- secure random token
-    invited_by      UUID REFERENCES users(id),  -- NULL if invited by super admin
+    token           TEXT UNIQUE NOT NULL,
+    invited_by      UUID REFERENCES people(id),
 
     -- Status tracking
     status          TEXT CHECK (status IN ('pending', 'accepted', 'expired', 'cancelled')) DEFAULT 'pending',
-    expires_at      TIMESTAMPTZ NOT NULL,       -- 7 days from creation
+    expires_at      TIMESTAMPTZ NOT NULL,
     accepted_at     TIMESTAMPTZ,
 
     created_at      TIMESTAMPTZ DEFAULT NOW()
@@ -870,15 +920,15 @@ CREATE TABLE invitations (
 
 CREATE INDEX idx_invitations_token ON invitations(token);
 CREATE INDEX idx_invitations_email ON invitations(email);
-CREATE INDEX idx_invitations_company ON invitations(company_id);
+CREATE INDEX idx_invitations_org ON invitations(org_id);
 ```
 
 #### Funds (GP Profiles)
 ```sql
 CREATE TABLE funds (
     id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    company_id          UUID REFERENCES companies(id) NOT NULL,
-    created_by          UUID REFERENCES users(id),
+    org_id              UUID NOT NULL REFERENCES organizations(id),
+    created_by          UUID REFERENCES people(id),
 
     -- Basics
     name                TEXT NOT NULL,
@@ -935,7 +985,7 @@ CREATE TABLE funds (
     thesis_embedding    VECTOR(1024),
 
     -- Audit Trail
-    updated_by          UUID REFERENCES users(id),
+    updated_by          UUID REFERENCES people(id),
     data_source         TEXT DEFAULT 'manual',
     last_verified       TIMESTAMPTZ,
     verification_status TEXT CHECK (verification_status IN ('unverified', 'pending', 'verified', 'outdated')) DEFAULT 'unverified',
@@ -945,7 +995,7 @@ CREATE TABLE funds (
     updated_at          TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_funds_company ON funds(company_id);
+CREATE INDEX idx_funds_org ON funds(org_id);
 CREATE INDEX idx_funds_thesis_embedding ON funds USING ivfflat (thesis_embedding vector_cosine_ops);
 ```
 
@@ -968,107 +1018,33 @@ CREATE INDEX idx_fund_team_fund ON fund_team(fund_id);
 CREATE INDEX idx_fund_team_person ON fund_team(person_id);
 ```
 
-#### LPs (Investors)
-```sql
-CREATE TABLE lps (
-    id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+#### Organization Contacts (via People + Employment)
 
-    -- Organization
-    name                    TEXT NOT NULL,
-    type                    TEXT,
-    sub_type                TEXT,
-    total_aum_bn            DECIMAL(12,2),
-    pe_allocation_pct       DECIMAL(5,2),
-    pe_target_allocation_pct DECIMAL(5,2),
-    headquarters_country    TEXT,
-    headquarters_city       TEXT,
-    website                 TEXT,
-
-    -- Investment Criteria
-    strategies              TEXT[] DEFAULT '{}',
-    sub_strategies          TEXT[] DEFAULT '{}',
-    check_size_min_mm       DECIMAL(12,2),
-    check_size_max_mm       DECIMAL(12,2),
-    sweet_spot_mm           DECIMAL(12,2),
-    geographic_preferences  TEXT[] DEFAULT '{}',
-    sector_preferences      TEXT[] DEFAULT '{}',
-    fund_size_preference    TEXT,
-
-    -- Requirements
-    min_track_record_years  INTEGER,
-    min_fund_number         INTEGER,
-    min_irr_threshold       DECIMAL(5,2),
-    min_fund_size_mm        DECIMAL(12,2),
-    max_fund_size_mm        DECIMAL(12,2),
-    esg_required            BOOLEAN DEFAULT FALSE,
-    dei_requirements        BOOLEAN DEFAULT FALSE,
-
-    -- Behavior
-    commitments_per_year    INTEGER,
-    avg_commitment_size_mm  DECIMAL(12,2),
-    co_investment_interest  BOOLEAN DEFAULT FALSE,
-    secondary_activity      BOOLEAN DEFAULT FALSE,
-    direct_investment       BOOLEAN DEFAULT FALSE,
-
-    -- Qualitative (for semantic search)
-    mandate_description     TEXT,
-    investment_process      TEXT,
-    notes                   TEXT,
-
-    -- Programs
-    emerging_manager_program BOOLEAN DEFAULT FALSE,
-    emerging_manager_allocation_mm DECIMAL(12,2),
-
-    -- Vector embedding
-    mandate_embedding       VECTOR(1024),
-
-    -- Data Quality & Audit Trail
-    created_by              UUID REFERENCES auth.users(id),
-    updated_by              UUID REFERENCES auth.users(id),
-    data_source             TEXT DEFAULT 'import',
-    last_verified           TIMESTAMPTZ,
-    verification_status     TEXT CHECK (verification_status IN ('unverified', 'pending', 'verified', 'outdated')) DEFAULT 'unverified',
-    data_quality_score      DECIMAL(3,2) DEFAULT 0.0,
-    enrichment_status       TEXT CHECK (enrichment_status IN ('pending', 'in_progress', 'completed', 'failed')) DEFAULT 'pending',
-
-    -- Metadata
-    created_at              TIMESTAMPTZ DEFAULT NOW(),
-    updated_at              TIMESTAMPTZ DEFAULT NOW()
-);
-
-CREATE INDEX idx_lps_type ON lps(type);
-CREATE INDEX idx_lps_strategies ON lps USING GIN(strategies);
-CREATE INDEX idx_lps_geographic ON lps USING GIN(geographic_preferences);
-CREATE INDEX idx_lps_mandate_embedding ON lps USING ivfflat (mandate_embedding vector_cosine_ops);
-CREATE INDEX idx_lps_name_trgm ON lps USING GIN(name gin_trgm_ops);
-```
-
-#### LP Contacts (via People + Employment)
-
-> **Note:** LP contacts are now stored in the global `people` table with
-> employment records linking them to LP organizations. This enables:
+> **Note:** Contacts for both GPs and LPs are stored in the global `people` table with
+> employment records linking them to organizations. This enables:
 > - Tracking people as they move between organizations
 > - Shared contact database across all GP companies
 > - Employment history with start/end dates
+> - People moving from LP to GP or vice versa
 >
-> To find contacts for an LP:
+> To find contacts for an organization:
 > ```sql
 > SELECT p.*, e.title, e.department, e.start_date
 > FROM people p
 > JOIN employment e ON e.person_id = p.id
-> WHERE e.org_type = 'lp'
->   AND e.org_id = '<lp_id>'
+> WHERE e.org_id = '<org_id>'
 >   AND e.is_current = TRUE;
 > ```
 
 #### LP Commitments (Historical)
+Tracks historical LP commitments to GP funds.
 ```sql
 CREATE TABLE lp_commitments (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    lp_id           UUID REFERENCES lps(id) ON DELETE CASCADE,
+    lp_org_id       UUID NOT NULL REFERENCES organizations(id),
+    gp_org_id       UUID NOT NULL REFERENCES organizations(id),
 
     fund_name       TEXT,
-    fund_manager    TEXT,
     commitment_mm   DECIMAL(12,2),
     vintage_year    INTEGER,
     strategy        TEXT,
@@ -1077,15 +1053,17 @@ CREATE TABLE lp_commitments (
     created_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_lp_commitments_lp ON lp_commitments(lp_id);
+CREATE INDEX idx_lp_commitments_lp ON lp_commitments(lp_org_id);
+CREATE INDEX idx_lp_commitments_gp ON lp_commitments(gp_org_id);
 ```
 
 #### Matches
+Matches between funds and LP organizations.
 ```sql
 CREATE TABLE matches (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    fund_id         UUID REFERENCES funds(id) ON DELETE CASCADE,
-    lp_id           UUID REFERENCES lps(id) ON DELETE CASCADE,
+    fund_id         UUID NOT NULL REFERENCES funds(id) ON DELETE CASCADE,
+    lp_org_id       UUID NOT NULL REFERENCES organizations(id),
 
     -- Scoring
     total_score     DECIMAL(5,2),
@@ -1099,17 +1077,18 @@ CREATE TABLE matches (
     concerns        TEXT[] DEFAULT '{}',
 
     -- Status
-    status          TEXT CHECK (status IN ('new', 'viewed', 'contacted', 'dismissed')) DEFAULT 'new',
+    status          TEXT CHECK (status IN ('new', 'viewed', 'shortlisted', 'contacted', 'dismissed')) DEFAULT 'new',
     user_feedback   TEXT CHECK (user_feedback IN ('positive', 'negative', NULL)),
     feedback_reason TEXT,
 
     created_at      TIMESTAMPTZ DEFAULT NOW(),
     updated_at      TIMESTAMPTZ DEFAULT NOW(),
 
-    UNIQUE(fund_id, lp_id)
+    UNIQUE(fund_id, lp_org_id)
 );
 
 CREATE INDEX idx_matches_fund ON matches(fund_id);
+CREATE INDEX idx_matches_lp ON matches(lp_org_id);
 CREATE INDEX idx_matches_score ON matches(total_score DESC);
 ```
 
@@ -1117,13 +1096,13 @@ CREATE INDEX idx_matches_score ON matches(total_score DESC);
 ```sql
 CREATE TABLE pitches (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    match_id        UUID REFERENCES matches(id) ON DELETE CASCADE,
+    match_id        UUID NOT NULL REFERENCES matches(id) ON DELETE CASCADE,
 
     type            TEXT CHECK (type IN ('email', 'summary', 'addendum')) NOT NULL,
     content         TEXT NOT NULL,
     tone            TEXT,
 
-    created_by      UUID REFERENCES users(id),
+    created_by      UUID REFERENCES people(id),
     created_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -1134,7 +1113,7 @@ CREATE INDEX idx_pitches_match ON pitches(match_id);
 ```sql
 CREATE TABLE enrichment_log (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    lp_id           UUID REFERENCES lps(id) ON DELETE CASCADE,
+    org_id          UUID REFERENCES organizations(id) ON DELETE CASCADE,
     person_id       UUID REFERENCES people(id) ON DELETE SET NULL,
 
     source          TEXT NOT NULL,
@@ -1146,7 +1125,8 @@ CREATE TABLE enrichment_log (
     created_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_enrichment_lp ON enrichment_log(lp_id);
+CREATE INDEX idx_enrichment_org ON enrichment_log(org_id);
+CREATE INDEX idx_enrichment_person ON enrichment_log(person_id);
 ```
 
 #### Data Import Jobs
@@ -1168,8 +1148,8 @@ CREATE TABLE import_jobs (
     preview_data    JSONB DEFAULT '[]',
 
     -- Audit Trail
-    created_by      UUID REFERENCES users(id),
-    approved_by     UUID REFERENCES users(id),
+    created_by      UUID REFERENCES people(id),
+    approved_by     UUID REFERENCES people(id),
     approved_at     TIMESTAMPTZ,
     data_source     TEXT DEFAULT 'csv_import',
 
@@ -1184,82 +1164,97 @@ CREATE TABLE import_jobs (
 
 ```sql
 -- Enable RLS on all tables
-ALTER TABLE companies ENABLE ROW LEVEL SECURITY;
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE people ENABLE ROW LEVEL SECURITY;
 ALTER TABLE funds ENABLE ROW LEVEL SECURITY;
 ALTER TABLE matches ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pitches ENABLE ROW LEVEL SECURITY;
+ALTER TABLE employment ENABLE ROW LEVEL SECURITY;
+ALTER TABLE fund_team ENABLE ROW LEVEL SECURITY;
 
--- Users see their own company
-CREATE POLICY "Users see own company" ON companies
-    FOR SELECT USING (id = (SELECT company_id FROM users WHERE id = auth.uid()));
+-- Helper function: Get current user's org_id
+CREATE OR REPLACE FUNCTION current_user_org_id()
+RETURNS UUID AS $$
+    SELECT primary_org_id FROM people WHERE auth_user_id = auth.uid()
+$$ LANGUAGE sql SECURITY DEFINER;
 
--- Users see company members
-CREATE POLICY "Users see company members" ON users
-    FOR SELECT USING (company_id = (SELECT company_id FROM users WHERE id = auth.uid()));
+-- Helper function: Check if current user is super admin
+CREATE OR REPLACE FUNCTION is_super_admin()
+RETURNS BOOLEAN AS $$
+    SELECT COALESCE(
+        (SELECT is_super_admin FROM people WHERE auth_user_id = auth.uid()),
+        FALSE
+    )
+$$ LANGUAGE sql SECURITY DEFINER;
 
--- Users CRUD their company's funds
-CREATE POLICY "Users manage company funds" ON funds
-    FOR ALL USING (company_id = (SELECT company_id FROM users WHERE id = auth.uid()));
-
--- Users see matches for their funds
-CREATE POLICY "Users see own matches" ON matches
-    FOR ALL USING (fund_id IN (
-        SELECT id FROM funds WHERE company_id = (
-            SELECT company_id FROM users WHERE id = auth.uid()
-        )
-    ));
-
--- LPs are globally readable
-CREATE POLICY "LPs readable by authenticated" ON lps
-    FOR SELECT USING (auth.role() = 'authenticated');
-
--- LPs editable by super admins only
-CREATE POLICY "LPs editable by admins" ON lps
-    FOR INSERT UPDATE DELETE USING (
-        EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND is_super_admin = TRUE)
+-- Organizations: Users see their own GP org; all LPs are readable
+CREATE POLICY "Users see own GP org" ON organizations
+    FOR SELECT USING (
+        (type = 'gp' AND id = current_user_org_id())
+        OR type = 'lp'
+        OR is_super_admin()
     );
 
--- People are globally readable (shared contact database)
+-- Organizations: Only super admins can modify
+CREATE POLICY "Super admins manage organizations" ON organizations
+    FOR INSERT UPDATE DELETE USING (is_super_admin());
+
+-- People: All authenticated users can read (shared contact database)
 CREATE POLICY "People readable by authenticated" ON people
     FOR SELECT USING (auth.role() = 'authenticated');
 
--- People editable by super admins only
-CREATE POLICY "People editable by admins" ON people
-    FOR INSERT UPDATE DELETE USING (
-        EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND is_super_admin = TRUE)
+-- People: Super admins can modify all; users can modify their own profile
+CREATE POLICY "People editable" ON people
+    FOR UPDATE USING (
+        auth_user_id = auth.uid()
+        OR is_super_admin()
     );
 
--- Employment records follow people permissions
+CREATE POLICY "People insertable by admins" ON people
+    FOR INSERT WITH CHECK (is_super_admin());
+
+-- Funds: Users manage their org's funds
+CREATE POLICY "Users manage own org funds" ON funds
+    FOR ALL USING (org_id = current_user_org_id() OR is_super_admin());
+
+-- Matches: Users see matches for their funds
+CREATE POLICY "Users see own matches" ON matches
+    FOR ALL USING (
+        fund_id IN (SELECT id FROM funds WHERE org_id = current_user_org_id())
+        OR is_super_admin()
+    );
+
+-- Pitches: Users see pitches for their matches
+CREATE POLICY "Users see own pitches" ON pitches
+    FOR ALL USING (
+        match_id IN (
+            SELECT m.id FROM matches m
+            JOIN funds f ON m.fund_id = f.id
+            WHERE f.org_id = current_user_org_id()
+        )
+        OR is_super_admin()
+    );
+
+-- Employment: Readable by all authenticated
 CREATE POLICY "Employment readable by authenticated" ON employment
     FOR SELECT USING (auth.role() = 'authenticated');
 
 CREATE POLICY "Employment editable by admins" ON employment
-    FOR INSERT UPDATE DELETE USING (
-        EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND is_super_admin = TRUE)
-    );
+    FOR INSERT UPDATE DELETE USING (is_super_admin());
 
--- Fund team visible to company members
-CREATE POLICY "Fund team visible to company" ON fund_team
+-- Fund team: Visible to org members
+CREATE POLICY "Fund team visible to org" ON fund_team
     FOR SELECT USING (
-        fund_id IN (
-            SELECT id FROM funds WHERE company_id = (
-                SELECT company_id FROM users WHERE id = auth.uid()
-            )
-        )
+        fund_id IN (SELECT id FROM funds WHERE org_id = current_user_org_id())
+        OR is_super_admin()
     );
 
--- Fund team managed by company admins
+-- Fund team: Managed by org admins
 CREATE POLICY "Fund team managed by admins" ON fund_team
     FOR INSERT UPDATE DELETE USING (
-        fund_id IN (
-            SELECT id FROM funds WHERE company_id = (
-                SELECT company_id FROM users WHERE id = auth.uid()
-            )
-        )
-        AND EXISTS (
-            SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin'
-        )
+        fund_id IN (SELECT id FROM funds WHERE org_id = current_user_org_id())
+        AND (SELECT role FROM people WHERE auth_user_id = auth.uid()) = 'admin'
+        OR is_super_admin()
     );
 ```
 

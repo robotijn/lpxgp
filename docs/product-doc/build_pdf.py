@@ -899,24 +899,28 @@ def generate_pdf():
         <h1>5. Data Model</h1>
 
         <h2>Entity Overview</h2>
-        <p>LPxGP uses a relational data model with the following core entities:</p>
+        <p>LPxGP uses a unified relational data model where GPs and LPs are both organizations, and platform users are people with login access:</p>
 
         <div class="info-box">
             <pre style="font-family: monospace; font-size: 9pt; background: transparent; color: inherit; padding: 0;">
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│  Companies  │────▶│    Users    │     │    Funds    │
-│  (GP Firms) │     │  (Members)  │────▶│  (Profiles) │
-└─────────────┘     └─────────────┘     └──────┬──────┘
-                                               │
-                    ┌─────────────┐            │
-                    │   People    │            │
-                    │ (Contacts)  │            │
-                    └──────┬──────┘            │
-                           │                   │
-                    ┌──────▼──────┐     ┌──────▼──────┐
-                    │     LPs     │◀───▶│   Matches   │
-                    │ (Investors) │     │  (Scores)   │
-                    └─────────────┘     └─────────────┘
+┌─────────────────────────────────────────────────────────┐
+│                    ORGANIZATIONS                         │
+│              (unified: type='gp' | 'lp')                │
+├─────────────────────────────────────────────────────────┤
+│  GP organizations ──owns──▶ Funds                       │
+│  LP organizations ◀──matched_with── Funds               │
+└─────────────────────────────────────────────────────────┘
+                           │
+                           │ employs
+                           ▼
+┌─────────────────────────────────────────────────────────┐
+│                        PEOPLE                            │
+│            (all industry professionals)                  │
+├─────────────────────────────────────────────────────────┤
+│  primary_org_id ──▶ organizations (current employer)   │
+│  auth_user_id ──▶ auth.users (if can login)            │
+│  Employment history tracks job changes                  │
+└─────────────────────────────────────────────────────────┘
             </pre>
         </div>
 
@@ -929,34 +933,29 @@ def generate_pdf():
                 <th>Key Fields</th>
             </tr>
             <tr>
-                <td><strong>Companies</strong></td>
-                <td>GP firms using the platform</td>
-                <td>name, subscription_tier, created_at</td>
-            </tr>
-            <tr>
-                <td><strong>Users</strong></td>
-                <td>Platform users linked to companies</td>
-                <td>email, role (admin/member), company_id</td>
-            </tr>
-            <tr>
-                <td><strong>Funds</strong></td>
-                <td>Investment funds seeking LPs</td>
-                <td>name, strategy, target_size, thesis, thesis_embedding</td>
-            </tr>
-            <tr>
-                <td><strong>LPs</strong></td>
-                <td>Institutional investors (global database)</td>
-                <td>name, type, aum, mandate, mandate_embedding</td>
+                <td><strong>Organizations</strong></td>
+                <td>Unified table for both GP firms and LP investors</td>
+                <td>type (gp/lp), name, aum, lp_type, mandate_embedding</td>
             </tr>
             <tr>
                 <td><strong>People</strong></td>
-                <td>Contacts at LP organizations</td>
-                <td>name, title, email, current_org_id</td>
+                <td>All industry professionals (can work at any org)</td>
+                <td>name, email, primary_org_id, auth_user_id, role</td>
+            </tr>
+            <tr>
+                <td><strong>Employment</strong></td>
+                <td>Career history linking people to organizations</td>
+                <td>person_id, org_id, title, start_date, end_date</td>
+            </tr>
+            <tr>
+                <td><strong>Funds</strong></td>
+                <td>Investment funds owned by GP organizations</td>
+                <td>org_id, name, strategy, target_size, thesis_embedding</td>
             </tr>
             <tr>
                 <td><strong>Matches</strong></td>
                 <td>Fund-LP compatibility scores</td>
-                <td>fund_id, lp_id, score, score_breakdown, status</td>
+                <td>fund_id, lp_org_id, total_score, score_breakdown</td>
             </tr>
             <tr>
                 <td><strong>Pitches</strong></td>
@@ -965,20 +964,20 @@ def generate_pdf():
             </tr>
         </table>
 
-        <h2>Key Relationships</h2>
+        <h2>Key Design Decisions</h2>
         <ul>
-            <li><strong>Companies → Users:</strong> One-to-many. Each company has multiple users.</li>
-            <li><strong>Companies → Funds:</strong> One-to-many. Each company manages multiple funds.</li>
-            <li><strong>Funds → Matches:</strong> One-to-many. Each fund has matches with many LPs.</li>
-            <li><strong>LPs → People:</strong> One-to-many via Employment. Contacts can move between organizations.</li>
-            <li><strong>Matches → Pitches:</strong> One-to-many. Multiple pitch types per match.</li>
+            <li><strong>Unified Organizations:</strong> GPs and LPs are both organizations with a type discriminator. No separate tables.</li>
+            <li><strong>People Work at Organizations:</strong> Clean FK to organizations.id - no polymorphic relationships.</li>
+            <li><strong>People Can Move:</strong> Employment history tracks job changes. Someone can move from LP to GP.</li>
+            <li><strong>Platform Users = People + Auth:</strong> People with auth_user_id set can log in. No separate users table.</li>
+            <li><strong>Full Referential Integrity:</strong> All foreign keys are real database constraints.</li>
         </ul>
 
         <h2>Vector Embeddings</h2>
         <p>Semantic matching uses 1024-dimensional vector embeddings stored in PostgreSQL with pgvector:</p>
         <ul>
             <li><strong>Fund Thesis Embedding:</strong> Vector representation of fund strategy and thesis text</li>
-            <li><strong>LP Mandate Embedding:</strong> Vector representation of LP investment mandate</li>
+            <li><strong>LP Mandate Embedding:</strong> Vector representation of LP investment mandate (on organizations table)</li>
             <li><strong>Similarity Calculation:</strong> Cosine similarity between embeddings determines semantic fit</li>
         </ul>
     </div>
