@@ -711,51 +711,132 @@ def generate_pdf():
 
         <h2>AI-Powered Matching</h2>
 
-        <h3>How Matching Works</h3>
-        <p>The matching algorithm evaluates LP-Fund compatibility using multiple signals:</p>
+        <div class="success-box">
+            <strong>Design Principle:</strong> Quality above all else. Cost is not a constraint. Success is measured by actual investment commitments, not just high match scores.
+        </div>
+
+        <h3>Quality-First Hybrid Pipeline</h3>
+        <p>The matching system uses a 6-stage pipeline that combines hard filters, multiple scoring methods, LLM analysis, and continuous learning:</p>
+
+        <div class="info-box">
+            <pre style="font-family: monospace; font-size: 8pt; background: transparent; color: inherit; padding: 0;">
+Stage 1: HARD FILTERS (SQL)
+  └── Eliminate impossible matches (strategy, geography, size, track record)
+  └── Output: ~300-500 candidates from 10,000 LPs
+
+Stage 2: MULTI-SIGNAL SCORING (Python + Embeddings)
+  └── Attribute matching, semantic similarity, historical patterns
+  └── Output: Ranked list with preliminary scores
+
+Stage 3: LLM DEEP ANALYSIS (Claude via OpenRouter)
+  └── Analyze EVERY filtered candidate with LLM for nuanced judgment
+  └── Output: LLM-validated scores + detailed reasoning
+
+Stage 4: ENSEMBLE RANKING
+  └── Combine all scores, surface disagreements as "worth investigating"
+  └── Output: Final ranked matches with multi-perspective validation
+
+Stage 5: EXPLANATION GENERATION
+  └── Rich explanations, talking points, concerns, approach strategy
+  └── Output: Actionable intelligence for GP outreach
+
+Stage 6: LEARNING LOOP (Continuous)
+  └── Track outcomes, retrain models, A/B test changes
+            </pre>
+        </div>
+
+        <h3>Ensemble Scoring Weights</h3>
+        <table>
+            <tr>
+                <th>Component</th>
+                <th>Weight</th>
+                <th>Source</th>
+                <th>Purpose</th>
+            </tr>
+            <tr>
+                <td>Rule-Based Score</td>
+                <td>25%</td>
+                <td>SQL + Python</td>
+                <td>Hard constraints, business logic</td>
+            </tr>
+            <tr>
+                <td>Semantic Score</td>
+                <td>25%</td>
+                <td>Voyage AI embeddings</td>
+                <td>Thesis/mandate alignment</td>
+            </tr>
+            <tr>
+                <td><strong>LLM Score</strong></td>
+                <td><strong>35%</strong></td>
+                <td>Claude analysis</td>
+                <td>Nuanced judgment, non-obvious fit</td>
+            </tr>
+            <tr>
+                <td>Collaborative Score</td>
+                <td>15%</td>
+                <td>Historical patterns</td>
+                <td>"LPs like this invested in funds like this"</td>
+            </tr>
+        </table>
+
+        <h3>LLM Scoring (Key Innovation)</h3>
+        <p>Unlike systems that only use LLMs for explanations, we use Claude to actually score every match. The LLM analyzes fund profiles and LP mandates to identify:</p>
+        <ul>
+            <li><strong>Strategy Alignment:</strong> How well does fund strategy match LP mandate?</li>
+            <li><strong>Size Fit:</strong> Is fund size in LP's sweet spot or at the edge?</li>
+            <li><strong>Track Record:</strong> Does team experience meet LP's requirements?</li>
+            <li><strong>Timing:</strong> Is LP likely allocating now based on known patterns?</li>
+            <li><strong>Non-Obvious Insights:</strong> Red flags, hidden opportunities, and nuanced factors</li>
+        </ul>
+
+        <h3>Bidirectional Matching</h3>
+        <p>The system supports matching in both directions:</p>
+        <ul>
+            <li><strong>GP → LP:</strong> GP creates fund, system finds matching LPs ranked by fit quality</li>
+            <li><strong>LP → GP:</strong> LPs can see which funds match their mandate (optional feature)</li>
+        </ul>
+
+        <h3>Learning From Slow Feedback</h3>
+        <div class="highlight-box">
+            <strong>Critical Reality:</strong> Investment sector feedback takes 12-18 months (first meeting → commitment). The system uses proxy metrics for early learning.
+        </div>
 
         <table>
             <tr>
+                <th>Tier</th>
                 <th>Signal</th>
-                <th>Type</th>
-                <th>Weight</th>
-                <th>Description</th>
+                <th>Latency</th>
+                <th>Use For</th>
             </tr>
             <tr>
-                <td>Strategy Alignment</td>
-                <td>Hard Filter</td>
-                <td>Pass/Fail</td>
-                <td>LP must invest in fund's strategy (e.g., growth equity)</td>
+                <td>1</td>
+                <td>Match shortlisted/dismissed</td>
+                <td>Immediate</td>
+                <td>Hard filter tuning</td>
             </tr>
             <tr>
-                <td>Geographic Fit</td>
-                <td>Hard Filter</td>
-                <td>Pass/Fail</td>
-                <td>LP's geographic preferences must overlap with fund focus</td>
+                <td>2</td>
+                <td>Response received</td>
+                <td>Days-Weeks</td>
+                <td><strong>Key early predictor</strong></td>
             </tr>
             <tr>
-                <td>Size Compatibility</td>
-                <td>Soft Score</td>
-                <td>20%</td>
-                <td>Fund target size within LP's typical commitment range</td>
+                <td>2</td>
+                <td>Meeting scheduled</td>
+                <td>Weeks</td>
+                <td><strong>Strong quality signal</strong></td>
             </tr>
             <tr>
-                <td>Semantic Similarity</td>
-                <td>Soft Score</td>
-                <td>40%</td>
-                <td>AI comparison of fund thesis to LP investment mandate</td>
+                <td>3</td>
+                <td>Due diligence started</td>
+                <td>2-6 months</td>
+                <td>Deal progression</td>
             </tr>
             <tr>
-                <td>Activity Recency</td>
-                <td>Soft Score</td>
-                <td>20%</td>
-                <td>Recent LP activity suggests active deployment</td>
-            </tr>
-            <tr>
-                <td>Data Quality</td>
-                <td>Soft Score</td>
-                <td>20%</td>
-                <td>Higher quality LP data enables better matching</td>
+                <td>4</td>
+                <td>Commitment made</td>
+                <td>6-18 months</td>
+                <td><strong>Ground truth</strong></td>
             </tr>
         </table>
 
@@ -961,6 +1042,26 @@ def generate_pdf():
                 <td><strong>Pitches</strong></td>
                 <td>AI-generated outreach content</td>
                 <td>match_id, type, content, created_by</td>
+            </tr>
+            <tr>
+                <td><strong>Outreach Events</strong></td>
+                <td>Track journey from match to commitment</td>
+                <td>match_id, event_type, event_date, meeting_type</td>
+            </tr>
+            <tr>
+                <td><strong>Match Outcomes</strong></td>
+                <td>Final outcomes for model training</td>
+                <td>match_id, outcome, commitment_amount, features_at_match_time</td>
+            </tr>
+            <tr>
+                <td><strong>Relationships</strong></td>
+                <td>GP-LP relationship intelligence</td>
+                <td>gp_org_id, lp_org_id, relationship_type, prior_commitments</td>
+            </tr>
+            <tr>
+                <td><strong>LP Capacity</strong></td>
+                <td>Timing intelligence for allocation windows</td>
+                <td>lp_org_id, fiscal_year, remaining_capacity, next_allocation_window</td>
             </tr>
         </table>
 

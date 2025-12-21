@@ -499,6 +499,180 @@ Priority C (Third): Pitch Generation
 
 ---
 
+### 5.6.1 AI Matching Architecture
+
+> **Design Principle:** Quality above all else. Cost is not a constraint.
+> **Success Metric:** Actual investment commitments, not just high match scores.
+
+#### Quality-First Hybrid Pipeline
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    QUALITY-FIRST MATCHING PIPELINE                       │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  STAGE 1: HARD FILTERS (SQL) - Eliminate impossible matches             │
+│  ├── Strategy must align                                                │
+│  ├── Geography must overlap                                             │
+│  ├── Fund size within LP's acceptable range                             │
+│  └── Track record meets LP minimums                                     │
+│  OUTPUT: ~300-500 candidates from 10,000 LPs                            │
+│                                                                          │
+│  STAGE 2: MULTI-SIGNAL SCORING (Python + Embeddings)                    │
+│  ├── Attribute matching (sector, size, ESG, etc.)                       │
+│  ├── Semantic similarity (Voyage AI embeddings)                         │
+│  ├── Historical patterns (collaborative signals when available)         │
+│  └── Relationship signals (mutual connections, prior contact)           │
+│  OUTPUT: Ranked list with preliminary scores                            │
+│                                                                          │
+│  STAGE 3: LLM DEEP ANALYSIS (Claude via OpenRouter)                     │
+│  ├── Analyze EVERY filtered candidate with LLM                          │
+│  ├── Structured reasoning about fit quality                             │
+│  ├── Identify non-obvious alignment and concerns                        │
+│  ├── Generate nuanced scores with confidence levels                     │
+│  └── Parallel processing for speed                                      │
+│  OUTPUT: LLM-validated scores + detailed reasoning                      │
+│                                                                          │
+│  STAGE 4: ENSEMBLE RANKING                                              │
+│  ├── Combine rule-based score + LLM score + semantic score              │
+│  ├── Weight by confidence and data quality                              │
+│  └── Surface disagreements as "worth investigating"                     │
+│  OUTPUT: Final ranked matches with multi-perspective validation         │
+│                                                                          │
+│  STAGE 5: EXPLANATION GENERATION                                        │
+│  ├── Rich explanations from LLM analysis (already computed)             │
+│  ├── Talking points tailored to LP's stated priorities                  │
+│  ├── Concerns and how to address them                                   │
+│  └── Suggested approach strategy                                        │
+│  OUTPUT: Actionable intelligence for GP outreach                        │
+│                                                                          │
+│  STAGE 6: LEARNING LOOP (Continuous)                                    │
+│  ├── Track all outcomes (shortlist, contact, meeting, commitment)       │
+│  ├── Retrain ML models monthly on outcomes                              │
+│  ├── A/B test algorithm changes                                         │
+│  └── Human-in-loop validation of edge cases                             │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+#### Ensemble Scoring Weights
+
+| Component | Weight | Source | Purpose |
+|-----------|--------|--------|---------|
+| **Rule-Based Score** | 25% | SQL + Python | Hard constraints, business logic |
+| **Semantic Score** | 25% | Voyage AI embeddings | Thesis/mandate alignment |
+| **LLM Score** | 35% | Claude analysis | Nuanced judgment, non-obvious fit |
+| **Collaborative Score** | 15% | Historical patterns | "LPs like this invested in funds like this" |
+
+#### LLM Scoring (Key Innovation)
+
+Since cost is not a constraint, we use LLM for actual scoring, not just explanations:
+
+```python
+SCORING_PROMPT = """
+You are an expert LP-GP matching analyst with 20 years of PE experience.
+
+Analyze the fit between this Fund and LP. Be rigorous and specific.
+
+## FUND PROFILE
+{fund_data}
+
+## LP PROFILE
+{lp_data}
+
+## HISTORICAL CONTEXT
+- LP's past commitments: {lp_commitments}
+- Similar funds LP has backed: {similar_funds}
+
+## YOUR TASK
+
+1. **Fit Analysis** (cite specific data points):
+   - Strategy alignment: How well does fund strategy match LP mandate?
+   - Size fit: Is fund size in LP's sweet spot or edge?
+   - Track record: Does team experience meet LP's requirements?
+   - Timing: Is LP likely allocating now?
+
+2. **Non-Obvious Insights**:
+   - What makes this match better/worse than surface data suggests?
+   - Are there red flags the GP should know about?
+
+3. **Scores** (0-100, with confidence 0-1):
+   - overall_score, strategy_fit, size_fit, timing_fit, relationship_potential
+
+4. **Actionable Output**:
+   - talking_points: 3-5 specific points for GP to lead with
+   - concerns: Issues GP should be prepared to address
+   - approach_strategy: Recommended outreach approach
+   - decision_maker: Who at the LP should be contacted
+
+Return as JSON.
+"""
+```
+
+**Why LLM Scoring Works:**
+1. **Rich context**: Fund thesis + LP mandate are text-heavy, perfect for LLM reasoning
+2. **Nuanced judgment**: "This LP backed similar funds but got burned, might be skeptical"
+3. **Non-obvious patterns**: LLM can spot things rule-based systems miss
+4. **Explanation built-in**: Reasoning is captured during scoring, not retrofitted
+
+#### Bidirectional Matching
+
+**GP → LP (Primary Flow):**
+- GP creates fund, system finds matching LPs
+- Ranked by fit quality, LP capacity, relationship ease
+
+**LP → GP (Reverse Flow):**
+- LPs can see which funds match their mandate
+- Optional: LPs can set preferences to receive fund notifications
+- See `lp_match_preferences` and `lp_fund_matches` tables in Section 6
+
+#### Learning From Slow Feedback
+
+**Critical Reality:** Investment sector feedback takes 12-18 months (first meeting → commitment).
+
+**Multi-Tier Feedback Strategy:**
+
+| Tier | Signal | Latency | Use For |
+|------|--------|---------|---------|
+| **1** | Match shortlisted/dismissed | Immediate | Hard filter tuning |
+| **1** | Pitch generated | Immediate | Strong interest signal |
+| **2** | Response received | Days-Weeks | **Key early predictor** |
+| **2** | Meeting scheduled | Weeks | **Strong quality signal** |
+| **3** | Due diligence started | 2-6 months | Deal progression |
+| **3** | Multiple meetings | 2-6 months | Serious consideration |
+| **4** | Commitment made | 6-18 months | **Ground truth** |
+
+**Learning Phases:**
+
+1. **Pre-Training (Day 0):** Use imported `lp_commitments` historical data to bootstrap model
+2. **Proxy Metrics (Weeks 1-12):** Learn from shortlist → pitch → email → response → meeting progression
+3. **Expert Feedback (Ongoing):** Prompt GPs for match quality ratings after review
+4. **Outcome Validation (Month 12+):** Validate proxy model against actual commitment outcomes
+
+#### Score Disagreement Handling
+
+When scoring methods disagree significantly, surface this as valuable information:
+
+```python
+if std_dev(rule_score, semantic_score, llm_score, collaborative_score) > 20:
+    return {
+        'flag': 'scores_disagree',
+        'insight': f"Rule-based sees high fit ({rule_score}) but "
+                   f"LLM sees concerns ({llm_score}). Worth investigating.",
+        'recommendation': 'manual_review'
+    }
+```
+
+#### What NOT to Use
+
+| Approach | Why Not |
+|----------|---------|
+| **Agentic systems (LangChain, CrewAI)** | Adds abstraction complexity without quality improvement |
+| **Pure collaborative filtering** | Cold start problem severe for new funds |
+| **Single-method scoring** | Each method has blind spots; ensemble catches what individuals miss |
+
+---
+
 ### 5.7 Pitch Generation
 
 #### F-PITCH-01: LP-Specific Executive Summary [P0]
@@ -1090,6 +1264,223 @@ CREATE TABLE matches (
 CREATE INDEX idx_matches_fund ON matches(fund_id);
 CREATE INDEX idx_matches_lp ON matches(lp_org_id);
 CREATE INDEX idx_matches_score ON matches(total_score DESC);
+```
+
+#### Outreach Events (Outcome Tracking)
+Tracks the full journey from match to commitment for algorithm learning.
+```sql
+CREATE TABLE outreach_events (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    match_id        UUID NOT NULL REFERENCES matches(id) ON DELETE CASCADE,
+
+    event_type      TEXT NOT NULL CHECK (event_type IN (
+        'pitch_generated',
+        'email_sent',
+        'email_opened',
+        'response_received',
+        'meeting_scheduled',
+        'meeting_held',
+        'follow_up_sent',
+        'due_diligence_started',
+        'term_sheet_received',
+        'commitment_made',
+        'commitment_declined'
+    )),
+
+    event_date      TIMESTAMPTZ NOT NULL,
+    notes           TEXT,
+
+    -- For meetings
+    meeting_type    TEXT,  -- intro_call, deep_dive, dd_session, closing
+    attendees       UUID[],  -- people IDs
+
+    created_by      UUID REFERENCES people(id),
+    created_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_outreach_events_match ON outreach_events(match_id);
+CREATE INDEX idx_outreach_events_type ON outreach_events(event_type);
+CREATE INDEX idx_outreach_events_date ON outreach_events(event_date);
+```
+
+#### Match Outcomes (Training Data)
+Final outcomes for model training. Critical for learning loop.
+```sql
+CREATE TABLE match_outcomes (
+    id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    match_id            UUID NOT NULL REFERENCES matches(id) UNIQUE,
+
+    -- Outcome
+    outcome             TEXT NOT NULL CHECK (outcome IN (
+        'committed',
+        'declined_after_meeting',
+        'declined_before_meeting',
+        'no_response',
+        'not_contacted',
+        'in_progress'
+    )),
+
+    -- If committed
+    commitment_amount_mm DECIMAL(12,2),
+    commitment_date     DATE,
+
+    -- If declined
+    decline_reason      TEXT,
+    decline_stage       TEXT,  -- At what stage did they decline?
+
+    -- Quality signals
+    time_to_first_response INTERVAL,
+    time_to_outcome     INTERVAL,
+    total_meetings      INTEGER,
+
+    -- For training: snapshot of all scoring inputs at match time
+    features_at_match_time JSONB,
+
+    created_at          TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_match_outcomes_outcome ON match_outcomes(outcome);
+CREATE INDEX idx_match_outcomes_date ON match_outcomes(commitment_date);
+```
+
+#### Relationships (GP-LP Intelligence)
+Tracks GP-LP relationships beyond just matches.
+```sql
+CREATE TABLE relationships (
+    id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    gp_org_id           UUID NOT NULL REFERENCES organizations(id),
+    lp_org_id           UUID NOT NULL REFERENCES organizations(id),
+
+    -- Relationship status
+    relationship_type   TEXT CHECK (relationship_type IN (
+        'existing_investor',      -- LP has committed to prior fund
+        'warm_connection',        -- Met before, have relationship
+        'mutual_connection',      -- Know someone who knows them
+        'cold'                    -- No prior relationship
+    )),
+
+    -- History
+    prior_commitments   INTEGER DEFAULT 0,
+    total_committed_mm  DECIMAL(12,2),
+    last_meeting_date   DATE,
+    relationship_strength INTEGER CHECK (relationship_strength BETWEEN 1 AND 5),
+
+    -- Key contacts
+    primary_contact_id  UUID REFERENCES people(id),
+
+    notes               TEXT,
+    created_at          TIMESTAMPTZ DEFAULT NOW(),
+    updated_at          TIMESTAMPTZ DEFAULT NOW(),
+
+    UNIQUE(gp_org_id, lp_org_id)
+);
+
+CREATE INDEX idx_relationships_gp ON relationships(gp_org_id);
+CREATE INDEX idx_relationships_lp ON relationships(lp_org_id);
+CREATE INDEX idx_relationships_type ON relationships(relationship_type);
+```
+
+#### Mutual Connections
+People who know both GP and LP contacts.
+```sql
+CREATE TABLE mutual_connections (
+    id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    gp_person_id        UUID NOT NULL REFERENCES people(id),
+    lp_person_id        UUID NOT NULL REFERENCES people(id),
+
+    connection_type     TEXT,  -- former_colleagues, board_together, etc.
+    connection_strength INTEGER CHECK (connection_strength BETWEEN 1 AND 5),
+
+    notes               TEXT,
+    created_at          TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_mutual_connections_gp ON mutual_connections(gp_person_id);
+CREATE INDEX idx_mutual_connections_lp ON mutual_connections(lp_person_id);
+```
+
+#### LP Capacity (Timing Intelligence)
+Track LP allocation capacity over time for timing predictions.
+```sql
+CREATE TABLE lp_capacity (
+    id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    lp_org_id               UUID NOT NULL REFERENCES organizations(id),
+
+    -- Capacity info
+    fiscal_year             INTEGER,
+    total_pe_allocation_mm  DECIMAL(12,2),
+    committed_ytd_mm        DECIMAL(12,2),
+    remaining_capacity_mm   DECIMAL(12,2),
+
+    -- Timing
+    typical_commitment_quarters TEXT[],  -- ['Q1', 'Q4']
+    next_allocation_window  DATE,
+
+    -- Constraints
+    at_capacity             BOOLEAN DEFAULT FALSE,
+    capacity_notes          TEXT,
+
+    -- Source
+    data_source             TEXT,
+    verified_date           DATE,
+
+    created_at              TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_lp_capacity_org ON lp_capacity(lp_org_id);
+CREATE INDEX idx_lp_capacity_year ON lp_capacity(fiscal_year);
+```
+
+#### LP Match Preferences (Bidirectional Matching)
+LP-side preferences for receiving fund recommendations.
+```sql
+CREATE TABLE lp_match_preferences (
+    id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    lp_org_id               UUID NOT NULL REFERENCES organizations(id),
+
+    -- LP can set active search parameters
+    actively_looking        BOOLEAN DEFAULT FALSE,
+    allocation_available_mm DECIMAL(12,2),
+    target_close_date       DATE,
+
+    -- Notification preferences
+    notify_on_new_funds     BOOLEAN DEFAULT TRUE,
+    min_match_score         INTEGER DEFAULT 70,
+
+    created_at              TIMESTAMPTZ DEFAULT NOW(),
+    updated_at              TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_lp_match_preferences_org ON lp_match_preferences(lp_org_id);
+CREATE INDEX idx_lp_match_preferences_active ON lp_match_preferences(actively_looking) WHERE actively_looking = TRUE;
+```
+
+#### LP Fund Matches (Reverse Matches)
+Matches from LP perspective (which funds match their mandate).
+```sql
+CREATE TABLE lp_fund_matches (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    lp_org_id       UUID NOT NULL REFERENCES organizations(id),
+    fund_id         UUID NOT NULL REFERENCES funds(id),
+
+    -- Scores (same calculation, LP perspective)
+    total_score     DECIMAL(5,2),
+    score_breakdown JSONB,
+    llm_analysis    JSONB,
+
+    -- LP-side status
+    lp_interest     TEXT CHECK (lp_interest IN ('interested', 'not_interested', 'reviewing', NULL)),
+    lp_notes        TEXT,
+
+    created_at      TIMESTAMPTZ DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ DEFAULT NOW(),
+
+    UNIQUE(lp_org_id, fund_id)
+);
+
+CREATE INDEX idx_lp_fund_matches_lp ON lp_fund_matches(lp_org_id);
+CREATE INDEX idx_lp_fund_matches_fund ON lp_fund_matches(fund_id);
+CREATE INDEX idx_lp_fund_matches_score ON lp_fund_matches(total_score DESC);
 ```
 
 #### Generated Pitches
