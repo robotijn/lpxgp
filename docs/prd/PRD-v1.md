@@ -787,6 +787,250 @@ These interpreted constraints power the hard filter stage (Stage 1).
 
 ---
 
+### 5.6.3 Multi-Agent Debate Architecture
+
+Quality is paramount; cost and latency are not constraints. All critical decisions use **adversarial debate** with multiple agents arguing different perspectives before synthesis.
+
+#### Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    ADVERSARIAL MULTI-AGENT ARCHITECTURE                      │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  DEBATE 1: CONSTRAINT INTERPRETATION (Per LP)                                │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐                      │
+│  │   Broad     │◀──▶│   Narrow    │───▶│ Constraint  │ → Hard/Soft Filters  │
+│  │ Interpreter │    │ Interpreter │    │ Synthesizer │                      │
+│  └─────────────┘    └─────────────┘    └─────────────┘                      │
+│                                                                              │
+│  DEBATE 2: RESEARCH ENRICHMENT (Per Entity)                                  │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐                      │
+│  │  Research   │───▶│  Research   │───▶│   Quality   │ → Enriched Profile   │
+│  │  Generator  │    │   Critic    │    │ Synthesizer │                      │
+│  └─────────────┘    └─────────────┘    └─────────────┘                      │
+│                                                                              │
+│  DEBATE 3: MATCH SCORING (Per Match - Stage 3)                               │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐                      │
+│  │    Bull     │◀──▶│    Bear     │───▶│   Match     │ → Score + Confidence │
+│  │   Agent     │    │   Agent     │    │ Synthesizer │   + Talking Points   │
+│  └─────────────┘    └─────────────┘    └─────────────┘                      │
+│                                                                              │
+│  DEBATE 4: PITCH GENERATION (Per Pitch)                                      │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐                      │
+│  │   Pitch     │───▶│   Pitch     │───▶│   Content   │ → Final Pitch        │
+│  │  Generator  │    │   Critic    │    │ Synthesizer │                      │
+│  └─────────────┘    └─────────────┘    └─────────────┘                      │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+#### Debate 1: Constraint Interpretation
+
+When processing LP mandates, two agents with opposing perspectives interpret the constraints:
+
+| Agent | Role | Perspective |
+|-------|------|-------------|
+| **Broad Interpreter** | Liberal interpretation | Finds flexibility, edge cases that could qualify |
+| **Narrow Interpreter** | Conservative interpretation | Strict reading, identifies implicit exclusions |
+| **Constraint Synthesizer** | Final judgment | Determines hard vs soft constraints |
+
+**Example:**
+- Mandate: "Invests in biodiversity and climate solutions"
+- **Broad**: "Could include clean energy, sustainable agriculture, some tech"
+- **Narrow**: "Excludes weapons, fossil fuels, pharma, mining, most tech"
+- **Synthesizer**: Hard exclude weapons/fossil fuels (95% confidence), soft prefer ESG (80%)
+
+**Database:** See `lp_interpreted_constraints` table in Section 6.2
+
+#### Debate 2: Research Enrichment
+
+For data enrichment, a generator-critic-synthesizer pattern ensures quality:
+
+| Agent | Role | Focus |
+|-------|------|-------|
+| **Research Generator** | Enriches profiles | Perplexity, web scraping, news APIs |
+| **Research Critic** | Validates quality | Source credibility, consistency, recency |
+| **Quality Synthesizer** | Commits validated changes | Confidence calibration, human review flags |
+
+**Validation Criteria:**
+- Source credibility score (0-10)
+- Data recency (days since publication)
+- Consistency with existing data
+- Confidence calibration
+
+**Database:** See `research_jobs` and `agent_critiques` tables in Section 6.2
+
+#### Debate 3: Match Scoring (Core)
+
+The most critical debate - adversarial analysis of every match:
+
+| Agent | Role | Argues |
+|-------|------|--------|
+| **Bull Agent** | Match Advocate | Why this GP-LP match will succeed |
+| **Bear Agent** | Match Skeptic | Why this match might fail |
+| **Match Synthesizer** | Final Judgment | Weighs evidence, produces score + confidence |
+
+**Bull Agent Focus:**
+- Strategy alignment points
+- Relationship potential and warm intro paths
+- Timing opportunities (LP actively deploying)
+- Hidden strengths others might miss
+
+**Bear Agent Focus:**
+- Strategy misalignment and red flags
+- Timing/capacity concerns
+- Track record gaps vs LP requirements
+- Relationship barriers
+
+**Synthesizer Output:**
+- Final score (0-100) with confidence interval
+- Resolved vs unresolved disagreements
+- Recommendation: pursue | investigate | deprioritize | avoid
+- Talking points (from Bull) and concerns to address (from Bear)
+
+**Database:** See `agent_debates`, `agent_outputs`, `agent_disagreements` tables in Section 6.2
+
+#### Debate 4: Pitch Generation
+
+Generated content goes through quality validation:
+
+| Agent | Role | Checks |
+|-------|------|--------|
+| **Pitch Generator** | Creates personalized content | Emails, summaries, talking points |
+| **Pitch Critic** | Validates quality | Factual accuracy, personalization, tone |
+| **Content Synthesizer** | Approves or regenerates | Final quality gate |
+
+**Quality Dimensions:**
+- **Factual Accuracy** (0-100): Does every claim match source data?
+- **Personalization** (0-100): Specific LP references, not generic?
+- **Tone** (0-100): Appropriate for LP type?
+- **Structure** (0-100): Clear value proposition, logical flow?
+
+**Quality Tiers:**
+- Excellent (85+): Approve immediately
+- Good (70-84): Approve with suggestions
+- Needs Revision (50-69): Regenerate with feedback
+- Reject (<50): Fallback to template, flag for review
+
+#### Disagreement Resolution Protocol
+
+Since quality > latency, we use **exhaustive resolution**:
+
+```
+Step 1: Initial Debate
+├── Bull and Bear analyze in parallel
+├── Calculate disagreement magnitude
+└── If disagreement > 20 points → Continue to Step 2
+
+Step 2: Cross-Feedback Regeneration (up to 3 rounds)
+├── Bull receives Bear's concerns → Regenerate
+├── Bear receives Bull's arguments → Regenerate
+├── Re-synthesize
+└── If still unresolved → Continue to Step 3
+
+Step 3: Human Escalation
+├── Create escalation with full debate transcript
+├── Priority based on match value and disagreement
+└── Human makes final decision
+```
+
+**Escalation Triggers:**
+| Trigger | Condition | Action |
+|---------|-----------|--------|
+| Score Disagreement | Bull - Bear > 30 points | Immediate escalation |
+| Confidence Collapse | Synthesizer confidence < 0.5 | Escalation with transcript |
+| Deal Breaker | Bear identifies hard exclusion | Escalation with reasoning |
+| Data Quality | Critic rejects > 50% of research | Human verification required |
+| Factual Error | Pitch critic finds hallucination | Block and regenerate |
+
+**Database:** See `agent_escalations` table in Section 6.2
+
+#### Integration with Matching Pipeline
+
+The debate architecture enhances Stage 3 (LLM Deep Analysis):
+
+```
+Stage 1: HARD FILTERS (SQL)
+         ├── Uses interpreted constraints from Debate 1
+         └── Constraint Synthesizer output drives filtering
+
+Stage 2: MULTI-SIGNAL SCORING (Python + Embeddings)
+         └── Unchanged (rule-based + semantic)
+
+Stage 3: LLM DEEP ANALYSIS → ADVERSARIAL DEBATE
+         ├── Bull Agent (why match works)
+         ├── Bear Agent (why match might fail)
+         ├── Up to 3 regeneration rounds
+         └── Match Synthesizer (final score)
+
+Stage 4: ENSEMBLE RANKING
+         ├── Rule-based (25%) + Semantic (25%) + Debate (35%) + Collaborative (15%)
+         └── Uses debate confidence for weighting
+
+Stage 5: EXPLANATION GENERATION
+         ├── Directly uses debate outputs (already computed)
+         ├── Bull arguments → Talking points
+         └── Bear concerns → Issues to address
+
+Stage 6: LEARNING LOOP
+         └── Debate outcomes feed Learning Agent
+```
+
+#### Batch Processing Model
+
+Debates run **asynchronously as batch jobs**, not in real-time. This enables exhaustive quality without latency constraints:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         BATCH PROCESSING PIPELINE                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  NIGHTLY BATCH JOB (e.g., 2 AM)                                              │
+│  ├── Identify new/changed entities since last run                           │
+│  │   ├── New funds added                                                    │
+│  │   ├── New LPs added                                                      │
+│  │   ├── Updated fund profiles                                              │
+│  │   └── Updated LP mandates                                                │
+│  │                                                                          │
+│  ├── Run debates for affected matches only                                  │
+│  │   ├── Debate 1: Re-interpret changed LP mandates                         │
+│  │   ├── Debate 2: Research enrichment for new entities                     │
+│  │   ├── Debate 3: Score new fund-LP combinations                           │
+│  │   └── Debate 4: Pre-generate pitches for high-score matches              │
+│  │                                                                          │
+│  └── Store results in database                                              │
+│      ├── Cached for months until entities change                            │
+│      └── Served instantly to users from cache                               │
+│                                                                              │
+│  INCREMENTAL UPDATES                                                         │
+│  ├── Only recompute affected matches when data changes                      │
+│  ├── Track entity modification timestamps                                   │
+│  └── Invalidation triggers: fund_updated, lp_updated, mandate_changed       │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Cache Invalidation Rules:**
+
+| Change Type | Recomputation Scope |
+|-------------|---------------------|
+| New fund added | All LPs scored against new fund |
+| New LP added | All funds scored against new LP |
+| Fund profile updated | All matches for that fund |
+| LP mandate changed | Re-interpret constraints + all matches for that LP |
+| Research enrichment | Affected matches only |
+
+**Operational Benefits:**
+- **No user-facing latency**: Results pre-computed and served from cache
+- **Maximum quality**: Can run exhaustive 3-round debates on every match
+- **Cost predictable**: Batch processing = predictable compute costs
+- **Human escalations**: Resolved during business hours, results available next batch
+
+**Database:** See `batch_jobs` and `entity_cache` tables in Section 6.2
+
+---
+
 ### 5.7 Pitch Generation
 
 #### F-PITCH-01: LP-Specific Executive Summary [P0]
@@ -1796,6 +2040,276 @@ CREATE TABLE global_learned_signals (
 
 CREATE INDEX idx_global_signals_type ON global_learned_signals(signal_type);
 CREATE INDEX idx_global_signals_validity ON global_learned_signals(valid_until) WHERE valid_until > NOW();
+```
+
+#### Agent Debates (Multi-Agent System)
+```sql
+-- Agent Debate Sessions
+CREATE TABLE agent_debates (
+    id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    debate_type         TEXT NOT NULL CHECK (debate_type IN (
+        'constraint_interpretation',  -- Debate 1: Broad vs Narrow Interpreter
+        'research_enrichment',        -- Debate 2: Generator + Critic
+        'match_scoring',              -- Debate 3: Bull vs Bear
+        'pitch_generation'            -- Debate 4: Generator + Critic
+    )),
+
+    -- What entity is being debated
+    entity_type         TEXT NOT NULL CHECK (entity_type IN ('lp', 'fund', 'match', 'pitch')),
+    entity_id           UUID NOT NULL,
+
+    -- Debate state
+    status              TEXT CHECK (status IN ('pending', 'in_progress', 'completed', 'escalated')) DEFAULT 'pending',
+    iteration_count     INTEGER DEFAULT 1,      -- How many rounds of debate
+    max_iterations      INTEGER DEFAULT 3,      -- Cap on regeneration rounds
+
+    -- Metrics
+    total_tokens_used   INTEGER DEFAULT 0,
+    total_cost_cents    INTEGER DEFAULT 0,
+
+    -- Timestamps
+    created_at          TIMESTAMPTZ DEFAULT NOW(),
+    started_at          TIMESTAMPTZ,
+    completed_at        TIMESTAMPTZ
+);
+
+CREATE INDEX idx_agent_debates_status ON agent_debates(status) WHERE status IN ('pending', 'in_progress');
+CREATE INDEX idx_agent_debates_entity ON agent_debates(entity_type, entity_id);
+CREATE INDEX idx_agent_debates_type ON agent_debates(debate_type);
+```
+
+#### Agent Outputs (Individual Agent Responses)
+```sql
+CREATE TABLE agent_outputs (
+    id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    debate_id           UUID NOT NULL REFERENCES agent_debates(id) ON DELETE CASCADE,
+
+    -- Which agent and iteration
+    agent_role          TEXT NOT NULL CHECK (agent_role IN (
+        -- Constraint Interpretation
+        'broad_interpreter', 'narrow_interpreter', 'constraint_synthesizer',
+        -- Research Enrichment
+        'research_generator', 'research_critic', 'quality_synthesizer',
+        -- Match Scoring
+        'bull_agent', 'bear_agent', 'match_synthesizer',
+        -- Pitch Generation
+        'pitch_generator', 'pitch_critic', 'content_synthesizer'
+    )),
+    iteration           INTEGER DEFAULT 1,
+
+    -- Input/Output
+    input_prompt        TEXT NOT NULL,
+    output_raw          JSONB NOT NULL,         -- Full structured output
+
+    -- Key metrics extracted from output
+    primary_score       DECIMAL(5,2),           -- Main score (0-100)
+    confidence          DECIMAL(3,2),           -- Confidence (0-1)
+
+    -- Cross-feedback (if this was a regeneration round)
+    feedback_received   JSONB,                  -- Feedback from opposing agent
+    changes_made        TEXT,                   -- Summary of what changed
+
+    -- Tokens
+    tokens_used         INTEGER,
+    model_used          TEXT,
+
+    created_at          TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_agent_outputs_debate ON agent_outputs(debate_id);
+CREATE INDEX idx_agent_outputs_role ON agent_outputs(agent_role);
+```
+
+#### Agent Disagreements (Unresolved Conflicts)
+```sql
+CREATE TABLE agent_disagreements (
+    id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    debate_id           UUID NOT NULL REFERENCES agent_debates(id) ON DELETE CASCADE,
+
+    -- What are they disagreeing about
+    topic               TEXT NOT NULL,          -- e.g., "strategy_fit", "timing_appropriateness"
+    agent_a_role        TEXT NOT NULL,          -- e.g., "bull_agent"
+    agent_a_position    TEXT NOT NULL,          -- What agent A believes
+    agent_a_score       DECIMAL(5,2),
+    agent_b_role        TEXT NOT NULL,          -- e.g., "bear_agent"
+    agent_b_position    TEXT NOT NULL,          -- What agent B believes
+    agent_b_score       DECIMAL(5,2),
+
+    -- Magnitude and resolution
+    magnitude           DECIMAL(5,2) NOT NULL,  -- Score difference
+    resolution_method   TEXT CHECK (resolution_method IN (
+        'regeneration',      -- Resolved through cross-feedback
+        'synthesizer_decision', -- Synthesizer made judgment call
+        'human_decision'     -- Escalated to human
+    )),
+    resolution_notes    TEXT,
+
+    resolved_at         TIMESTAMPTZ,
+    created_at          TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_agent_disagreements_debate ON agent_disagreements(debate_id);
+CREATE INDEX idx_agent_disagreements_unresolved ON agent_disagreements(resolved_at) WHERE resolved_at IS NULL;
+```
+
+#### Agent Escalations (Human Review Queue)
+```sql
+CREATE TABLE agent_escalations (
+    id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    debate_id           UUID NOT NULL REFERENCES agent_debates(id) ON DELETE CASCADE,
+
+    -- Escalation details
+    escalation_type     TEXT NOT NULL CHECK (escalation_type IN (
+        'score_disagreement',   -- Bull/Bear disagree by >30 points
+        'confidence_collapse',  -- Synthesizer confidence <0.5
+        'deal_breaker',         -- Bear identified hard exclusion
+        'data_quality',         -- Critic rejected >50% of research
+        'factual_error',        -- Pitch critic found hallucination
+        'edge_case'             -- Unusual situation needs human judgment
+    )),
+    priority            TEXT CHECK (priority IN ('low', 'medium', 'high', 'critical')) DEFAULT 'medium',
+
+    -- Context for human reviewer
+    summary             TEXT NOT NULL,          -- One-line summary
+    debate_transcript   JSONB NOT NULL,         -- Full debate history
+    key_disagreement    TEXT,                   -- Main point of contention
+
+    -- Assignment and resolution
+    status              TEXT CHECK (status IN ('pending', 'assigned', 'resolved')) DEFAULT 'pending',
+    assigned_to         UUID REFERENCES people(id),
+    assigned_at         TIMESTAMPTZ,
+
+    -- Resolution
+    resolution          TEXT,                   -- Human's decision
+    resolution_reasoning TEXT,                  -- Why they decided this way
+    resolved_by         UUID REFERENCES people(id),
+    resolved_at         TIMESTAMPTZ,
+
+    created_at          TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_agent_escalations_status ON agent_escalations(status) WHERE status IN ('pending', 'assigned');
+CREATE INDEX idx_agent_escalations_priority ON agent_escalations(priority, created_at);
+CREATE INDEX idx_agent_escalations_assigned ON agent_escalations(assigned_to) WHERE assigned_to IS NOT NULL;
+```
+
+#### Agent Critiques (Quality Assessment Records)
+```sql
+CREATE TABLE agent_critiques (
+    id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    debate_id           UUID REFERENCES agent_debates(id) ON DELETE CASCADE,
+
+    -- What was critiqued
+    content_type        TEXT NOT NULL CHECK (content_type IN (
+        'research_finding',     -- Research Critic output
+        'pitch_draft',          -- Pitch Critic output
+        'constraint_interpretation', -- Constraint interpretation review
+        'match_analysis'        -- Match analysis review
+    )),
+    content_id          UUID,                   -- FK to the content being critiqued
+
+    -- Quality scores (0-100)
+    overall_score       DECIMAL(5,2) NOT NULL,
+    dimension_scores    JSONB NOT NULL,         -- {"accuracy": 85, "personalization": 70, ...}
+
+    -- Issues found
+    issues_found        JSONB DEFAULT '[]',     -- [{"type": "factual_error", "description": "..."}]
+    issue_severity      TEXT CHECK (issue_severity IN ('none', 'minor', 'moderate', 'critical')),
+
+    -- Recommendation
+    recommendation      TEXT CHECK (recommendation IN (
+        'approve',              -- Quality sufficient
+        'approve_with_notes',   -- Minor suggestions
+        'regenerate',           -- Needs improvement
+        'reject'                -- Cannot be salvaged
+    )),
+    improvement_notes   TEXT,                   -- What to improve if regenerating
+
+    created_at          TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_agent_critiques_debate ON agent_critiques(debate_id);
+CREATE INDEX idx_agent_critiques_type ON agent_critiques(content_type);
+CREATE INDEX idx_agent_critiques_severity ON agent_critiques(issue_severity) WHERE issue_severity = 'critical';
+```
+
+#### Batch Jobs (Async Processing)
+```sql
+CREATE TABLE batch_jobs (
+    id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+    -- Job type and scope
+    job_type            TEXT NOT NULL CHECK (job_type IN (
+        'nightly_full',         -- Full nightly recomputation
+        'incremental',          -- Only changed entities
+        'entity_specific',      -- Specific fund or LP
+        'debate_rerun'          -- Re-run specific debates
+    )),
+
+    -- Scope
+    scope_filter        JSONB DEFAULT '{}',     -- {"fund_ids": [...], "lp_org_ids": [...]}
+
+    -- Status
+    status              TEXT CHECK (status IN ('pending', 'running', 'completed', 'failed', 'cancelled')) DEFAULT 'pending',
+
+    -- Progress tracking
+    total_items         INTEGER DEFAULT 0,
+    processed_items     INTEGER DEFAULT 0,
+    failed_items        INTEGER DEFAULT 0,
+
+    -- Error handling
+    errors              JSONB DEFAULT '[]',
+
+    -- Metrics
+    tokens_used         INTEGER DEFAULT 0,
+    cost_cents          INTEGER DEFAULT 0,
+
+    -- Timestamps
+    scheduled_for       TIMESTAMPTZ,            -- When to run (for scheduled jobs)
+    started_at          TIMESTAMPTZ,
+    completed_at        TIMESTAMPTZ,
+    created_at          TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_batch_jobs_status ON batch_jobs(status) WHERE status IN ('pending', 'running');
+CREATE INDEX idx_batch_jobs_scheduled ON batch_jobs(scheduled_for) WHERE status = 'pending';
+```
+
+#### Entity Cache (Precomputed Results)
+```sql
+CREATE TABLE entity_cache (
+    id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+    -- What entity this cache is for
+    entity_type         TEXT NOT NULL CHECK (entity_type IN ('lp', 'fund', 'match', 'pitch')),
+    entity_id           UUID NOT NULL,
+
+    -- Cache key and value
+    cache_key           TEXT NOT NULL,          -- e.g., "debate_result", "enrichment_data"
+    cache_value         JSONB NOT NULL,
+
+    -- Source debate (if applicable)
+    source_debate_id    UUID REFERENCES agent_debates(id) ON DELETE SET NULL,
+
+    -- Validity
+    valid_from          TIMESTAMPTZ DEFAULT NOW(),
+    valid_until         TIMESTAMPTZ,            -- NULL = never expires
+    invalidated_at      TIMESTAMPTZ,            -- Set when cache is manually invalidated
+    invalidation_reason TEXT,
+
+    -- Metadata
+    computation_time_ms INTEGER,
+    tokens_used         INTEGER,
+
+    created_at          TIMESTAMPTZ DEFAULT NOW(),
+
+    UNIQUE(entity_type, entity_id, cache_key)
+);
+
+CREATE INDEX idx_entity_cache_lookup ON entity_cache(entity_type, entity_id, cache_key)
+    WHERE invalidated_at IS NULL;
+CREATE INDEX idx_entity_cache_expired ON entity_cache(valid_until)
+    WHERE valid_until IS NOT NULL AND invalidated_at IS NULL;
 ```
 
 ---

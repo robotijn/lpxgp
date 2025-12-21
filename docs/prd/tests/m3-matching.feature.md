@@ -3079,3 +3079,320 @@ Feature: LP-Side Matching (Bidirectional)
     And GPs no longer see this LP in their matches
     And data is properly cascaded
 ```
+
+---
+
+## F-DEBATE: Multi-Agent Debate System
+
+The adversarial debate system uses Bull/Bear agents to score matches with maximum quality.
+Debates run as batch jobs and results are cached for months.
+
+```gherkin
+Feature: F-DEBATE - Multi-Agent Match Scoring Debates
+  As the matching system
+  I want to use adversarial debate for all match scoring
+  So that quality is maximized through opposing perspectives
+
+  Background:
+    Given the debate system is enabled
+    And batch processing is configured
+
+  # ==========================================================================
+  # Core Bull/Bear Debate
+  # ==========================================================================
+
+  Scenario: Successful debate with agreement
+    Given Fund A and LP B are candidates for matching
+    When match scoring debate runs
+    Then Bull Agent generates score with arguments for the match
+    And Bear Agent generates score with concerns about the match
+    And Match Synthesizer combines both perspectives
+    And final score includes:
+      | field               | type     |
+      | total_score         | 0-100    |
+      | confidence          | 0-1      |
+      | bull_score          | 0-100    |
+      | bear_score          | 0-100    |
+      | disagreement        | numeric  |
+      | talking_points      | array    |
+      | concerns_to_address | array    |
+    And debate is marked "completed"
+
+  Scenario: Bull Agent generates compelling arguments
+    Given Fund A specializes in climate tech
+    And LP B has ESG mandate with climate focus
+    When Bull Agent analyzes the match
+    Then output includes:
+      | argument_type      | example                                    |
+      | strategy_alignment | "Perfect thesis overlap on climate tech"   |
+      | timing             | "LP actively deploying in Q1"              |
+      | relationship       | "Warm intro path via mutual connection"    |
+      | hidden_strength    | "Fund team has ESG certifications LP likes"|
+    And overall_score > 70
+    And confidence > 0.7
+
+  Scenario: Bear Agent identifies valid concerns
+    Given Fund A is Fund I (first-time fund)
+    And LP B requires "Fund III+ only"
+    When Bear Agent analyzes the match
+    Then output includes:
+      | concern_type       | example                                    |
+      | hard_constraint    | "LP explicitly requires Fund III+"         |
+      | timing_issue       | "LP already committed allocation for year" |
+      | relationship_gap   | "No existing relationship or warm intro"   |
+      | track_record       | "Team spinout, limited verifiable returns" |
+    And overall_score < 40
+    And hard_exclusion_flag is set if applicable
+
+  Scenario: Synthesizer resolves moderate disagreement
+    Given Bull Agent scored match at 75
+    And Bear Agent scored match at 55
+    And disagreement = 20 (threshold)
+    When Match Synthesizer runs
+    Then synthesizer weighs both perspectives
+    And final score is weighted average adjusted by confidence
+    And unresolved_disagreements is empty
+    And recommendation is one of ["pursue", "investigate", "deprioritize"]
+
+  # ==========================================================================
+  # Disagreement Resolution
+  # ==========================================================================
+
+  Scenario: Disagreement triggers regeneration
+    Given Bull Agent scored match at 85
+    And Bear Agent scored match at 45
+    And disagreement = 40 (> 20 threshold)
+    When first synthesis attempt runs
+    Then regeneration is triggered
+    And Bull receives Bear's concerns
+    And Bear receives Bull's arguments
+    And both agents regenerate with cross-feedback
+    And iteration_count increments
+
+  Scenario: Regeneration resolves disagreement
+    Given first debate iteration had disagreement = 40
+    When regeneration runs
+    Then Bull adjusts score considering Bear's valid points
+    And Bear adjusts score considering Bull's valid points
+    And new disagreement < 20
+    And debate completes successfully
+
+  Scenario: Exhaustive 3-round regeneration
+    Given persistent disagreement after 2 rounds
+    When third regeneration round runs
+    And disagreement still > 20
+    Then debate is marked for escalation
+    And all 3 rounds of outputs are preserved
+    And human escalation is created
+
+  Scenario: Score disagreement triggers immediate escalation
+    Given Bull Agent scored match at 90
+    And Bear Agent scored match at 50
+    And disagreement = 40 (> 30 immediate escalation threshold)
+    When synthesis runs
+    Then escalation is created with priority "high"
+    And escalation_type = "score_disagreement"
+    And debate_transcript includes all agent outputs
+    And status becomes "escalated"
+
+  Scenario: Confidence collapse triggers escalation
+    Given Bull and Bear had moderate disagreement
+    When Match Synthesizer runs
+    And synthesizer confidence < 0.5
+    Then escalation is created with priority "medium"
+    And escalation_type = "confidence_collapse"
+    And summary explains low confidence reason
+
+  Scenario: Bear identifies deal breaker
+    Given LP has hard exclusion for "weapons"
+    And Fund has defense/security in sector_focus
+    When Bear Agent analyzes
+    Then hard_exclusion_flag is set
+    And exclusion_reason = "weapons sector in hard exclude list"
+    And escalation_type = "deal_breaker"
+    And match is NOT presented to GP (unless escalation overrides)
+
+  # ==========================================================================
+  # Human Escalation Flow
+  # ==========================================================================
+
+  Scenario: Escalation assignment
+    Given an escalation exists with status "pending"
+    When admin views escalation queue
+    Then escalations are sorted by priority then created_at
+    And admin can assign to specific reviewer
+    And assigned_to and assigned_at are set
+    And status becomes "assigned"
+
+  Scenario: Human resolves escalation
+    Given escalation is assigned to reviewer
+    When reviewer reviews debate transcript
+    And makes final decision
+    Then resolution is recorded
+    And resolution_reasoning is captured
+    And resolved_by and resolved_at are set
+    And debate status updates based on resolution
+    And match score is finalized
+
+  Scenario: Escalation priorities
+    Given multiple escalations exist
+    Then priority is calculated:
+      | escalation_type     | base_priority | adjustments                    |
+      | score_disagreement  | high          | +1 if high-value LP           |
+      | confidence_collapse | medium        | +1 if requested by GP         |
+      | deal_breaker        | high          | always high                    |
+      | edge_case           | medium        | reviewer discretion            |
+    And critical escalations are auto-assigned to senior reviewers
+
+  # ==========================================================================
+  # Batch Processing
+  # ==========================================================================
+
+  Scenario: Nightly batch job runs debates
+    Given new funds were added yesterday
+    And some LP mandates were updated
+    When nightly batch job runs at 2 AM
+    Then debates are created for:
+      | condition                           |
+      | new_fund + all matching LPs         |
+      | updated_lp + all matching funds     |
+      | new_lp + all active funds           |
+    And debates run in parallel (respecting rate limits)
+    And results are cached in entity_cache
+
+  Scenario: Incremental processing only
+    Given Fund A was updated (thesis changed)
+    And Fund B was not modified
+    When incremental batch runs
+    Then debates only run for Fund A matches
+    And Fund B cached results are unchanged
+    And processing is efficient
+
+  Scenario: Cache serves results
+    Given match was debated last week
+    And neither fund nor LP has changed
+    When GP requests match details
+    Then cached result is returned
+    And no new debate runs
+    And response is instant
+
+  Scenario: Cache invalidation on fund update
+    Given Fund A has cached debate results
+    When Fund A investment_thesis is updated
+    Then entity_cache for Fund A is invalidated
+    And invalidation_reason = "fund_updated"
+    And next batch job re-debates all Fund A matches
+
+  Scenario: Cache invalidation on LP mandate change
+    Given LP B has cached debate results
+    When LP B mandate_description is updated
+    Then entity_cache for LP B is invalidated
+    And constraint interpretation debate re-runs
+    And all LP B matches are re-debated
+
+  Scenario: Batch job failure handling
+    Given batch job is running
+    When one debate fails (API timeout)
+    Then failure is logged
+    And batch continues with remaining items
+    And failed debate is retried in next batch
+    And batch completion reports success/fail counts
+
+  Scenario: Batch job metrics
+    Given batch job completes
+    Then metrics are recorded:
+      | metric              | tracked                       |
+      | total_items         | number of debates             |
+      | processed_items     | successful debates            |
+      | failed_items        | failed debates                |
+      | tokens_used         | total tokens across all LLM calls |
+      | cost_cents          | calculated cost               |
+      | duration            | start to completion           |
+    And metrics are queryable for monitoring
+
+  # ==========================================================================
+  # Quality Validation
+  # ==========================================================================
+
+  Scenario: Debate output validation
+    Given debate completes
+    When validating output
+    Then required fields are present:
+      | field           | validation                    |
+      | total_score     | 0-100 numeric                 |
+      | confidence      | 0-1 numeric                   |
+      | talking_points  | non-empty array               |
+      | reasoning       | non-empty string              |
+    And malformed output triggers retry
+
+  Scenario: Score calibration check
+    Given 100 debates have completed
+    When calibration check runs
+    Then score distribution is analyzed
+    And if 90% of scores are >80, recalibration is flagged
+    And if 90% of scores are <30, recalibration is flagged
+    And healthy distribution is 40-80 mean with normal spread
+
+  # ==========================================================================
+  # NEGATIVE TESTS: Debate Failures
+  # ==========================================================================
+
+  @negative
+  Scenario: LLM API timeout during debate
+    Given debate is in progress
+    When LLM API call times out
+    Then retry with exponential backoff
+    And if 3 retries fail, debate status = "failed"
+    And error is logged with full context
+    And debate is queued for next batch
+
+  @negative
+  Scenario: Malformed LLM response
+    Given Bull Agent call returns invalid JSON
+    When parsing response
+    Then parse error is caught
+    And agent is re-called with stricter prompt
+    And if still malformed, escalate for review
+
+  @negative
+  Scenario: Rate limit exceeded
+    Given batch job is processing many debates
+    When API rate limit is hit
+    Then batch pauses with backoff
+    And resumes after rate limit window
+    And no debates are lost
+
+  @negative
+  Scenario: Debate database constraint violation
+    Given debate attempts to save
+    When foreign key constraint fails (entity deleted)
+    Then debate is aborted gracefully
+    And error is logged
+    And orphaned data is not created
+
+  @negative
+  Scenario: Concurrent debate on same entity
+    Given debate for Fund A + LP B is running
+    When another process triggers same debate
+    Then duplicate is detected
+    And second process waits for first to complete
+    And cached result is used
+
+  @negative
+  Scenario: Synthesizer cannot reach decision
+    Given Bull and Bear have irreconcilable views
+    And 3 regeneration rounds completed
+    When synthesizer still has confidence < 0.3
+    Then match is flagged "requires_human_review"
+    And not shown to users until resolved
+    And escalation has all context for human decision
+
+  @negative
+  Scenario: Agent hallucination detected
+    Given agent claims LP "committed to similar fund last year"
+    When fact-check runs against database
+    And no such commitment exists
+    Then hallucination is flagged
+    And agent output is regenerated
+    And hallucination pattern is logged for prompt improvement
+```

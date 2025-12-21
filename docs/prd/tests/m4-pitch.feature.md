@@ -2117,3 +2117,319 @@ Feature: Enhanced Match Explanations with Learning
     And user sees "Feedback received"
     And experience is not degraded
 ```
+
+---
+
+## F-PITCH-CRITIC: Pitch Generation Debate System
+
+The pitch generation system uses Generator-Critic-Synthesizer pattern to ensure
+high-quality, factually accurate, personalized content.
+
+```gherkin
+Feature: F-PITCH-CRITIC - Pitch Quality Assurance
+  As the pitch generation system
+  I want to validate all generated content through a critic agent
+  So that pitches are factually accurate and highly personalized
+
+  Background:
+    Given the pitch debate system is enabled
+    And quality thresholds are configured
+
+  # ==========================================================================
+  # Core Generator-Critic Flow
+  # ==========================================================================
+
+  Scenario: Successful pitch with high quality
+    Given GP requests pitch for LP "CalPERS"
+    When Pitch Generator creates initial draft
+    And Pitch Critic evaluates quality
+    Then critique includes:
+      | dimension        | score   | description                      |
+      | accuracy         | 0-100   | Every claim matches source data  |
+      | personalization  | 0-100   | Specific LP references, not generic |
+      | tone             | 0-100   | Appropriate for LP type          |
+      | structure        | 0-100   | Clear value prop, logical flow   |
+    And overall_score >= 85
+    And recommendation = "approve"
+    And pitch is delivered to GP
+
+  Scenario: Pitch Generator creates personalized draft
+    Given Fund A is growth equity focused on SaaS
+    And LP CalPERS has mandate for "technology, growth"
+    When Pitch Generator runs
+    Then draft includes:
+      | element              | personalization                           |
+      | opening              | References CalPERS by name                |
+      | thesis alignment     | Mentions CalPERS tech allocation target   |
+      | track record         | Highlights exits relevant to CalPERS      |
+      | ESG                  | Addresses CalPERS ESG requirements        |
+      | closing              | References CalPERS decision timeline      |
+    And no generic placeholder text remains
+
+  Scenario: Pitch Critic identifies quality issues
+    Given Pitch Generator creates draft
+    When Pitch Critic evaluates
+    Then issues_found may include:
+      | issue_type         | example                                   |
+      | factual_error      | "Claim: LP committed $50M to Fund A" (not in DB) |
+      | generic_content    | "As a leading institutional investor..."  |
+      | tone_mismatch      | "Too casual for pension fund audience"    |
+      | missing_data       | "No mention of LP's stated sector focus"  |
+      | hallucination      | "Invented mutual connection"              |
+    And issue_severity is assigned
+
+  Scenario: Content Synthesizer approves with notes
+    Given Pitch Critic overall_score = 78
+    And issues_found contains only minor items
+    When Content Synthesizer evaluates
+    Then recommendation = "approve_with_notes"
+    And improvement_notes are attached
+    And pitch is delivered with suggestions
+    And GP can apply suggestions before use
+
+  # ==========================================================================
+  # Quality Tiers and Actions
+  # ==========================================================================
+
+  Scenario: Excellent quality - immediate approval
+    Given Pitch Critic overall_score = 92
+    And no critical issues found
+    Then recommendation = "approve"
+    And pitch is delivered immediately
+    And no regeneration needed
+
+  Scenario: Good quality - approve with suggestions
+    Given Pitch Critic overall_score = 75
+    And issues_found = ["Could include more specific track record data"]
+    Then recommendation = "approve_with_notes"
+    And suggestions are attached
+    And pitch is usable but could be improved
+
+  Scenario: Needs revision - regenerate
+    Given Pitch Critic overall_score = 58
+    And issues_found contains "generic_content" (moderate severity)
+    Then recommendation = "regenerate"
+    And feedback is passed to Pitch Generator
+    And regeneration attempt is made
+    And iteration_count increments
+
+  Scenario: Reject - fallback to template
+    Given Pitch Critic overall_score = 35
+    And issues_found contains "factual_error" (critical severity)
+    And 3 regeneration attempts have failed
+    Then recommendation = "reject"
+    And fallback template is used
+    And human review is flagged
+    And error is logged for prompt improvement
+
+  # ==========================================================================
+  # Regeneration Flow
+  # ==========================================================================
+
+  Scenario: Regeneration with critic feedback
+    Given first pitch attempt scored 55
+    And Pitch Critic identified "too generic, missing ESG section"
+    When regeneration runs
+    Then Pitch Generator receives critic feedback
+    And new draft addresses specific issues
+    And ESG section is added
+    And second critique is performed
+
+  Scenario: Successful regeneration
+    Given first attempt scored 52
+    When regeneration runs with feedback
+    Then second attempt scores 78
+    And regeneration is successful
+    And pitch is approved
+
+  Scenario: Multiple regeneration attempts
+    Given regeneration limit = 3
+    And first attempt scored 48
+    And second attempt scored 55
+    When third regeneration runs
+    And scores 62
+    Then pitch is delivered with "best effort" flag
+    And human review is suggested
+    And all 3 attempts are logged
+
+  # ==========================================================================
+  # Factual Accuracy Validation
+  # ==========================================================================
+
+  Scenario: Critic verifies claims against database
+    Given pitch draft states "CalPERS has $450B AUM"
+    When Pitch Critic runs fact-check
+    And organizations.total_aum_bn for CalPERS = 450
+    Then claim is verified
+    And accuracy_score is not penalized
+
+  Scenario: Critic catches hallucinated claim
+    Given pitch draft states "We previously worked with CalPERS on Fund I"
+    When Pitch Critic runs fact-check
+    And no record exists in lp_commitments
+    Then hallucination is flagged
+    And issue_type = "factual_error"
+    And issue_severity = "critical"
+    And claim must be removed in regeneration
+
+  Scenario: Critic validates statistics
+    Given pitch draft states "Our Fund II returned 3.2x MOIC"
+    When Pitch Critic cross-references
+    And funds.track_record shows 3.2x MOIC for Fund II
+    Then statistic is verified
+    And no issue raised
+
+  Scenario: Critic flags unverifiable claims
+    Given pitch draft states "Industry leading returns"
+    When Pitch Critic evaluates
+    And no benchmark data exists to verify
+    Then issue_type = "unverifiable_claim"
+    And issue_severity = "minor"
+    And suggestion to make claim specific
+
+  # ==========================================================================
+  # Personalization Scoring
+  # ==========================================================================
+
+  Scenario: High personalization score
+    Given pitch includes:
+      | element                          | count |
+      | LP name mentions                 | 5     |
+      | LP-specific data points          | 8     |
+      | LP mandate references            | 3     |
+      | Decision maker name              | 1     |
+    Then personalization_score >= 85
+
+  Scenario: Low personalization score
+    Given pitch includes:
+      | element                          | count |
+      | LP name mentions                 | 1     |
+      | LP-specific data points          | 0     |
+      | Generic phrases                  | 5     |
+    Then personalization_score < 50
+    And issue_type = "generic_content"
+    And regeneration recommended
+
+  Scenario: Personalization uses LP history
+    Given LP previously rejected similar fund citing "too early stage"
+    When generating pitch
+    Then pitch addresses stage concern proactively
+    And personalization includes "addressing prior feedback"
+
+  # ==========================================================================
+  # Tone Validation
+  # ==========================================================================
+
+  Scenario: Tone matches LP type - pension
+    Given LP is Public Pension
+    When evaluating tone
+    Then expected tone markers include:
+      | marker                           | required |
+      | Formal language                  | yes      |
+      | Fiduciary duty references        | optional |
+      | Long-term focus                  | yes      |
+      | Conservative risk language       | yes      |
+    And casual language is flagged
+
+  Scenario: Tone matches LP type - family office
+    Given LP is Family Office
+    When evaluating tone
+    Then expected tone markers include:
+      | marker                           | required |
+      | More direct communication        | yes      |
+      | Relationship emphasis            | yes      |
+      | Flexibility mention              | optional |
+    And overly formal/bureaucratic language is noted
+
+  Scenario: Tone mismatch detected
+    Given LP is Public Pension
+    And pitch uses casual tone with "exciting opportunity"
+    When Pitch Critic evaluates
+    Then tone_score is reduced
+    And issue_type = "tone_mismatch"
+    And suggestion to use more formal language
+
+  # ==========================================================================
+  # Batch Processing
+  # ==========================================================================
+
+  Scenario: Pre-generate pitches for top matches
+    Given nightly batch job runs
+    And match scoring completed
+    When top 10 matches per fund are identified
+    Then pitches are pre-generated for top matches
+    And cached in entity_cache
+    And GP sees instant pitch when viewing match
+
+  Scenario: Pitch cache invalidation
+    Given pitch was generated for Fund A + LP B
+    When Fund A profile is updated
+    Then cached pitch is invalidated
+    And next request regenerates pitch
+
+  Scenario: Batch pitch quality metrics
+    Given batch generated 100 pitches overnight
+    When quality analysis runs
+    Then metrics show:
+      | metric              | value                        |
+      | approved            | count with score >= 85       |
+      | approved_with_notes | count with score 70-84       |
+      | regenerated         | count requiring regeneration |
+      | rejected            | count with score < 50        |
+    And quality trends are trackable
+
+  # ==========================================================================
+  # NEGATIVE TESTS: Pitch Critic Failures
+  # ==========================================================================
+
+  @negative
+  Scenario: Critic API timeout
+    Given pitch is generated
+    When Pitch Critic call times out
+    Then retry with exponential backoff
+    And if retries fail, pitch is flagged for manual review
+    And basic template is available as fallback
+
+  @negative
+  Scenario: Critic returns malformed response
+    Given Pitch Critic returns invalid JSON
+    When parsing response
+    Then parse error is caught
+    And critic is re-called
+    And if still malformed, manual review triggered
+
+  @negative
+  Scenario: All regeneration attempts fail quality threshold
+    Given 3 regeneration attempts completed
+    And best score achieved = 45
+    When final evaluation runs
+    Then pitch is rejected
+    And fallback template is used
+    And pattern is logged for prompt improvement
+    And human review notification sent
+
+  @negative
+  Scenario: Database unavailable for fact-check
+    Given Pitch Critic attempts fact verification
+    When database query fails
+    Then fact-check is skipped with warning
+    And pitch continues with reduced confidence
+    And "unverified claims" flag is set
+
+  @negative
+  Scenario: Critic finds irrecoverable issues
+    Given pitch contains multiple critical hallucinations
+    And fundamental misunderstanding of LP
+    When Pitch Critic evaluates
+    Then recommendation = "reject"
+    And no regeneration attempted (would fail anyway)
+    And error report generated for analysis
+
+  @negative
+  Scenario: Pitch generation quota exceeded
+    Given GP has generated 100 pitches today
+    When quota limit is 100
+    Then new pitch request returns quota error
+    And user is informed of reset time
+    And cached pitches remain available
+```
