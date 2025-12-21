@@ -1131,7 +1131,16 @@ When a team member logs in for the first time:
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-**Test Cases:** See TEST-UI-01 in Testing Strategy
+**BDD Tests (must pass):**
+
+| Test File | Key Scenarios |
+|-----------|---------------|
+| `m1-auth-search.feature.md` | Login with valid credentials, Session persists on refresh, Session expires after inactivity, Logout |
+| `e2e-journeys.feature.md` | Complete company onboarding from sales to first login, Complete onboarding from invitation to first match |
+| `m3-matching.feature.md` | View matches page, View match detail, Save match to shortlist |
+
+**First-Time Welcome Tests:**
+- `e2e-journeys.feature.md`: Complete onboarding from invitation to first match (validates welcome flow)
 
 #### F-UI-02: Fund Profile Form [P0]
 **Description:** Multi-step form for fund creation
@@ -1142,7 +1151,20 @@ When a team member logs in for the first time:
 - File upload integration
 - Save & continue later
 
-**Test Cases:** See TEST-UI-02 in Testing Strategy
+**BDD Tests (must pass):**
+
+| Test File | Key Scenarios |
+|-----------|---------------|
+| `m3-matching.feature.md` | Enter fund basics, Define investment strategy, Set investment parameters, Add track record, Enter fund terms, Write investment thesis |
+| `m3-matching.feature.md` | Save as draft, Publish fund, Attempt to publish without fund name/target size/strategy |
+| `m3-matching.feature.md` | Upload PDF deck, Upload PPTX deck, File size validation, File type validation |
+| `e2e-journeys.feature.md` | Missing required fields on confirm, Invalid fund size format, Save draft on browser close |
+
+**Validation Tests:**
+- `m3-matching.feature.md`: Negative target size rejected, Zero target size rejected, Check size min exceeds max, Invalid vintage year
+
+**File Upload Tests:**
+- `m3-matching.feature.md`: Upload corrupt PDF file, Upload corrupt PPTX file, Upload password-protected PDF, Upload empty PDF
 
 #### F-UI-03: LP Search Interface [P0]
 **Description:** Powerful LP discovery interface
@@ -1153,7 +1175,21 @@ When a team member logs in for the first time:
 - Bulk actions (add to list, export)
 - Sort by relevance, AUM, name
 
-**Test Cases:** See TEST-UI-03 in Testing Strategy
+**BDD Tests (must pass):**
+
+| Test File | Key Scenarios |
+|-----------|---------------|
+| `m2-semantic.feature.md` | Search by LP name, Search by strategy, Filter by LP type, Filter by AUM range, Filter by geography |
+| `m2-semantic.feature.md` | Semantic search by thesis, Combine text and filters, Search results pagination |
+| `e2e-journeys.feature.md` | Research LPs before fund launch, Search with no results, Filter combination returns empty |
+| `m0-foundation.feature.md` | Store LP organization details, Store LP investment criteria |
+
+**Error Handling Tests:**
+- `e2e-journeys.feature.md`: Semantic search service unavailable, Search timeout, Network failure during search
+- `e2e-journeys.feature.md`: LP profile not found, LP profile loading error, Incomplete LP data
+
+**Saved Searches:**
+- `e2e-journeys.feature.md`: Save search with duplicate name, Save search fails, Load saved search that's now invalid
 
 #### F-UI-04: Match Results View [P0]
 **Description:** Display matching LPs with context
@@ -1164,7 +1200,21 @@ When a team member logs in for the first time:
 - Actions per match (generate pitch, save, dismiss)
 - Filter matches by score threshold
 
-**Test Cases:** See TEST-UI-04 in Testing Strategy
+**BDD Tests (must pass):**
+
+| Test File | Key Scenarios |
+|-----------|---------------|
+| `m3-matching.feature.md` | View matches page, View match detail, Match score breakdown, Save match to shortlist, Dismiss match |
+| `m3-matching.feature.md` | F-DEBATE: Bull/Bear core debate flow, Disagreement resolution, Match scoring with confidence |
+| `m4-pitch.feature.md` | Generate executive summary, Summary content, Tailored to LP interests, Include match rationale |
+| `e2e-journeys.feature.md` | Matching engine timeout, No matches found, Matching engine error |
+
+**Score & Explanation Tests:**
+- `m3-matching.feature.md`: Score breakdown visible, AI explanation panel, Score confidence indicator
+
+**Error Handling Tests:**
+- `e2e-journeys.feature.md`: Matching engine timeout, No matches found, Matching engine error
+- `m4-pitch.feature.md`: Handle API timeout during summary generation, Handle invalid match ID
 
 #### F-UI-05: Admin Interface [P0]
 **Description:** Platform administration UI
@@ -1176,7 +1226,20 @@ When a team member logs in for the first time:
 - Data enrichment job status
 - System health dashboard
 
-**Test Cases:** See TEST-UI-05 in Testing Strategy
+**BDD Tests (must pass):**
+
+| Test File | Key Scenarios |
+|-----------|---------------|
+| `m1-auth-search.feature.md` | User belongs to one company, Cannot see other company's funds, RLS bypass attempt via SQL injection |
+| `m0-foundation.feature.md` | Store LP organization details, Reject LP without name, Sanitize SQL injection in name, Sanitize XSS in name |
+| `m0-foundation.feature.md` | Store person details with employment, Track employment history, Reject invalid email format |
+| `m5-production.feature.md` | Health check endpoint, System health dashboard, Admin bulk operations |
+
+**Data Import Tests:**
+- `m0-foundation.feature.md`: CSV import validation, Handle malformed CSV, Handle duplicate records
+
+**Security Tests:**
+- `m1-auth-search.feature.md`: Direct API access to other company's fund, IDOR attack on match data, Modify other company's fund via API
 
 ---
 
@@ -1193,6 +1256,8 @@ The platform prioritizes human oversight for critical actions. AI assists but hu
 - GP manually pastes into their email client
 - Track that email was copied (not sent)
 
+**BDD Tests:** `m4-pitch.feature.md` - Generate email draft, Email is for review only, Copy email, Edit email, Save email as template
+
 #### F-HITL-02: Match Selection [P0]
 **Description:** GP explicitly approves matches for outreach
 **Requirements:**
@@ -1201,6 +1266,8 @@ The platform prioritizes human oversight for critical actions. AI assists but hu
 - Shortlist is separate from match results
 - Bulk add to shortlist supported
 - Clear distinction between "matched" and "shortlisted"
+
+**BDD Tests:** `m3-matching.feature.md` - Save match to shortlist, Dismiss match, Bulk shortlist operations
 
 #### F-HITL-03: Fund Profile Confirmation [P0]
 **Description:** GP confirms AI-extracted fund information
@@ -1211,6 +1278,8 @@ The platform prioritizes human oversight for critical actions. AI assists but hu
 - GP must explicitly approve profile before saving
 - Audit trail of what was AI-extracted vs manually entered
 
+**BDD Tests:** `e2e-journeys.feature.md` - AI extraction fails mid-process, Missing required fields on confirm; `m3-matching.feature.md` - Publish fund (requires confirmation)
+
 #### F-HITL-04: Data Import Preview [P0]
 **Description:** Preview and approve data before committing
 **Requirements:**
@@ -1220,6 +1289,8 @@ The platform prioritizes human oversight for critical actions. AI assists but hu
 - Require explicit "Confirm Import" action
 - Rollback option within 24 hours
 
+**BDD Tests:** `m0-foundation.feature.md` - CSV import validation, Handle malformed CSV, Handle duplicate records; `m5-production.feature.md` - Admin bulk operations, Import rollback
+
 #### F-HITL-05: LP Data Corrections [P1]
 **Description:** GPs can flag outdated or incorrect LP information
 **Requirements:**
@@ -1228,6 +1299,8 @@ The platform prioritizes human oversight for critical actions. AI assists but hu
 - Flagged records queued for admin review
 - Track flag history per LP
 - Notify admin of new flags
+
+**BDD Tests:** `m0-foundation.feature.md` - LP data validation, Handle incomplete LP data; `m5-production.feature.md` - Data quality monitoring, Admin review queue
 
 ---
 
