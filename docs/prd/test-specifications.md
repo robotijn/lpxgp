@@ -2,19 +2,20 @@
 
 **Format:** Gherkin/BDD (natural language)
 **Purpose:** Communicate requirements with product owner, generate automated tests later
-**Total:** ~15,000 lines of test specifications across 7 files
+**Total:** ~15,200 lines of test specifications across 7 files (~1,682 scenarios)
 
 ## Test Coverage Summary
 
-| Category | Line Count | Key Features |
-|----------|------------|--------------|
-| Foundation (M0) | ~1,700 | Data import, validation, cleaning |
-| Auth & Search (M1) | ~1,800 | Login, RLS, full-text search |
-| Semantic Search (M2) | ~1,400 | Embeddings, similarity, filters |
-| Matching + Agents (M3) | ~3,400 | Fund CRUD, debates, scoring |
-| Pitch + Learning (M4) | ~2,400 | Summaries, emails, feedback |
-| Production (M5) | ~1,900 | Admin, health, monitoring |
-| E2E Journeys | ~2,200 | Complete user flows |
+| Category | Line Count | Scenarios | Key Features |
+|----------|------------|-----------|--------------|
+| Foundation (M0) | ~1,700 | 183 | Data import, validation, cleaning |
+| Auth & Search (M1) | ~1,800 | 249 | Login, RLS, full-text search |
+| Semantic Search (M2) | ~1,400 | 157 | Embeddings, similarity, filters |
+| Matching + Agents (M3) | ~3,800 | 418 | Fund CRUD, debates, observability, batch |
+| Pitch + Learning (M4) | ~2,400 | 271 | Summaries, emails, feedback |
+| Production (M5) | ~1,900 | 230 | Admin, health, monitoring |
+| E2E Journeys | ~2,200 | 174 | Complete user flows |
+| **Total** | **~15,200** | **~1,682** | **All features covered** |
 
 ## Test Files by Milestone
 
@@ -39,6 +40,11 @@ The following agent-based features are tested within M3 and M4:
 | F-AGENT-04 | Explanation Agent (Interaction Learning) | M4 |
 | F-MATCH-06 | LP-Side Matching (Bidirectional) | M3 |
 | F-MATCH-07 | Enhanced Match Explanations with Learning | M4 |
+| F-DEBATE | Multi-Agent Debate System (Bull/Bear/Synthesizer) | M3 |
+| F-OBSERVE | Agent Observability with Langfuse | M3 |
+| F-PROMPT-VERSION | Prompt Versioning and A/B Testing | M3 |
+| F-BATCH-MODE | Real-Time vs Batch Processing | M3 |
+| F-PITCH-CRITIC | Pitch Quality Assurance | M4 |
 
 ## User Journeys
 

@@ -3396,3 +3396,365 @@ Feature: F-DEBATE - Multi-Agent Match Scoring Debates
     And agent output is regenerated
     And hallucination pattern is logged for prompt improvement
 ```
+
+---
+
+## F-OBSERVE: Agent Observability with Langfuse
+
+Tests for agent monitoring, tracing, and metrics collection.
+
+```gherkin
+Feature: F-OBSERVE - Agent Observability with Langfuse
+  As the platform operations team
+  I want comprehensive observability for all agent operations
+  So that I can debug issues and optimize performance
+
+  Background:
+    Given Langfuse is configured and connected
+    And tracing is enabled
+
+  # ==========================================================================
+  # Trace Capture
+  # ==========================================================================
+
+  Scenario: Debate creates complete trace hierarchy
+    Given Fund A and LP B are candidates for matching
+    When match scoring debate runs and completes
+    Then a trace is recorded in Langfuse with:
+      | field | expected |
+      | trace_name | match_debate_{fund_id}_{lp_id} |
+      | status | success |
+      | spans_count | >= 3 |
+    And trace contains spans for:
+      | span_name | parent |
+      | bull_agent | match_debate |
+      | bear_agent | match_debate |
+      | synthesizer | match_debate |
+    And each span has input and output captured
+
+  Scenario: Failed debate records error trace
+    Given match debate is initiated
+    When Bull Agent fails with OpenRouter API timeout
+    Then trace is recorded with status "error"
+    And error details include:
+      | field | value |
+      | error_type | APITimeoutError |
+      | failed_span | bull_agent |
+      | iteration | 1 |
+    And partial outputs from completed spans are preserved
+
+  Scenario: Trace includes prompt version metadata
+    Given prompt "match_bull_agent" version 3 is active
+    When Bull Agent runs in a debate
+    Then the bull_agent span metadata includes:
+      | field | value |
+      | prompt_name | match_bull_agent |
+      | prompt_version | 3 |
+      | model | claude-sonnet-4 |
+
+  # ==========================================================================
+  # Metrics Recording
+  # ==========================================================================
+
+  Scenario: Token usage tracked per agent
+    Given a match debate completes with 3 agents
+    Then each agent span records token metrics:
+      | metric | type |
+      | input_tokens | integer > 0 |
+      | output_tokens | integer > 0 |
+      | total_tokens | sum of above |
+    And trace-level aggregates are calculated
+
+  Scenario: Cost tracking per debate
+    Given a match debate completes
+    Then trace records cost metrics:
+      | metric | example |
+      | total_cost_usd | 0.042 |
+      | cost_by_agent | {"bull": 0.015, "bear": 0.015, "synth": 0.012} |
+    And costs are summed in daily aggregates
+
+  Scenario: Latency tracking per span
+    Given a match debate completes
+    Then each span records:
+      | metric | type |
+      | start_time | timestamp |
+      | end_time | timestamp |
+      | duration_ms | integer |
+    And trace shows total debate duration
+    And slow spans (>5s) are flagged
+
+  # ==========================================================================
+  # Debate Quality Scoring
+  # ==========================================================================
+
+  Scenario: Debate confidence scored in trace
+    Given a match debate completes
+    When synthesizer produces confidence = 0.82
+    Then trace is scored with:
+      | score_name | value |
+      | debate_quality | 0.82 |
+      | iterations | 1 |
+      | escalated | false |
+
+  Scenario: Low confidence debates flagged
+    Given a match debate completes with confidence < 0.5
+    Then trace is tagged with "low_confidence"
+    And trace appears in Langfuse review queue
+
+  # ==========================================================================
+  # Error Handling
+  # ==========================================================================
+
+  Scenario: Network failure during trace upload
+    Given a match debate completes successfully
+    When Langfuse is temporarily unreachable
+    Then trace is queued locally
+    And retry occurs with exponential backoff
+    And debate result is still returned to user
+
+  Scenario: Partial trace on agent failure
+    Given Bull Agent completes successfully
+    And Bear Agent fails mid-execution
+    Then trace shows:
+      | span | status |
+      | bull_agent | success |
+      | bear_agent | error |
+    And error span includes partial output if available
+
+  @negative
+  Scenario: Invalid trace metadata rejected
+    Given agent returns malformed output
+    When trace attempts to record invalid metadata
+    Then validation error is logged
+    And trace is saved without invalid fields
+    And alert is raised for data quality issue
+```
+
+---
+
+## F-PROMPT-VERSION: Prompt Versioning and Management
+
+Tests for prompt version control, A/B testing, and rollback.
+
+```gherkin
+Feature: F-PROMPT-VERSION - Prompt Versioning
+  As a prompt engineer
+  I want to version and manage prompts
+  So that I can iterate and improve agent quality
+
+  Background:
+    Given Langfuse prompt management is configured
+
+  # ==========================================================================
+  # Version Management
+  # ==========================================================================
+
+  Scenario: Use active prompt version by default
+    Given prompt "match_bull_agent" has versions [1, 2, 3]
+    And version 2 is marked as production
+    When Bull Agent executes
+    Then prompt version 2 is compiled and used
+    And trace metadata shows prompt_version = 2
+
+  Scenario: Retrieve specific version
+    Given prompt "match_bull_agent" has versions [1, 2, 3]
+    When I request version 1 specifically
+    Then version 1 template is returned
+    And version is marked in trace
+
+  Scenario: Create new prompt version
+    Given prompt "match_bull_agent" exists with version 2
+    When I publish new version with updated template
+    Then version 3 is created
+    And version 2 remains production (unchanged)
+    And version 3 status is "draft"
+
+  Scenario: Promote version to production
+    Given prompt "match_bull_agent" version 3 is in draft
+    And evaluation shows quality improvement
+    When admin promotes version 3 to production
+    Then version 3 becomes active
+    And version 2 is demoted to "archived"
+    And all new debates use version 3
+
+  Scenario: Rollback to previous version
+    Given prompt "match_bull_agent" version 3 is production
+    When quality issues are detected
+    And admin rolls back to version 2
+    Then version 2 becomes production
+    And version 3 is marked "rolled_back"
+    And rollback reason is logged
+
+  # ==========================================================================
+  # Template Compilation
+  # ==========================================================================
+
+  Scenario: Compile prompt with variables
+    Given prompt template includes:
+      """
+      Analyze the match between {{fund_name}} and {{lp_name}}.
+      Fund strategy: {{fund_strategy}}
+      LP mandate: {{lp_mandate}}
+      """
+    When compiled with:
+      | variable | value |
+      | fund_name | Growth Fund V |
+      | lp_name | CalPERS |
+      | fund_strategy | Late-stage tech |
+      | lp_mandate | Diversified PE allocation |
+    Then compiled prompt contains all values substituted
+
+  Scenario: Missing variable raises error
+    Given prompt requires variable "fund_name"
+    When compiled without fund_name
+    Then compilation fails with "Missing required variable: fund_name"
+    And no LLM call is made
+
+  # ==========================================================================
+  # A/B Testing
+  # ==========================================================================
+
+  Scenario: A/B test traffic splitting
+    Given prompt "match_bull_agent" has:
+      | version | weight |
+      | 2 | 50% |
+      | 3 | 50% |
+    When 100 debates run
+    Then approximately 50 use version 2
+    And approximately 50 use version 3
+    And each trace records which version was used
+
+  Scenario: Deterministic version selection per entity
+    Given A/B test is configured for prompt "match_bull_agent"
+    When same LP is matched multiple times
+    Then same prompt version is used each time
+    And consistent experience enables fair comparison
+
+  Scenario: Compare A/B test results
+    Given A/B test ran for 7 days
+    When I view results in Langfuse
+    Then I see metrics by version:
+      | version | debates | avg_confidence | avg_latency |
+      | 2 | 487 | 0.78 | 3.2s |
+      | 3 | 513 | 0.84 | 3.5s |
+    And statistical significance is calculated
+
+  @negative
+  Scenario: A/B test with invalid weights
+    Given I configure A/B test with weights summing to 120%
+    Then configuration is rejected
+    And error "Weights must sum to 100%" is shown
+```
+
+---
+
+## F-BATCH-MODE: Real-Time vs Batch Processing
+
+Tests for processing mode selection and user experience.
+
+```gherkin
+Feature: F-BATCH-MODE - Real-Time vs Batch Processing
+  As a GP user
+  I want appropriate processing modes for different scenarios
+  So that I get fast feedback for new funds and comprehensive analysis overnight
+
+  Background:
+    Given batch processing is configured for nightly runs
+    And entity cache is enabled
+
+  # ==========================================================================
+  # New Fund - Immediate Response
+  # ==========================================================================
+
+  Scenario: New fund gets immediate simplified matches
+    Given I am a GP user
+    And I just completed my fund profile
+    When I click "Find Matches"
+    Then I see loading indicator
+    And within 30 seconds I see match results
+    And results show "Preliminary scores - full analysis tonight"
+    And scores are from single-pass evaluation (no debate)
+
+  Scenario: Immediate mode uses simplified scoring
+    Given a new fund requests matches
+    When immediate scoring runs
+    Then processing uses:
+      | aspect | value |
+      | agents | single scorer (no bull/bear) |
+      | iterations | 1 |
+      | confidence | marked as "preliminary" |
+    And results are cached with short TTL (until batch)
+
+  # ==========================================================================
+  # Existing Fund - Cached Results
+  # ==========================================================================
+
+  Scenario: Existing fund sees cached results
+    Given my fund has cached match results from last night
+    When I view "My Matches"
+    Then results load instantly (< 500ms)
+    And last_updated timestamp is shown
+    And confidence scores are from full debate
+
+  Scenario: Refresh queues for batch processing
+    Given I have cached matches
+    When I click "Refresh Matches"
+    Then I see message "Queued for overnight analysis"
+    And current results remain visible
+    And job is added to batch queue
+    And I receive notification when complete
+
+  # ==========================================================================
+  # Cache Invalidation
+  # ==========================================================================
+
+  Scenario: Fund update invalidates cache
+    Given cached matches exist for my fund
+    When I update fund strategy from "Growth" to "Buyout"
+    Then cached matches are invalidated
+    And immediate re-scoring runs
+    And batch job is queued for full analysis
+
+  Scenario: LP update invalidates affected matches
+    Given LP "CalPERS" has cached matches with 50 funds
+    When LP mandate is updated
+    Then all 50 cached matches are invalidated
+    And re-scoring is queued for batch
+
+  Scenario: Cache TTL expiration
+    Given cached matches are 30 days old
+    When I view matches
+    Then stale warning is shown
+    And automatic refresh is queued
+    And cached results are still displayed
+
+  # ==========================================================================
+  # Batch Processing
+  # ==========================================================================
+
+  Scenario: Nightly batch runs full debates
+    Given batch job starts at 2:00 AM
+    And 1,000 matches need scoring
+    When batch processing runs
+    Then each match gets full Bull/Bear debate
+    And up to 3 regeneration rounds if needed
+    And results are cached with 30-day TTL
+    And processing completes before 6:00 AM
+
+  Scenario: Batch job handles failures gracefully
+    Given batch is processing 500 matches
+    When match #247 fails due to API error
+    Then failure is logged
+    And match #247 is retried up to 3 times
+    And remaining matches continue processing
+    And failed matches are reported in summary
+
+  @negative
+  Scenario: Batch job exceeds time limit
+    Given batch starts at 2:00 AM with deadline 6:00 AM
+    And 10,000 matches need processing
+    When 6:00 AM approaches with 2,000 remaining
+    Then high-priority matches complete first
+    And remaining matches carry over to next batch
+    And alert is raised for capacity planning
+```
