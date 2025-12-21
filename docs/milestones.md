@@ -125,14 +125,18 @@
 
 ---
 
-## M3: GP Profiles + Matching
+## M3: GP Profiles + Matching + Agent Architecture
 ### "See matching LPs for my fund"
 
 **What we build:**
 - Fund profile CRUD
 - Deck upload + LLM extraction
-- Matching algorithm
-- Match results UI
+- **Multi-agent debate system** (4 debate types, 12 agents):
+  - Constraint Interpretation (Broad/Narrow/Synthesizer)
+  - Research Enrichment (Generator/Critic/Synthesizer)
+  - Match Scoring Bull/Bear (Bull/Bear/Synthesizer)
+- Batch processing for exhaustive debates
+- Match results UI with score breakdown
 
 **Fund Onboarding Flow:**
 1. Deck upload → LLM extraction
@@ -140,51 +144,75 @@
 3. Questionnaire for gaps
 4. Save fund profile
 
+**Agent Architecture:**
+- LangGraph for state machine orchestration
+- Langfuse for monitoring and prompt versioning
+- Batch jobs run nightly; results cached for months
+- See `docs/architecture/` for implementation details
+
 **Deliverables:**
 - [ ] API: CRUD /api/v1/funds
 - [ ] API: Deck upload + LLM extraction
-- [ ] API: Generate matches
+- [ ] API: Generate matches (with agent debates)
+- [ ] Agent: Constraint interpretation pipeline
+- [ ] Agent: Research enrichment pipeline
+- [ ] Agent: Bull/Bear scoring debate
+- [ ] Langfuse: Monitoring and tracing setup
 - [ ] UI: Fund wizard (deck → confirm → questionnaire → save)
 - [ ] Score breakdown visualization
 
 **CLI Learning:**
+- Module 7b: LangGraph state machines
+- Module 7c: Langfuse monitoring
 - Module 8: MCP fundamentals
 
 **Exit Criteria:**
 - [ ] Create fund → see matches
-- [ ] Score breakdown visible
+- [ ] Score breakdown visible with debate confidence
+- [ ] Agent traces visible in Langfuse
 - [ ] Live on lpxgp.com
 
 **Demo:**
 ```
 1. Create fund: "$200M Growth, Tech, US"
 2. Click "Find Matches"
-3. See ranked LPs with scores
-4. Hover → see breakdown
+3. See ranked LPs with scores + confidence
+4. Hover → see Bull/Bear breakdown
+5. (Admin) Show Langfuse trace of debate
 ```
 
 ---
 
-## M4: AI Explanations + Pitch
+## M4: AI Explanations + Pitch + Learning
 ### "AI explains matches + generates pitch"
 
 **What we build:**
-- LLM integration (via OpenRouter)
-- Explanation generation
+- Pitch generation debate (Generator/Critic/Synthesizer)
+- Explanation Agent (learns from GP interactions)
+- Learning Agent (cross-company intelligence)
 - Summary + email generation (human-in-loop)
 - PDF export
+
+**Agent Additions:**
+- Pitch debate: Generator creates, Critic reviews quality, Synthesizer finalizes
+- Explanation Agent: Learns which talking points resonate
+- Learning Agent: Aggregates insights across all GPs (anonymized)
 
 **Human-in-Loop Flow:**
 - Generate email → GP reviews/edits → copy to clipboard
 - No auto-send functionality
+- GP feedback improves future explanations
 
 **Deliverables:**
-- [ ] API: Get explanation
+- [ ] Agent: Pitch Generator/Critic/Synthesizer debate
+- [ ] Agent: Explanation Agent with interaction learning
+- [ ] Agent: Learning Agent (global signals)
+- [ ] API: Get explanation (with learned insights)
 - [ ] API: Generate summary/email draft
-- [ ] UI: Explanation panel
+- [ ] UI: Explanation panel with talking points
 - [ ] UI: Email editor with copy to clipboard
 - [ ] UI: PDF export
-- [ ] Explanation caching
+- [ ] Explanation caching with learning feedback
 
 **CLI Learning:**
 - Module 9: LLM API (OpenRouter)
@@ -192,15 +220,18 @@
 
 **Exit Criteria:**
 - [ ] Explanations accurate (no hallucinations)
+- [ ] Pitch debate quality verified
 - [ ] PDF download works
+- [ ] Feedback loop recording interactions
 - [ ] Live on lpxgp.com
 
 **Demo:**
 ```
 1. View match → "Why this LP?"
-2. See explanation + talking points
+2. See explanation + learned talking points
 3. Generate email → copy
-4. Generate summary → download PDF
+4. (Show: Email was refined by Critic agent)
+5. Generate summary → download PDF
 ```
 
 ---

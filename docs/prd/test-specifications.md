@@ -2,6 +2,19 @@
 
 **Format:** Gherkin/BDD (natural language)
 **Purpose:** Communicate requirements with product owner, generate automated tests later
+**Total:** ~15,000 lines of test specifications across 7 files
+
+## Test Coverage Summary
+
+| Category | Line Count | Key Features |
+|----------|------------|--------------|
+| Foundation (M0) | ~1,700 | Data import, validation, cleaning |
+| Auth & Search (M1) | ~1,800 | Login, RLS, full-text search |
+| Semantic Search (M2) | ~1,400 | Embeddings, similarity, filters |
+| Matching + Agents (M3) | ~3,400 | Fund CRUD, debates, scoring |
+| Pitch + Learning (M4) | ~2,400 | Summaries, emails, feedback |
+| Production (M5) | ~1,900 | Admin, health, monitoring |
+| E2E Journeys | ~2,200 | Complete user flows |
 
 ## Test Files by Milestone
 

@@ -14,9 +14,9 @@ See CLAUDE.md for tech stack and commands.
 |-----------|---------|----------------|----------------|
 | M0 | 1, 2, 2b | CLAUDE.md, commands, data cleaning | Data imported + clean (local) |
 | M1 | 3-5 | Rules, CI/CD, HTMX | LP search live on lpxgp.com |
-| M2 | 6-7 | Skills, agents | Semantic search |
-| M3 | 8 | MCP fundamentals | GP profiles + matching |
-| M4 | 9-10 | OpenRouter API, prompting | AI explanations + pitch |
+| M2 | 6-7 | Skills, simple agents | Semantic search |
+| M3 | 7b, 7c, 8 | LangGraph, Langfuse, MCP | GP profiles + multi-agent matching |
+| M4 | 9-10 | OpenRouter API, prompting, learning agents | AI explanations + pitch |
 | M5 | 11 | Production monitoring | Admin + polish |
 
 ---
@@ -381,8 +381,95 @@ Create `pytest-runner` and `search-debugger` agents.
 
 ---
 
-## Milestone 3: GP Profiles + Matching
+## Milestone 3: GP Profiles + Matching + Agent Architecture
 ### "See matching LPs for my fund"
+
+### Module 7b: LangGraph State Machines
+
+**Goal:** Build multi-agent debate systems with LangGraph.
+
+#### 7b.1 Why LangGraph?
+LPxGP uses multi-agent debates for quality matching:
+- Bull agent argues FOR a match
+- Bear agent argues AGAINST
+- Synthesizer resolves disagreements
+
+LangGraph provides:
+- State machines for debate cycles
+- Conditional routing (regenerate vs complete)
+- Persistence (resume interrupted debates)
+
+#### 7b.2 State Definition
+```python
+from langgraph.graph import StateGraph
+from typing import TypedDict
+
+class MatchDebateState(TypedDict):
+    fund_data: dict
+    lp_data: dict
+    bull_output: dict | None
+    bear_output: dict | None
+    synthesizer_output: dict | None
+    iteration: int
+    status: str  # pending, complete, escalated
+```
+
+#### 7b.3 Graph Construction
+```python
+def build_match_debate_graph():
+    builder = StateGraph(MatchDebateState)
+    builder.add_node("bull", bull_node)
+    builder.add_node("bear", bear_node)
+    builder.add_node("synthesize", synthesizer_node)
+
+    builder.add_edge("bull", "bear")
+    builder.add_edge("bear", "synthesize")
+    builder.add_conditional_edges(
+        "synthesize",
+        should_regenerate,
+        {"complete": END, "regenerate": "bull", "escalate": "escalate"}
+    )
+    return builder.compile()
+```
+
+See `docs/architecture/agents-implementation.md` for full implementation.
+
+---
+
+### Module 7c: Langfuse Monitoring
+
+**Goal:** Set up agent observability and prompt versioning.
+
+#### 7c.1 Why Langfuse?
+- Open source (MIT) - no vendor lock-in
+- Self-hostable for sensitive GP/LP data
+- Full trace inspection for every debate
+- Prompt versioning and A/B testing
+
+#### 7c.2 Tracing Setup
+```python
+from langfuse import Langfuse
+from langfuse.decorators import observe
+
+langfuse = Langfuse()
+
+@observe(name="match_debate")
+async def run_match_debate(fund_id: str, lp_id: str):
+    # All LLM calls automatically traced
+    result = await debate_graph.ainvoke(initial_state)
+    return result
+```
+
+#### 7c.3 Prompt Management
+Store prompts in Langfuse with versioning:
+```python
+prompt = langfuse.get_prompt("match_bull_agent", version=3)
+compiled = prompt.compile(fund_data=fund, lp_data=lp)
+```
+
+See `docs/architecture/monitoring-observability.md` for full integration.
+
+---
 
 ### Module 8: MCP Fundamentals
 

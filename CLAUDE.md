@@ -10,6 +10,12 @@ An AI-powered platform helping investment fund managers (GPs) find and engage th
 - docs/prd/PRD-v1.md - Product Requirements Document
 - docs/prd/test-specifications.md - Test specifications (TDD)
 - docs/curriculum.md - Learning curriculum (Claude Code + LPxGP)
+- docs/architecture/ - Agent implementation details (M3+):
+  - agents-implementation.md - LangGraph state machines, base classes
+  - agent-prompts.md - Versioned prompts for 12 agents
+  - batch-processing.md - Scheduler, processor, cache
+  - monitoring-observability.md - Langfuse integration
+- docs/product-doc/content/ux-storylines.md - User journey narratives
 
 Note: Read these files on demand rather than auto-loading (to save context).
 
@@ -31,6 +37,8 @@ Note: Read these files on demand rather than auto-loading (to save context).
 | **Database** | Supabase Cloud (PostgreSQL + pgvector + Auth) |
 | **AI/LLM** | OpenRouter (Claude, free models, etc.) |
 | **Deployment** | Railway (auto-deploys from GitHub) |
+| **Agent Framework** | LangGraph (M3+) - state machines for multi-agent debates |
+| **Agent Monitoring** | Langfuse (M3+) - open source observability, prompt versioning |
 
 **M2+:** Voyage AI for semantic search
 **Post-MVP:** Data integrations (external APIs, partner feeds)
@@ -68,7 +76,15 @@ uv run ruff check .                    # Lint code
 
 # Deployment (push to main = auto-deploy to Railway)
 git push origin main
+
+# After pushing: Regenerate PDF product document
+source /tmp/pdf-env/bin/activate && python docs/product-doc/build_pdf.py
 ```
+
+**IMPORTANT:** After significant documentation changes, always:
+1. Regenerate the PDF: `python docs/product-doc/build_pdf.py`
+2. Commit and push the updated PDF
+3. GitHub Pages auto-updates from docs/ folder
 
 ## Code Standards
 
@@ -130,7 +146,7 @@ After M1, every push auto-deploys to lpxgp.com.
 
 **Completed:**
 - Full PRD with 50+ feature specifications
-- 27 UI screen mockups with working navigation
+- 30 UI screen mockups with working navigation
 - BDD test specifications for all milestones
 - UX storylines and user journey documentation
 - PDF product document for stakeholders
@@ -191,3 +207,5 @@ See docs/curriculum.md for the full learning path.
 - `SUPABASE_SERVICE_KEY` - Service role key (for admin ops)
 - `OPENROUTER_API_KEY` - For LLM calls via OpenRouter (M3+)
 - `VOYAGE_API_KEY` - For embeddings (M2+)
+- `LANGFUSE_PUBLIC_KEY` - For agent monitoring (M3+)
+- `LANGFUSE_SECRET_KEY` - For agent monitoring (M3+)

@@ -221,11 +221,40 @@ Priority B (Second): Matching Engine
 ├── F-MATCH-01: Hard Filter Matching [P0]
 ├── F-MATCH-02: Soft Scoring [P0]
 ├── F-MATCH-03: Semantic Matching [P0]
-└── F-MATCH-04: Match Explanations [P0]
+├── F-MATCH-04: Match Explanations [P0]
+├── F-MATCH-05: Match Feedback [P1] (post-MVP)
+├── F-MATCH-06: LP-Side Matching [P0] (bidirectional)
+└── F-MATCH-07: Enhanced Match Explanations [P0]
 
 Priority C (Third): Pitch Generation
 ├── F-PITCH-01: LP-Specific Executive Summary [P0]
 └── F-PITCH-02: Outreach Email Draft [P0]
+
+Priority D: Authentication & Authorization (Section 5.3)
+├── F-AUTH-01: User Login [P0]
+├── F-AUTH-02: Multi-tenancy [P0]
+├── F-AUTH-03: Role-Based Access [P0]
+└── F-AUTH-04: Invitation System [P0]
+
+Priority E: Multi-Agent Architecture (Section 5.6.2-5.6.3)
+├── F-AGENT-01: Research Agent (Data Enrichment) [P0] (M3)
+├── F-AGENT-02: LLM-Interpreted Constraints [P0] (M3)
+├── F-AGENT-03: Learning Agent (Cross-Company) [P0] (M3)
+└── F-AGENT-04: Explanation Agent (Interaction Learning) [P0] (M4)
+
+Priority F: User Interface (Section 5.8)
+├── F-UI-01: Dashboard [P0]
+├── F-UI-02: Fund Profile Form [P0]
+├── F-UI-03: LP Search Interface [P0]
+├── F-UI-04: Match Results View [P0]
+└── F-UI-05: Admin Interface [P0]
+
+Priority G: Human-in-the-Loop (Section 5.9)
+├── F-HITL-01: Outreach Email Review [P0]
+├── F-HITL-02: Match Selection [P0]
+├── F-HITL-03: Fund Profile Confirmation [P0]
+├── F-HITL-04: Data Import Preview [P0]
+└── F-HITL-05: LP Data Corrections [P1]
 ```
 
 ---
@@ -1028,6 +1057,17 @@ Debates run **asynchronously as batch jobs**, not in real-time. This enables exh
 - **Human escalations**: Resolved during business hours, results available next batch
 
 **Database:** See `batch_jobs` and `entity_cache` tables in Section 6.2
+
+#### When Debates Run: Real-Time vs Batch
+
+| Trigger | Processing Mode | User Experience |
+|---------|-----------------|-----------------|
+| New fund created | Immediate (simplified single-pass) | Matches in ~30 seconds |
+| GP requests refresh | Queued for batch | "Refreshing..." - available next morning |
+| New LP added | Queued for batch | Available next morning |
+| Nightly batch | Full multi-round debate | Comprehensive cached results |
+
+**Note:** Real-time requests use simplified scoring or cached results. The nightly batch runs exhaustive multi-round Bull/Bear debates for maximum accuracy.
 
 ---
 
