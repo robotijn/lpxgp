@@ -6,6 +6,7 @@ An AI-powered platform helping investment fund managers (GPs) find and engage th
 
 ## Project Documents
 
+**Source of truth (MD files we work with):**
 - docs/milestones.md - Milestone roadmap (start here!)
 - docs/prd/PRD-v1.md - Product Requirements Document
 - docs/prd/test-specifications.md - Test specifications (TDD)
@@ -16,6 +17,11 @@ An AI-powered platform helping investment fund managers (GPs) find and engage th
   - batch-processing.md - Scheduler, processor, cache
   - monitoring-observability.md - Langfuse integration
 - docs/product-doc/content/ux-storylines.md - User journey narratives
+
+**Derived (for human/business communication only):**
+- docs/LPxGP-Product-Document.pdf - PDF with screenshots
+
+**Note:** The PDF is generated from MD files for stakeholder communication. Duplication in the PDF is fine - it's not a source of truth.
 
 Note: Read these files on demand rather than auto-loading (to save context).
 
