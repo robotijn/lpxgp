@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LP Profile - LPxGP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        navy: {
+                            50: '#f0f4f8', 100: '#d9e2ec', 200: '#bcccdc', 300: '#9fb3c8',
+                            400: '#829ab1', 500: '#627d98', 600: '#486581', 700: '#334e68',
+                            800: '#243b53', 900: '#102a43',
+                        },
+                        accent: { DEFAULT: '#059669', dark: '#047857' }
+                    },
+                    fontFamily: { sans: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; -webkit-font-smoothing: antialiased; background-color: #f8fafc; }
+        .card { background: white; border: 1px solid #e2e8f0; border-radius: 0.5rem; box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05); }
+        .btn-primary { background-color: #059669; color: white; padding: 0.5rem 1rem; border-radius: 0.375rem; font-weight: 500; font-size: 0.875rem; }
+        .btn-secondary { background-color: white; color: #334e68; border: 1px solid #cbd5e1; padding: 0.5rem 1rem; border-radius: 0.375rem; font-weight: 500; font-size: 0.875rem; }
+        .form-input { border: 1px solid #cbd5e1; border-radius: 0.375rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; width: 100%; }
+        .form-input:focus { outline: none; border-color: #059669; box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1); }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+
+<div class="min-h-screen bg-slate-50 pb-12">
+    <!-- Top Navigation -->
+    <header class="bg-white border-b border-slate-200">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-8">
+                    <span class="text-xl font-bold text-navy-900">LPxGP <span class="text-emerald-600 text-sm font-normal">LP Portal</span></span>
+                    <nav class="hidden md:flex space-x-6">
+                        <a href="lp-dashboard.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">Dashboard</a>
+                        <a href="lp-fund-matches.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">Fund Matches</a>
+                        <a href="lp-preferences.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">Preferences</a>
+                        <a href="lp-profile.html" class="text-sm font-medium text-navy-900 border-b-2 border-emerald-600 pb-4 -mb-px">Profile</a>
+                    </nav>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-sm text-navy-600">CalPERS</span>
+                    <a href="lp-profile.html" class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
+                        <span class="text-sm font-medium text-emerald-700">CP</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-4xl mx-auto px-6 py-8">
+        <div class="mb-8">
+            <h1 class="text-2xl font-semibold text-navy-900">Organization Profile</h1>
+            <p class="text-sm text-navy-500 mt-1">Manage your LP profile information</p>
+        </div>
+
+        <!-- Organization Info -->
+        <div class="card p-6 mb-6">
+            <h2 class="text-lg font-semibold text-navy-900 mb-6">Organization Information</h2>
+
+            <div class="grid grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-medium text-navy-700 mb-2">Organization Name</label>
+                    <input type="text" value="California Public Employees' Retirement System" class="form-input" disabled>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-navy-700 mb-2">Short Name</label>
+                    <input type="text" value="CalPERS" class="form-input" disabled>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-navy-700 mb-2">LP Type</label>
+                    <select class="form-input" disabled>
+                        <option selected>Public Pension</option>
+                        <option>Corporate Pension</option>
+                        <option>Endowment</option>
+                        <option>Foundation</option>
+                        <option>Family Office</option>
+                        <option>Sovereign Wealth Fund</option>
+                        <option>Insurance Company</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-navy-700 mb-2">Headquarters</label>
+                    <input type="text" value="Sacramento, California, USA" class="form-input" disabled>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-navy-700 mb-2">Total AUM</label>
+                    <input type="text" value="$450 Billion" class="form-input" disabled>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-navy-700 mb-2">PE Allocation</label>
+                    <input type="text" value="8% (~$36B)" class="form-input" disabled>
+                </div>
+
+                <div class="col-span-2">
+                    <label class="block text-sm font-medium text-navy-700 mb-2">Website</label>
+                    <input type="text" value="https://www.calpers.ca.gov" class="form-input" disabled>
+                </div>
+            </div>
+
+            <div class="mt-4 p-3 bg-slate-50 rounded-lg">
+                <p class="text-xs text-navy-500">Organization details are managed by LPxGP administrators. Contact support to request changes.</p>
+            </div>
+        </div>
+
+        <!-- Investment Mandate -->
+        <div class="card p-6 mb-6">
+            <h2 class="text-lg font-semibold text-navy-900 mb-6">Investment Mandate</h2>
+
+            <div class="space-y-6">
+                <div>
+                    <label class="block text-sm font-medium text-navy-700 mb-2">Mandate Description</label>
+                    <textarea class="form-input h-32" disabled>CalPERS Private Equity program targets risk-adjusted returns exceeding public market equivalents over the long term. The program focuses on diversified exposure across buyout, growth equity, and credit strategies with emphasis on established managers demonstrating consistent value creation. ESG integration and responsible investment principles are core to all investment decisions. Geographic focus is primarily North America and Europe with selective emerging market exposure.</textarea>
+                </div>
+
+                <div class="grid grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-navy-700 mb-2">Primary Strategies</label>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="px-3 py-1 text-sm bg-blue-50 text-blue-700 rounded-full">Buyout</span>
+                            <span class="px-3 py-1 text-sm bg-blue-50 text-blue-700 rounded-full">Growth Equity</span>
+                            <span class="px-3 py-1 text-sm bg-green-50 text-green-700 rounded-full">Climate</span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-navy-700 mb-2">Geographic Focus</label>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="px-3 py-1 text-sm bg-slate-100 text-slate-700 rounded-full">North America</span>
+                            <span class="px-3 py-1 text-sm bg-slate-100 text-slate-700 rounded-full">Europe</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-navy-700 mb-2">Typical Check Size</label>
+                        <p class="text-navy-900">$50M - $200M</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-navy-700 mb-2">Fund Size Preference</label>
+                        <p class="text-navy-900">$500M - $5B</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-navy-700 mb-2">Track Record Requirement</label>
+                        <p class="text-navy-900">Fund II+</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- User Profile -->
+        <div class="card p-6 mb-6">
+            <h2 class="text-lg font-semibold text-navy-900 mb-6">Your Profile</h2>
+
+            <div class="grid grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-medium text-navy-700 mb-2">Full Name</label>
+                    <input type="text" value="Sarah Johnson" class="form-input">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-navy-700 mb-2">Title</label>
+                    <input type="text" value="Senior Investment Officer" class="form-input">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-navy-700 mb-2">Email</label>
+                    <input type="email" value="sarah.johnson@calpers.ca.gov" class="form-input">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-navy-700 mb-2">Phone</label>
+                    <input type="tel" value="+1 (916) 555-0123" class="form-input">
+                </div>
+            </div>
+        </div>
+
+        <!-- Security -->
+        <div class="card p-6 mb-6">
+            <h2 class="text-lg font-semibold text-navy-900 mb-6">Security</h2>
+
+            <div class="space-y-4">
+                <div class="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+                    <div>
+                        <p class="text-sm font-medium text-navy-900">Password</p>
+                        <p class="text-xs text-navy-500">Last changed 45 days ago</p>
+                    </div>
+                    <button class="btn-secondary text-sm">Change Password</button>
+                </div>
+
+                <div class="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+                    <div>
+                        <p class="text-sm font-medium text-navy-900">Two-Factor Authentication</p>
+                        <p class="text-xs text-emerald-600">Enabled</p>
+                    </div>
+                    <button class="btn-secondary text-sm">Manage 2FA</button>
+                </div>
+
+                <div class="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+                    <div>
+                        <p class="text-sm font-medium text-navy-900">Login History</p>
+                        <p class="text-xs text-navy-500">Last login: Today at 9:15 AM from Sacramento, CA</p>
+                    </div>
+                    <button class="btn-secondary text-sm">View History</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Save Button -->
+        <div class="flex justify-end space-x-4">
+            <button class="btn-secondary">Cancel</button>
+            <button class="btn-primary">Save Changes</button>
+        </div>
+    </main>
+</div>
+
+<!-- UX Context Footer -->
+<div class="fixed bottom-0 left-0 right-0 bg-slate-800 text-white text-xs py-2 px-4">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+        <span class="font-medium">UX Flow: LP User</span>
+        <div class="flex items-center space-x-2">
+            <a href="lp-dashboard.html" class="px-2 py-1 hover:bg-slate-700 rounded">LP Dashboard</a>
+            <a href="lp-fund-matches.html" class="px-2 py-1 hover:bg-slate-700 rounded">Fund Matches</a>
+            <a href="lp-preferences.html" class="px-2 py-1 hover:bg-slate-700 rounded">Preferences</a>
+            <span class="px-2 py-1 bg-emerald-700 rounded">LP Profile</span>
+        </div>
+        <a href="index.html" class="text-slate-400 hover:text-white">← All Screens</a>
+    </div>
+</div>
+
+</body>
+</html>

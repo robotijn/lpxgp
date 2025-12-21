@@ -2277,3 +2277,805 @@ Feature: Batch Matching Operations at Scale
     And system does not crash
     And degradation is logged for capacity planning
 ```
+
+---
+
+## F-AGENT-01: Research Agent (Data Enrichment) [P1]
+
+```gherkin
+Feature: Research Agent Data Enrichment
+  As the Research Agent
+  I want to enrich sparse LP/GP profiles with external data
+  So that matching quality improves with better data
+
+  # ==========================================================================
+  # Research Agent Triggering
+  # ==========================================================================
+
+  Scenario: Trigger enrichment for low data quality score
+    Given an LP has data_quality_score = 30 (below threshold of 50)
+    When the Research Agent job scheduler runs
+    Then a research job is created for this LP
+    And job status is "pending"
+    And job is queued for processing
+
+  Scenario: Trigger enrichment for stale data
+    Given an LP has last_verified = 8 months ago
+    And threshold is 6 months
+    When the Research Agent job scheduler runs
+    Then a research job is created for this LP
+    And job reason is "stale_data"
+
+  Scenario: Manual enrichment request by GP
+    Given I am viewing an LP profile
+    And the LP has sparse data
+    When I click "Request Data Enrichment"
+    Then a research job is created with source = "user_request"
+    And I see "Enrichment requested. Results typically available within 24 hours."
+    And I can track job status
+
+  Scenario: Skip enrichment for recently verified LP
+    Given an LP has last_verified = 2 months ago
+    And data_quality_score = 75
+    When the Research Agent job scheduler runs
+    Then no research job is created for this LP
+
+  # ==========================================================================
+  # Perplexity Search Integration
+  # ==========================================================================
+
+  Scenario: Enrich LP with Perplexity search
+    Given a research job is running for LP "Nordic Pension Fund"
+    When the Research Agent calls perplexity_search("Nordic Pension Fund investment mandate")
+    Then search returns relevant results about the LP
+    And results include recent news and commitment announcements
+    And results are stored in research_job.raw_results
+
+  Scenario: Extract AUM from Perplexity results
+    Given Perplexity search returned "Nordic Pension manages approximately EUR 180 billion"
+    When the Research Agent parses results
+    Then it extracts aum_mm = 180000
+    And extraction confidence = 85%
+    And source is recorded for audit
+
+  Scenario: Extract mandate details from search
+    Given Perplexity search returned mandate information
+    When the Research Agent parses results
+    Then it extracts:
+      | Field | Value | Confidence |
+      | strategy_preferences | ["Private Equity", "Infrastructure"] | 80% |
+      | geographic_preferences | ["Europe", "Nordics"] | 90% |
+      | esg_required | true | 95% |
+
+  Scenario: Handle Perplexity API timeout
+    Given a research job is running
+    When Perplexity API does not respond within 30 seconds
+    Then the request is retried up to 3 times
+    And if all retries fail, job status = "failed"
+    And error is logged "Perplexity API timeout after 3 retries"
+
+  Scenario: Handle Perplexity rate limiting
+    Given many research jobs are running
+    When Perplexity returns 429 Too Many Requests
+    Then job is requeued with exponential backoff
+    And initial wait is 60 seconds
+    And subsequent jobs wait longer
+
+  Scenario: Handle no Perplexity results
+    Given a research job for obscure LP "Unknown Family Office"
+    When Perplexity search returns no relevant results
+    Then job status = "completed"
+    And enriched_fields = []
+    And notes = "No external data found"
+
+  # ==========================================================================
+  # Web Fetch Integration
+  # ==========================================================================
+
+  Scenario: Scrape LP website for mandate details
+    Given LP has website = "https://nordic-pension.fi"
+    When Research Agent calls web_fetch(url)
+    Then website content is retrieved
+    And mandate page is identified and parsed
+    And extracted data is added to raw_results
+
+  Scenario: Handle website not accessible
+    Given LP has website = "https://private-lp.com"
+    When web_fetch returns 403 Forbidden
+    Then agent continues with other data sources
+    And notes "Website not publicly accessible"
+
+  Scenario: Handle website with no useful content
+    Given LP website is purely marketing with no investment details
+    When web_fetch parses the content
+    Then no mandate information is extracted
+    And job continues with other sources
+
+  # ==========================================================================
+  # LLM Summary Generation
+  # ==========================================================================
+
+  Scenario: Generate LLM summary for sparse LP data
+    Given LP "Nordic Pension Fund" has only name and type
+    When Research Agent generates LLM summary
+    Then summary includes inferred characteristics:
+      """
+      Nordic Pension Fund is likely a Scandinavian public pension.
+      Nordic pensions typically have: AUM EUR 50-200B, strong ESG requirements,
+      preference for Nordic/EU managers, long investment horizons.
+      """
+    And summary is stored in llm_summary field
+    And summary_generated_at is set to now
+
+  Scenario: Generate summary embedding
+    Given an LLM summary was generated
+    When summary embedding is created
+    Then summary_embedding vector is stored (1024 dimensions)
+    And embedding can be used for semantic matching
+
+  Scenario: Record summary sources
+    Given summary was generated from multiple sources
+    When job completes
+    Then summary_sources contains:
+      | Source | URL | Confidence |
+      | Perplexity | query result | 85% |
+      | Website | https://nordic-pension.fi | 70% |
+
+  Scenario: Handle LLM generation failure
+    Given research job is generating summary
+    When OpenRouter API fails
+    Then summary generation is retried
+    And if retries fail, job continues without summary
+    And other enriched fields are still saved
+
+  # ==========================================================================
+  # Human Review Queue
+  # ==========================================================================
+
+  Scenario: Submit enriched data for human review
+    Given Research Agent extracted new data for LP
+    When extraction completes
+    Then all proposed changes go to review queue
+    And status = "pending_review"
+    And reviewer can see:
+      | Field | Current Value | Proposed Value | Source | Confidence |
+      | aum_mm | NULL | 180000 | Perplexity | 85% |
+      | esg_required | NULL | true | Website | 90% |
+
+  Scenario: Approve enrichment changes
+    Given I am an admin reviewing enrichment proposals
+    When I click "Approve All"
+    Then proposed changes are committed to LP profile
+    And last_verified is updated to now
+    And data_quality_score is recalculated
+
+  Scenario: Partially approve enrichment
+    Given review queue has 5 proposed field changes
+    When I approve 3 and reject 2
+    Then only approved changes are committed
+    And rejected changes are logged with reason
+
+  Scenario: Reject all enrichment changes
+    Given review queue has proposed changes
+    When I click "Reject All" with reason "Inaccurate data"
+    Then no changes are committed
+    And job status = "rejected"
+    And feedback is logged for agent improvement
+
+  # ==========================================================================
+  # NEGATIVE TESTS: Research Agent Failures
+  # ==========================================================================
+
+  @negative
+  Scenario: All data sources fail
+    Given a research job is running
+    When Perplexity fails AND web_fetch fails AND news_api fails
+    Then job status = "failed"
+    And error = "All data sources unavailable"
+    And job is requeued for later retry
+
+  @negative
+  Scenario: LLM generates hallucinated data
+    Given Research Agent generated summary for LP
+    And summary claims AUM = $500B
+    But no source corroborates this
+    When human reviewer checks sources
+    Then reviewer rejects the claim
+    And feedback is logged "Unsupported claim"
+    And model learns from rejection
+
+  @negative
+  Scenario: Conflicting data from multiple sources
+    Given Perplexity says AUM = EUR 180B
+    And website says AUM = EUR 150B
+    When Research Agent processes results
+    Then both values are presented to reviewer
+    And confidence is reduced for conflicting data
+    And reviewer decides which to use
+
+  @negative
+  Scenario: Research job timeout
+    Given a research job is running
+    When job exceeds 10 minute timeout
+    Then job is terminated
+    And status = "timeout"
+    And partial results are saved if available
+
+  @negative
+  Scenario: Invalid LP reference in job
+    Given a research job references LP ID that was deleted
+    When job starts processing
+    Then job fails immediately
+    And status = "invalid_reference"
+    And job is not retried
+
+  @negative
+  Scenario: Enrichment creates duplicate organization
+    Given Research Agent finds LP under different name
+    When attempting to create new organization
+    Then duplicate detection runs
+    And if match found, data is merged to existing LP
+    And no duplicate is created
+
+  @negative
+  Scenario: API key expired for external service
+    Given PERPLEXITY_API_KEY is expired
+    When Research Agent tries to call Perplexity
+    Then authentication error is caught
+    And admin is notified "Perplexity API key needs renewal"
+    And jobs are paused until resolved
+
+  @negative
+  Scenario: Rate limit exceeded across all agents
+    Given 100 research jobs are running concurrently
+    When aggregate rate limits are hit
+    Then jobs are automatically throttled
+    And queue uses fair scheduling
+    And older jobs get priority
+```
+
+---
+
+## F-AGENT-02: LLM-Interpreted Constraints [P1]
+
+```gherkin
+Feature: LLM-Interpreted Constraints
+  As the matching engine
+  I want to interpret LP mandate text to derive hard/soft filters
+  So that implicit constraints are properly applied
+
+  # ==========================================================================
+  # Constraint Interpretation from Mandate Text
+  # ==========================================================================
+
+  Scenario: Interpret exclusion from biodiversity mandate
+    Given LP has mandate_text = "Invests in biodiversity and climate solutions"
+    When LLM interprets constraints
+    Then interpreted constraints include:
+      | Type | Constraint | Confidence |
+      | exclude_sector | weapons | 95% |
+      | exclude_sector | fossil_fuels | 95% |
+      | exclude_sector | mining | 80% |
+      | exclude_sector | pharma_animal_testing | 70% |
+      | require | esg_policy = true | 90% |
+
+  Scenario: Interpret geographic constraints
+    Given LP has mandate_text = "EU-focused growth equity investments"
+    When LLM interprets constraints
+    Then interpreted constraints include:
+      | Type | Constraint | Confidence |
+      | require_geography | Europe | 95% |
+      | exclude_geography | Asia | 80% |
+      | exclude_geography | Americas | 80% |
+      | require_strategy | Growth Equity | 90% |
+
+  Scenario: Interpret fund maturity requirements
+    Given LP has mandate_text = "We only invest in Fund III or later managers"
+    When LLM interprets constraints
+    Then interpreted constraints include:
+      | Type | Constraint | Confidence |
+      | require | fund_number >= 3 | 95% |
+      | exclude | first_time_managers | 95% |
+
+  Scenario: Interpret ESG requirements
+    Given LP has mandate_text = "ESG-integrated approach with SFDR Article 8+ funds"
+    When LLM interprets constraints
+    Then interpreted constraints include:
+      | Type | Constraint | Confidence |
+      | require | esg_policy = true | 98% |
+      | require | sfdr_classification IN ['article_8', 'article_9'] | 90% |
+
+  Scenario: Store interpreted constraints
+    Given constraints have been interpreted
+    When interpretation completes
+    Then constraints are stored in lp_interpreted_constraints table
+    And each constraint has:
+      | id | lp_org_id | constraint_type | constraint_value | confidence | source_text | created_at |
+    And constraints are indexed for matching
+
+  # ==========================================================================
+  # Constraint Application in Hard Filters
+  # ==========================================================================
+
+  Scenario: Apply exclusion constraint in hard filter
+    Given LP has interpreted constraint "exclude_sector = fossil_fuels"
+    And my fund has sector_focus = ["Energy", "Oil & Gas"]
+    When hard filters run
+    Then my fund is excluded from this LP's matches
+    And exclusion reason = "LP excludes fossil fuel investments"
+
+  Scenario: Apply requirement constraint in hard filter
+    Given LP has interpreted constraint "require fund_number >= 3"
+    And my fund is Fund II
+    When hard filters run
+    Then my fund is excluded
+    And exclusion reason = "LP requires Fund III or later"
+
+  Scenario: Apply geographic constraint
+    Given LP has interpreted constraint "require_geography = Europe"
+    And my fund has geographic_focus = ["North America"]
+    When hard filters run
+    Then my fund is excluded
+    And exclusion reason = "LP requires European focus"
+
+  Scenario: Pass all interpreted constraints
+    Given LP has multiple interpreted constraints
+    And my fund meets all constraints
+    When hard filters run
+    Then my fund passes to soft scoring stage
+    And no constraint exclusions apply
+
+  # ==========================================================================
+  # Confidence-Based Constraint Handling
+  # ==========================================================================
+
+  Scenario: High confidence constraint is hard filter
+    Given LP has constraint "exclude_sector = weapons" with confidence = 95%
+    When constraint is applied
+    Then constraint is treated as hard filter
+    And matching funds with weapons exposure are excluded
+
+  Scenario: Low confidence constraint is soft factor
+    Given LP has constraint "prefer ESG focus" with confidence = 60%
+    When constraint is applied
+    Then constraint is treated as soft scoring factor
+    And funds without ESG get score penalty, not exclusion
+
+  Scenario: Configurable confidence threshold
+    Given admin sets hard_filter_confidence_threshold = 80%
+    When constraints are applied
+    Then constraints with confidence >= 80% are hard filters
+    And constraints with confidence < 80% are soft factors
+
+  # ==========================================================================
+  # Constraint Updates and Versioning
+  # ==========================================================================
+
+  Scenario: Re-interpret constraints when mandate changes
+    Given LP's mandate_text was updated
+    When constraint interpretation runs
+    Then new constraints replace old ones
+    And old constraints are archived (not deleted)
+    And matches are recalculated with new constraints
+
+  Scenario: Track constraint interpretation history
+    Given constraints were interpreted 3 times for LP
+    When I view constraint history
+    Then I see all versions with timestamps
+    And I can see what changed between versions
+
+  # ==========================================================================
+  # NEGATIVE TESTS: Constraint Interpretation Failures
+  # ==========================================================================
+
+  @negative
+  Scenario: Empty mandate text
+    Given LP has mandate_text = "" or NULL
+    When constraint interpretation runs
+    Then no constraints are generated
+    And LP uses only explicit preferences for matching
+
+  @negative
+  Scenario: Ambiguous mandate text
+    Given LP has mandate_text = "We invest broadly across markets"
+    When LLM interprets constraints
+    Then few or no constraints are generated
+    And confidence scores are low (< 50%)
+    And note is added "Mandate too vague for constraint extraction"
+
+  @negative
+  Scenario: Contradictory mandate statements
+    Given LP has mandate_text = "We focus on ESG but also invest in energy transition including natural gas"
+    When LLM interprets constraints
+    Then conflicting constraints are flagged
+    And human review is triggered
+    And both interpretations are presented
+
+  @negative
+  Scenario: Non-English mandate text
+    Given LP has mandate_text in German
+    When constraint interpretation runs
+    Then text is translated first (if supported)
+    Or interpretation fails gracefully with "Unsupported language"
+
+  @negative
+  Scenario: LLM interpretation timeout
+    Given mandate_text is very long (10000+ characters)
+    When LLM interpretation takes > 60 seconds
+    Then interpretation is cancelled
+    And job is retried with truncated text
+    And warning is logged
+
+  @negative
+  Scenario: LLM returns invalid constraint format
+    Given LLM interpretation runs
+    When LLM returns malformed JSON or invalid constraint types
+    Then parsing error is caught
+    And interpretation is retried with modified prompt
+    And if retries fail, manual review is requested
+
+  @negative
+  Scenario: Constraint conflicts with explicit LP preferences
+    Given LP has explicit strategy_preferences = ["Venture Capital"]
+    And LLM interprets constraint "require_strategy = Private Equity"
+    When conflict is detected
+    Then explicit preference takes precedence
+    And interpreted constraint is flagged for review
+```
+
+---
+
+## F-AGENT-03: Learning Agent (Cross-Company Intelligence) [P1]
+
+```gherkin
+Feature: Learning Agent Cross-Company Intelligence
+  As the Learning Agent
+  I want to aggregate learnings across all companies
+  So that recommendations improve for everyone while preserving privacy
+
+  # ==========================================================================
+  # Outcome Observation (Privacy-Safe Aggregation)
+  # ==========================================================================
+
+  Scenario: Calculate LP response rate
+    Given LP "CalPERS" was contacted by 10 different GPs (across companies)
+    And CalPERS responded to 6 of them
+    When Learning Agent aggregates signals
+    Then LP response_rate = 60% is calculated
+    And stored in global_learned_signals table
+    And no company-specific data is exposed
+
+  Scenario: Detect LP engagement trend
+    Given LP "CalPERS" response rate history:
+      | Quarter | Response Rate |
+      | Q1 2024 | 70% |
+      | Q2 2024 | 55% |
+      | Q3 2024 | 40% |
+    When Learning Agent analyzes trend
+    Then signal is generated: "CalPERS engagement declining"
+    And alert is available to all GPs
+
+  Scenario: Identify strategy trends
+    Given across all companies:
+      | Strategy | Match → Response Rate |
+      | Climate Tech | 45% |
+      | Traditional PE | 28% |
+      | Healthcare | 35% |
+    When Learning Agent aggregates
+    Then signal is generated: "Climate Tech seeing 2x engagement"
+    And market prior is updated
+
+  Scenario: Detect timing patterns
+    Given commitment data across companies shows:
+      | Quarter | Commitment Count |
+      | Q1 | 15 |
+      | Q2 | 8 |
+      | Q3 | 10 |
+      | Q4 | 35 |
+    When Learning Agent analyzes
+    Then signal is generated: "Q4 allocation windows confirmed"
+    And timing factor weights are adjusted
+
+  # ==========================================================================
+  # Privacy Boundaries
+  # ==========================================================================
+
+  Scenario: Aggregated signals are privacy-safe
+    Given Company A contacted LP X
+    When Learning Agent stores signals
+    Then only aggregated stats are stored:
+      | Can Store | Cannot Store |
+      | "LP X has 60% response rate" | "Company A contacted LP X" |
+      | "Strategy Y is trending" | Specific pitch content |
+      | Commitment patterns | Negotiation details |
+
+  Scenario: Minimum aggregation threshold
+    Given only 2 companies contacted LP "Small Family Office"
+    When Learning Agent aggregates
+    Then no response rate is published (below threshold of 5)
+    And privacy is maintained for rare LPs
+
+  Scenario: Anonymous outcome data
+    Given a commitment was made
+    When Learning Agent records outcome
+    Then it records:
+      | Field | Value |
+      | strategy | Private Equity |
+      | size_bucket | $50-100M |
+      | region | North America |
+    And it does NOT record:
+      | Field |
+      | gp_company_id |
+      | lp_company_id |
+      | exact_amount |
+
+  # ==========================================================================
+  # Model Training and Updates
+  # ==========================================================================
+
+  Scenario: Update ensemble weights from outcomes
+    Given 100 commitments with outcome data are available
+    When Learning Agent retrains model
+    Then ensemble weights are updated
+    And new weights are A/B tested before full deployment
+    And old weights are retained for rollback
+
+  Scenario: Market prior updates
+    Given Learning Agent detected market shifts
+    When priors are updated
+    Then matching scores incorporate new priors
+    And update is logged with effective date
+
+  Scenario: Share learnings to all companies
+    Given new signal "Pensions prioritizing climate in 2024"
+    When signal is published
+    Then all GPs can see this insight
+    And insight appears in dashboard/reports
+
+  # ==========================================================================
+  # NEGATIVE TESTS: Learning Agent Failures
+  # ==========================================================================
+
+  @negative
+  Scenario: Insufficient data for reliable signal
+    Given only 3 data points for a pattern
+    When Learning Agent attempts to generate signal
+    Then signal is not published (below threshold)
+    And data is accumulated for future analysis
+
+  @negative
+  Scenario: Bias in aggregated data
+    Given most platform users are US-based GPs
+    When Learning Agent aggregates
+    Then regional bias is detected
+    And signals are adjusted for sample bias
+    And bias warning is included with signals
+
+  @negative
+  Scenario: Stale signals not refreshed
+    Given signal "LP X is highly responsive" is 6 months old
+    When signal staleness check runs
+    Then signal is marked as stale
+    And confidence is reduced
+    And refresh is triggered
+
+  @negative
+  Scenario: Model retraining fails
+    Given retraining job is running
+    When training fails due to data quality issues
+    Then current model remains in production
+    And alert is sent to admin
+    And training is retried with cleaned data
+
+  @negative
+  Scenario: Privacy violation detected
+    Given a signal inadvertently reveals company identity
+    When privacy check runs
+    Then signal is blocked from publication
+    And incident is logged
+    And affected data is reviewed
+
+  @negative
+  Scenario: Outcome data is incomplete
+    Given commitment was made but amount not known
+    When Learning Agent processes outcome
+    Then available data is used
+    And missing fields are handled gracefully
+    And signal confidence is adjusted accordingly
+```
+
+---
+
+## F-MATCH-06: LP-Side Matching (Bidirectional) [P1]
+
+```gherkin
+Feature: LP-Side Matching (Bidirectional)
+  As an LP
+  I want to see which funds match my mandate
+  So that I can discover relevant investment opportunities
+
+  # ==========================================================================
+  # LP Match Preferences Setup
+  # ==========================================================================
+
+  Scenario: LP sets active search preferences
+    Given I am logged in as an LP user
+    When I navigate to match preferences
+    And I set:
+      | Field | Value |
+      | actively_looking | true |
+      | allocation_available_mm | 50 |
+      | target_close_date | 2024-Q4 |
+    Then preferences are saved
+    And I will receive fund recommendations
+
+  Scenario: LP sets notification preferences
+    Given I have active search preferences
+    When I configure notifications:
+      | notify_on_new_funds | true |
+      | min_match_score | 75 |
+    Then I will be notified when funds score 75+ match my mandate
+
+  Scenario: LP disables active search
+    Given I was actively looking
+    When I set actively_looking = false
+    Then I stop receiving new fund notifications
+    And existing matches remain visible
+
+  # ==========================================================================
+  # Reverse Match Generation (LP → Fund)
+  # ==========================================================================
+
+  Scenario: Generate fund matches for LP
+    Given LP has mandate and preferences set
+    When a new fund is published
+    Then matching runs from LP perspective
+    And matching funds are stored in lp_fund_matches table
+    And LP can view matched funds
+
+  Scenario: Rank funds by LP perspective
+    Given matching found 20 funds for LP
+    When LP views matches
+    Then funds are ranked by total_score
+    And each match shows:
+      | Fund Name | Score | Key Alignment Points |
+
+  Scenario: Show score breakdown to LP
+    Given LP is viewing a fund match
+    When LP clicks on score
+    Then LP sees breakdown:
+      | Factor | Score |
+      | Strategy Alignment | 90 |
+      | Size Fit | 85 |
+      | Geographic Overlap | 80 |
+      | Semantic Similarity | 88 |
+
+  # ==========================================================================
+  # LP Interest Actions
+  # ==========================================================================
+
+  Scenario: LP marks fund as interesting
+    Given I am viewing a matched fund
+    When I click "Interested"
+    Then lp_interest = "interested"
+    And GP sees this in their match view (if enabled)
+    And match is moved to "Interested" list
+
+  Scenario: LP marks fund as not interested
+    Given I am viewing a matched fund
+    When I click "Not Interested"
+    Then lp_interest = "not_interested"
+    And fund is hidden from my active matches
+    And feedback is recorded for algorithm improvement
+
+  Scenario: LP adds notes to match
+    Given I am reviewing a matched fund
+    When I add notes "Already in contact with this GP"
+    Then lp_notes is saved
+    And notes are private to my organization
+
+  Scenario: LP requests more information
+    Given I am viewing a matched fund
+    When I click "Request Info"
+    Then a request is sent to the GP
+    And GP is notified of LP interest
+    And interaction is logged
+
+  # ==========================================================================
+  # Notifications
+  # ==========================================================================
+
+  Scenario: Notify LP of new matching fund
+    Given LP has notify_on_new_funds = true
+    And min_match_score = 70
+    When a new fund is published with match score = 85
+    Then LP receives notification
+    And notification includes fund summary and score
+
+  Scenario: Do not notify below threshold
+    Given LP has min_match_score = 80
+    When a new fund matches with score = 72
+    Then LP is NOT notified
+    And match is still visible in dashboard
+
+  Scenario: Batch notification for multiple funds
+    Given 5 new funds matched in the last 24 hours
+    When daily digest runs
+    Then LP receives one digest email
+    And email lists all 5 funds with scores
+
+  # ==========================================================================
+  # Privacy and Visibility
+  # ==========================================================================
+
+  Scenario: LP interest visible to GP
+    Given LP marked fund as "interested"
+    And GP has enabled LP interest visibility
+    When GP views their match list
+    Then GP sees "1 LP expressed interest"
+    And GP can see LP name (with LP's consent)
+
+  Scenario: LP interest hidden if LP chooses
+    Given LP settings have share_interest_with_gps = false
+    When LP marks fund as interested
+    Then GP does NOT see LP's interest
+    And LP's privacy is maintained
+
+  # ==========================================================================
+  # NEGATIVE TESTS: LP-Side Matching Failures
+  # ==========================================================================
+
+  @negative
+  Scenario: LP with no mandate cannot receive matches
+    Given LP has no mandate_text and no preferences
+    When matching runs
+    Then no matches are generated for this LP
+    And LP sees "Complete your mandate to receive fund recommendations"
+
+  @negative
+  Scenario: LP matches expire after fund closes
+    Given LP has matches with Fund A
+    And Fund A status changes to "closed"
+    When LP views matches
+    Then Fund A match is marked "Fund Closed"
+    And match is moved to archive
+
+  @negative
+  Scenario: Notification delivery fails
+    Given LP notification is triggered
+    When email delivery fails
+    Then notification is retried
+    And if retries fail, notification is queued for web display
+    And delivery failure is logged
+
+  @negative
+  Scenario: LP preferences validation
+    Given LP tries to set allocation_available_mm = -100
+    When saving preferences
+    Then validation error "Allocation must be positive"
+    And preferences are not saved
+
+  @negative
+  Scenario: Concurrent preference updates
+    Given LP user A is editing preferences
+    And LP user B (same org) is also editing
+    When both save
+    Then second save warns of conflict
+    And user can merge or overwrite
+
+  @negative
+  Scenario: No matching funds found
+    Given LP has very specific mandate
+    When matching runs
+    And no funds match
+    Then LP sees "No matching funds currently available"
+    And suggestions to broaden mandate are shown
+
+  @negative
+  Scenario: LP organization deleted
+    Given LP had active matches
+    When LP organization is deleted
+    Then matches are cleaned up
+    And GPs no longer see this LP in their matches
+    And data is properly cascaded
+```

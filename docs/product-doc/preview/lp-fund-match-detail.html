@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fund Match Detail - LPxGP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        navy: {
+                            50: '#f0f4f8',
+                            100: '#d9e2ec',
+                            200: '#bcccdc',
+                            300: '#9fb3c8',
+                            400: '#829ab1',
+                            500: '#627d98',
+                            600: '#486581',
+                            700: '#334e68',
+                            800: '#243b53',
+                            900: '#102a43',
+                        },
+                        accent: {
+                            DEFAULT: '#059669',
+                            dark: '#047857',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            background-color: #f8fafc;
+        }
+        .card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05);
+        }
+        .btn-primary {
+            background-color: #059669;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+        .btn-secondary {
+            background-color: white;
+            color: #334e68;
+            border: 1px solid #cbd5e1;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+
+<div class="min-h-screen bg-slate-50 pb-12">
+    <!-- Top Navigation - LP Version -->
+    <header class="bg-white border-b border-slate-200">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-8">
+                    <span class="text-xl font-bold text-navy-900">LPxGP <span class="text-emerald-600 text-sm font-normal">LP Portal</span></span>
+                    <nav class="hidden md:flex space-x-6">
+                        <a href="lp-dashboard.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">Dashboard</a>
+                        <a href="lp-fund-matches.html" class="text-sm font-medium text-navy-900 border-b-2 border-emerald-600 pb-4 -mb-px">Fund Matches</a>
+                        <a href="lp-preferences.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">Preferences</a>
+                        <a href="lp-profile.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">Profile</a>
+                    </nav>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-sm text-navy-600">CalPERS</span>
+                    <a href="lp-profile.html" class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
+                        <span class="text-sm font-medium text-emerald-700">CP</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-6 py-8">
+        <!-- Breadcrumb -->
+        <div class="mb-6">
+            <nav class="flex items-center space-x-2 text-sm">
+                <a href="lp-fund-matches.html" class="text-emerald-600 hover:text-emerald-700">Fund Matches</a>
+                <span class="text-navy-300">/</span>
+                <span class="text-navy-500">Sequoia Growth Fund VI</span>
+            </nav>
+        </div>
+
+        <!-- Header -->
+        <div class="flex justify-between items-start mb-8">
+            <div>
+                <h1 class="text-2xl font-semibold text-navy-900">Sequoia Growth Fund VI</h1>
+                <p class="text-navy-500 mt-1">Sequoia Capital</p>
+            </div>
+            <div class="flex items-center space-x-4">
+                <div class="text-right">
+                    <div class="text-3xl font-bold text-emerald-600">94</div>
+                    <div class="text-xs text-navy-400">Match Score</div>
+                </div>
+                <div class="flex space-x-2">
+                    <button class="btn-primary">Mark Interested</button>
+                    <button class="btn-secondary">Pass</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-6">
+            <!-- Main Content Column -->
+            <div class="col-span-2 space-y-6">
+                <!-- Why This Match -->
+                <div class="card p-6">
+                    <h2 class="text-lg font-semibold text-navy-900 mb-4">Why This Match</h2>
+                    <div class="prose prose-sm text-navy-600">
+                        <p>Sequoia Growth Fund VI is a strong match for CalPERS based on multiple alignment factors:</p>
+                        <ul class="mt-3 space-y-2">
+                            <li><strong>Strategy alignment:</strong> Growth equity focus matches your core allocation strategy with emphasis on established technology companies.</li>
+                            <li><strong>Track record:</strong> Fund V delivered 2.8x net MOIC and 28% net IRR, exceeding your minimum return thresholds.</li>
+                            <li><strong>Check size fit:</strong> $100M minimum commitment aligns with your typical allocation of $50-200M per fund.</li>
+                            <li><strong>ESG commitment:</strong> Sequoia has a formal ESG policy and dedicated sustainability team, meeting your responsible investment requirements.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Score Breakdown -->
+                <div class="card p-6">
+                    <h2 class="text-lg font-semibold text-navy-900 mb-4">Score Breakdown</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="text-navy-600">Strategy Alignment</span>
+                                <span class="font-medium text-navy-900">96/100</span>
+                            </div>
+                            <div class="w-full bg-slate-100 rounded-full h-2">
+                                <div class="bg-emerald-500 h-2 rounded-full" style="width: 96%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="text-navy-600">Size Fit</span>
+                                <span class="font-medium text-navy-900">92/100</span>
+                            </div>
+                            <div class="w-full bg-slate-100 rounded-full h-2">
+                                <div class="bg-emerald-500 h-2 rounded-full" style="width: 92%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="text-navy-600">Track Record</span>
+                                <span class="font-medium text-navy-900">98/100</span>
+                            </div>
+                            <div class="w-full bg-slate-100 rounded-full h-2">
+                                <div class="bg-emerald-500 h-2 rounded-full" style="width: 98%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="text-navy-600">Geographic Overlap</span>
+                                <span class="font-medium text-navy-900">90/100</span>
+                            </div>
+                            <div class="w-full bg-slate-100 rounded-full h-2">
+                                <div class="bg-emerald-500 h-2 rounded-full" style="width: 90%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="text-navy-600">ESG Alignment</span>
+                                <span class="font-medium text-navy-900">88/100</span>
+                            </div>
+                            <div class="w-full bg-slate-100 rounded-full h-2">
+                                <div class="bg-emerald-500 h-2 rounded-full" style="width: 88%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fund Thesis -->
+                <div class="card p-6">
+                    <h2 class="text-lg font-semibold text-navy-900 mb-4">Fund Thesis</h2>
+                    <p class="text-navy-600 text-sm leading-relaxed">
+                        Sequoia Growth Fund VI targets growth-stage technology companies with proven business models
+                        and clear paths to market leadership. The fund focuses on enterprise software, fintech, and
+                        healthcare technology sectors where Sequoia has deep operational expertise and extensive
+                        network relationships. Target investments range from $50M to $250M in companies with
+                        $20M+ ARR and 40%+ YoY growth. The fund aims to build a concentrated portfolio of
+                        15-20 companies with active board involvement and operational support.
+                    </p>
+                </div>
+
+                <!-- Track Record -->
+                <div class="card p-6">
+                    <h2 class="text-lg font-semibold text-navy-900 mb-4">Track Record</h2>
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="border-b border-slate-200">
+                                <th class="text-left py-3 text-navy-500 font-medium">Fund</th>
+                                <th class="text-right py-3 text-navy-500 font-medium">Vintage</th>
+                                <th class="text-right py-3 text-navy-500 font-medium">Size</th>
+                                <th class="text-right py-3 text-navy-500 font-medium">Net IRR</th>
+                                <th class="text-right py-3 text-navy-500 font-medium">Net MOIC</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            <tr>
+                                <td class="py-3 text-navy-900">Growth Fund V</td>
+                                <td class="py-3 text-right text-navy-600">2020</td>
+                                <td class="py-3 text-right text-navy-600">$2.0B</td>
+                                <td class="py-3 text-right text-emerald-600 font-medium">28%</td>
+                                <td class="py-3 text-right text-emerald-600 font-medium">2.8x</td>
+                            </tr>
+                            <tr>
+                                <td class="py-3 text-navy-900">Growth Fund IV</td>
+                                <td class="py-3 text-right text-navy-600">2017</td>
+                                <td class="py-3 text-right text-navy-600">$1.5B</td>
+                                <td class="py-3 text-right text-emerald-600 font-medium">32%</td>
+                                <td class="py-3 text-right text-emerald-600 font-medium">3.2x</td>
+                            </tr>
+                            <tr>
+                                <td class="py-3 text-navy-900">Growth Fund III</td>
+                                <td class="py-3 text-right text-navy-600">2014</td>
+                                <td class="py-3 text-right text-navy-600">$1.0B</td>
+                                <td class="py-3 text-right text-emerald-600 font-medium">35%</td>
+                                <td class="py-3 text-right text-emerald-600 font-medium">3.8x</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Considerations -->
+                <div class="card p-6">
+                    <h2 class="text-lg font-semibold text-navy-900 mb-4">Considerations</h2>
+                    <div class="space-y-3">
+                        <div class="flex items-start">
+                            <div class="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center mr-3 mt-0.5">
+                                <svg class="w-3 h-3 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-navy-900">Fund size increase</p>
+                                <p class="text-xs text-navy-500">Fund VI is 25% larger than Fund V. Consider whether deployment pace can be maintained.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center mr-3 mt-0.5">
+                                <svg class="w-3 h-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-navy-900">Closing timeline</p>
+                                <p class="text-xs text-navy-500">Final close in 30 days. Early commitment may secure co-investment rights.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="space-y-6">
+                <!-- Fund Details -->
+                <div class="card p-6">
+                    <h3 class="text-lg font-semibold text-navy-900 mb-4">Fund Details</h3>
+                    <div class="space-y-3 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-navy-500">Target Size</span>
+                            <span class="font-medium text-navy-900">$2.5B</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-navy-500">Fund Number</span>
+                            <span class="font-medium text-navy-900">Fund VI</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-navy-500">Strategy</span>
+                            <span class="font-medium text-navy-900">Growth Equity</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-navy-500">Geography</span>
+                            <span class="font-medium text-navy-900">North America</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-navy-500">Min Commitment</span>
+                            <span class="font-medium text-navy-900">$50M</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-navy-500">Management Fee</span>
+                            <span class="font-medium text-navy-900">1.75%</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-navy-500">Carry</span>
+                            <span class="font-medium text-navy-900">20%</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-navy-500">Final Close</span>
+                            <span class="font-medium text-amber-600">30 days</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- GP Team -->
+                <div class="card p-6">
+                    <h3 class="text-lg font-semibold text-navy-900 mb-4">GP Team</h3>
+                    <div class="space-y-4">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 rounded-full bg-navy-100 flex items-center justify-center mr-3">
+                                <span class="text-sm font-medium text-navy-600">JL</span>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-navy-900">Jim Loucks</p>
+                                <p class="text-xs text-navy-500">Managing Partner</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 rounded-full bg-navy-100 flex items-center justify-center mr-3">
+                                <span class="text-sm font-medium text-navy-600">SC</span>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-navy-900">Sarah Chen</p>
+                                <p class="text-xs text-navy-500">Partner</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 rounded-full bg-navy-100 flex items-center justify-center mr-3">
+                                <span class="text-sm font-medium text-navy-600">MR</span>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-navy-900">Michael Rodriguez</p>
+                                <p class="text-xs text-navy-500">Partner</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="card p-6">
+                    <h3 class="text-lg font-semibold text-navy-900 mb-4">Actions</h3>
+                    <div class="space-y-3">
+                        <button class="btn-primary w-full flex items-center justify-center">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            Mark Interested
+                        </button>
+                        <button class="btn-secondary w-full flex items-center justify-center">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                            Request Meeting
+                        </button>
+                        <button class="btn-secondary w-full flex items-center justify-center">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            Request Deck
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Notes -->
+                <div class="card p-6">
+                    <h3 class="text-lg font-semibold text-navy-900 mb-4">Your Notes</h3>
+                    <textarea class="w-full h-24 text-sm border border-slate-200 rounded-lg p-3 resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Add private notes about this fund..."></textarea>
+                    <button class="mt-2 text-sm text-emerald-600 hover:text-emerald-700 font-medium">Save Notes</button>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- UX Context Footer -->
+<div class="fixed bottom-0 left-0 right-0 bg-slate-800 text-white text-xs py-2 px-4">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+        <span class="font-medium">UX Flow: LP User</span>
+        <div class="flex items-center space-x-2">
+            <a href="lp-dashboard.html" class="px-2 py-1 hover:bg-slate-700 rounded">LP Dashboard</a>
+            <a href="lp-fund-matches.html" class="px-2 py-1 hover:bg-slate-700 rounded">Fund Matches</a>
+            <span class="px-2 py-1 bg-emerald-700 rounded">Match Detail</span>
+            <span class="text-slate-500">|</span>
+            <a href="lp-preferences.html" class="px-2 py-1 hover:bg-slate-700 rounded">Preferences</a>
+        </div>
+        <a href="index.html" class="text-slate-400 hover:text-white">← All Screens</a>
+    </div>
+</div>
+
+</body>
+</html>

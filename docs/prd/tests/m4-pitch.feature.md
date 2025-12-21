@@ -1796,3 +1796,324 @@ Feature: Negative Test Scenarios for Pitch Generation
     And I see option to save content as draft
     And my work is not completely lost
 ```
+
+---
+
+## F-AGENT-04: Explanation Agent (Interaction Learning) [P1]
+
+```gherkin
+Feature: Explanation Agent Interaction Learning
+  As the Explanation Agent
+  I want to learn GP preferences from their interactions
+  So that recommendations and pitches become personalized
+
+  # ==========================================================================
+  # Observing GP Interactions
+  # ==========================================================================
+
+  Scenario: Observe match shortlisting
+    Given GP "Acme Capital" shortlists LP "CalPERS"
+    When Explanation Agent observes the action
+    Then interaction is logged:
+      | gp_org_id | action_type | lp_org_id | timestamp |
+    And implicit preference is recorded: "GP interested in pension LPs"
+
+  Scenario: Observe match dismissal
+    Given GP "Acme Capital" dismisses LP "Small Family Office"
+    And GP selects reason "Check size too small"
+    When Explanation Agent observes the action
+    Then interaction is logged with reason
+    And preference is updated: "GP prefers larger check sizes"
+
+  Scenario: Observe pitch editing patterns
+    Given GP generated email for LP "CalPERS"
+    And GP edits email to shorten it by 50%
+    When Explanation Agent analyzes edit
+    Then pattern is detected: "GP prefers concise emails"
+    And pitch_style_preference is updated
+
+  Scenario: Observe explicit feedback
+    Given GP marked a talking point as "not useful"
+    When Explanation Agent processes feedback
+    Then feedback is stored with context
+    And future talking points are adjusted for this GP
+
+  Scenario: Track time-based patterns
+    Given GP typically engages between 9am-11am EST
+    When Explanation Agent analyzes engagement times
+    Then pattern is recorded
+    And can be used for optimal notification timing
+
+  # ==========================================================================
+  # Learning GP Preferences
+  # ==========================================================================
+
+  Scenario: Learn email tone preference
+    Given GP edited 5 emails to use more formal language
+    When Explanation Agent aggregates patterns
+    Then gp_learned_preferences records:
+      | preference_type | preference_value | confidence | sample_size |
+      | tone_preference | formal | 80% | 5 |
+
+  Scenario: Learn LP type preference
+    Given GP shortlisted 8 pension LPs and 2 endowments
+    When Explanation Agent calculates preferences
+    Then preference is stored:
+      | preference_type | preference_value | confidence |
+      | lp_type_preference | pension | 75% |
+
+  Scenario: Learn sector emphasis preference
+    Given GP always emphasizes healthcare deals in pitches
+    When Explanation Agent analyzes edit patterns
+    Then preference is stored:
+      | preference_type | preference_value |
+      | sector_emphasis | healthcare |
+
+  Scenario: Learn track record presentation preference
+    Given GP consistently adds more track record detail
+    When pattern is detected
+    Then preference is stored:
+      | preference_type | preference_value |
+      | content_preference | detailed_track_record |
+
+  Scenario: Update scoring weight overrides
+    Given GP consistently dismisses LPs with low ESG scores
+    When Explanation Agent detects pattern (10+ dismissals)
+    Then scoring_weight_overrides is updated:
+      | factor | weight_adjustment |
+      | esg_alignment | +20% |
+    And future matches for this GP weight ESG higher
+
+  # ==========================================================================
+  # Applying Learned Preferences
+  # ==========================================================================
+
+  Scenario: Apply tone preference to email generation
+    Given GP has learned preference tone_preference = "concise"
+    When GP generates new email
+    Then AI uses concise tone by default
+    And email is shorter than standard
+
+  Scenario: Apply LP type preference to match ranking
+    Given GP prefers pension LPs
+    When GP views matches
+    Then pension LPs are ranked higher
+    And ranking adjustment is explainable
+
+  Scenario: Suggest talking points based on history
+    Given GP found "ESG commitment" talking point effective (positive feedback)
+    When generating new pitch for similar LP
+    Then ESG talking point is included prominently
+    And source is noted: "Based on your past successful pitches"
+
+  Scenario: Personalize match explanations
+    Given GP prefers detailed track record analysis
+    When GP views "Why this match?" explanation
+    Then explanation emphasizes track record alignment
+    And other factors are summarized more briefly
+
+  # ==========================================================================
+  # Preference Decay and Updates
+  # ==========================================================================
+
+  Scenario: Decay old preferences
+    Given preference was learned 12 months ago
+    And no recent interactions confirm it
+    When preference decay runs
+    Then confidence is reduced by 20%
+    And preference requires re-confirmation
+
+  Scenario: Override preference with new behavior
+    Given GP previously preferred formal tone
+    And GP's last 3 emails used warm tone
+    When Explanation Agent updates preferences
+    Then tone_preference changes to "warm"
+    And old preference is archived
+
+  Scenario: Handle conflicting signals
+    Given GP shortlists ESG LPs but also non-ESG LPs
+    When Explanation Agent analyzes
+    Then preference is marked as "mixed"
+    And no strong weight adjustment is made
+
+  # ==========================================================================
+  # Feedback on LP Profiles
+  # ==========================================================================
+
+  Scenario: Record talking point effectiveness
+    Given GP marked talking point "Mention their recent commitment" as helpful
+    When feedback is processed
+    Then LP profile is updated:
+      | talking_point | effectiveness | source_gp_count |
+      | recent_commitment | positive | 1 |
+    And future pitches for this LP include similar points
+
+  Scenario: Aggregate feedback across GPs
+    Given 5 GPs found "ESG track record" talking point effective for CalPERS
+    When aggregation runs
+    Then CalPERS profile notes:
+      | effective_talking_points |
+      | ESG track record (5 confirmations) |
+
+  Scenario: Record ineffective talking points
+    Given GP marked talking point as "inaccurate"
+    When feedback is processed
+    Then talking point is flagged for review
+    And confidence is reduced for similar points
+
+  # ==========================================================================
+  # NEGATIVE TESTS: Explanation Agent Failures
+  # ==========================================================================
+
+  @negative
+  Scenario: Insufficient data for preference learning
+    Given GP has only 2 interactions
+    When Explanation Agent attempts to learn preferences
+    Then no preferences are stored (below threshold of 5)
+    And data is accumulated for future learning
+
+  @negative
+  Scenario: Preference inference is wrong
+    Given system inferred GP prefers pension LPs
+    But GP explicitly marks preference as incorrect
+    When GP provides correction
+    Then inferred preference is deleted
+    And feedback is logged for model improvement
+
+  @negative
+  Scenario: Handle interaction tracking failure
+    Given GP shortlists an LP
+    When interaction logging fails (database error)
+    Then action still completes for user
+    And interaction is queued for retry
+    And error is logged
+
+  @negative
+  Scenario: Preference storage conflict
+    Given two team members have conflicting preferences
+    When both are logged
+    Then preferences are stored per-user initially
+    And organization-level preference uses majority
+
+  @negative
+  Scenario: Edge case: GP reverses decisions
+    Given GP shortlists then un-shortlists same LP
+    When Explanation Agent processes
+    Then net signal is neutral
+    And no preference is inferred from this interaction
+
+  @negative
+  Scenario: Stale interactions excluded
+    Given GP interaction is 18 months old
+    When preference calculation runs
+    Then old interaction is weighted less
+    And recent interactions dominate preference
+
+  @negative
+  Scenario: GP explicitly opts out of learning
+    Given GP sets allow_interaction_learning = false
+    When GP performs actions
+    Then interactions are not logged for learning
+    And GP receives standard (non-personalized) experience
+
+  @negative
+  Scenario: Cross-company preference leakage
+    Given GP A's preferences are being learned
+    When system stores preferences
+    Then preferences are isolated to GP A's organization
+    And no preference data is shared with other companies
+```
+
+---
+
+## F-MATCH-07: Enhanced Match Explanations with Learning [P1]
+
+```gherkin
+Feature: Enhanced Match Explanations with Learning
+  As a GP
+  I want match explanations to improve based on my feedback
+  So that explanations become more relevant over time
+
+  # ==========================================================================
+  # Feedback-Informed Explanations
+  # ==========================================================================
+
+  Scenario: Explanation emphasizes factors GP cares about
+    Given GP has learned preference for ESG factors
+    When GP views match explanation
+    Then ESG alignment is prominently featured
+    And explanation structure reflects GP preferences
+
+  Scenario: Explanation includes previously effective talking points
+    Given previous pitches to similar LPs were successful
+    When generating explanation
+    Then talking points mention proven approaches
+    And source is cited: "Similar approach worked with [LP type]"
+
+  Scenario: Explanation warns about known LP sensitivities
+    Given Explanation Agent learned "CalPERS is sensitive to high fees"
+    When GP views CalPERS explanation
+    Then concerns section highlights fee discussion
+    And suggested talking points address fee value proposition
+
+  Scenario: Explanation adapts to GP's experience level
+    Given GP has been on platform 2 years with 100+ matches
+    When generating explanation
+    Then explanation uses industry jargon appropriately
+    And basic concepts are not over-explained
+
+  # ==========================================================================
+  # Explanation Feedback Loop
+  # ==========================================================================
+
+  Scenario: GP rates explanation quality
+    Given GP views match explanation
+    When GP clicks "Was this helpful?"
+    Then options are:
+      | Yes, very helpful |
+      | Somewhat helpful |
+      | Not helpful |
+    And rating is stored
+
+  Scenario: GP provides specific feedback
+    Given GP rated explanation as "Not helpful"
+    When GP is prompted for details
+    Then GP can select:
+      | "Missing key information about LP" |
+      | "Talking points were off-base" |
+      | "Too generic" |
+      | "Other" (free text) |
+    And feedback is used to improve future explanations
+
+  Scenario: Explanation improves from feedback
+    Given GP indicated "Too generic" for 3 explanations
+    When Explanation Agent learns from feedback
+    Then future explanations include more specific details
+    And personalization increases
+
+  # ==========================================================================
+  # NEGATIVE TESTS: Enhanced Explanation Failures
+  # ==========================================================================
+
+  @negative
+  Scenario: No learned preferences available
+    Given GP is new with no interaction history
+    When generating match explanation
+    Then standard explanation is generated
+    And no personalization is applied
+
+  @negative
+  Scenario: Conflicting feedback signals
+    Given GP rated same explanation type as "helpful" and "not helpful"
+    When processing feedback
+    Then most recent feedback takes precedence
+    And conflicting signals are flagged for review
+
+  @negative
+  Scenario: Feedback storage fails
+    Given GP provides explanation feedback
+    When database write fails
+    Then feedback is queued for retry
+    And user sees "Feedback received"
+    And experience is not degraded
+```

@@ -114,6 +114,22 @@ SCREENS = {
         ("error-api.html", "API Error", "Error state handling",
          """The API Error screen provides graceful error handling when something goes wrong. Instead of cryptic error messages, it shows a friendly explanation and clear next steps. A "Try Again" button attempts to retry the operation. Error details are available for technical users and support. Contact information helps users get assistance if the problem persists."""),
     ],
+    "lp_user": [
+        ("lp-dashboard.html", "LP Dashboard", "Fund overview for institutional investors",
+         """The LP Dashboard is the command center for institutional investors using LPxGP. It provides an at-a-glance view of matching funds, allocation availability, and recent activity. LPs see statistics including new fund matches, funds reviewed, and current allocation capacity. The top matches table shows funds ranked by compatibility score with quick actions to mark interest or pass. This bidirectional matching enables LPs to proactively discover funds rather than waiting for GP outreach."""),
+
+        ("lp-fund-matches.html", "Fund Matches", "Ranked funds matching LP mandate",
+         """The Fund Matches screen shows all funds ranked by compatibility with the LP's investment mandate. LPs can filter by strategy, fund size, and geography. Each fund card displays the GP firm, strategy tags, target size, fund number, closing timeline, and match score. Quick actions allow LPs to mark interest, pass, or view detailed analysis. The scoring algorithm considers strategy alignment, size fit, track record, geographic overlap, and ESG requirements."""),
+
+        ("lp-fund-match-detail.html", "Fund Match Detail", "Detailed fund analysis for LPs",
+         """The Fund Match Detail screen explains why a specific fund is recommended for the LP. It provides a narrative explanation of alignment factors, a detailed score breakdown across multiple dimensions (strategy, size, track record, geography, ESG), the fund's investment thesis, historical performance data, and key considerations or concerns. LPs can mark interest, request a meeting, or request the fund deck. Private notes allow LPs to track their evaluation."""),
+
+        ("lp-preferences.html", "LP Preferences", "Matching preferences and alerts",
+         """The LP Preferences screen allows institutional investors to configure their matching criteria. LPs can set strategy preferences, geographic focus, fund size range, check size range, track record requirements, and ESG requirements. Current allocation availability helps the system prioritize actively deploying LPs. Notification preferences control alerts for new high-score matches, fund updates, closing reminders, and weekly digests."""),
+
+        ("lp-profile.html", "LP Profile", "Organization profile management",
+         """The LP Profile screen displays the LP's organization information and investment mandate. Organization details (name, type, AUM, headquarters) are managed by LPxGP administrators to ensure data quality. The investment mandate section shows the LP's strategies, geographic focus, check size, and track record requirements. User profile settings allow LPs to manage their personal information and security settings including password and two-factor authentication."""),
+    ],
 }
 
 
@@ -941,6 +957,7 @@ Stage 6: LEARNING LOOP (Continuous)
         "public": ("Public Screens", "Authentication and onboarding flows for all users", 4),
         "gp_user": ("GP User Screens", "Core platform functionality for fund managers and associates", 13),
         "admin": ("Super Admin Screens", "Platform administration and data management", 10),
+        "lp_user": ("LP User Screens", "Bidirectional matching - funds ranked for institutional investors", 5),
         "states": ("UI State Screens", "Loading, empty, and error states for better user experience", 3),
     }
 

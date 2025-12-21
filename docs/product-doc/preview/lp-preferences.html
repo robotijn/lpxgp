@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Preferences - LPxGP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        navy: {
+                            50: '#f0f4f8', 100: '#d9e2ec', 200: '#bcccdc', 300: '#9fb3c8',
+                            400: '#829ab1', 500: '#627d98', 600: '#486581', 700: '#334e68',
+                            800: '#243b53', 900: '#102a43',
+                        },
+                        accent: { DEFAULT: '#059669', dark: '#047857' }
+                    },
+                    fontFamily: { sans: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; -webkit-font-smoothing: antialiased; background-color: #f8fafc; }
+        .card { background: white; border: 1px solid #e2e8f0; border-radius: 0.5rem; box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05); }
+        .btn-primary { background-color: #059669; color: white; padding: 0.5rem 1rem; border-radius: 0.375rem; font-weight: 500; font-size: 0.875rem; }
+        .btn-secondary { background-color: white; color: #334e68; border: 1px solid #cbd5e1; padding: 0.5rem 1rem; border-radius: 0.375rem; font-weight: 500; font-size: 0.875rem; }
+        .form-input { border: 1px solid #cbd5e1; border-radius: 0.375rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; width: 100%; }
+        .form-input:focus { outline: none; border-color: #059669; box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1); }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+
+<div class="min-h-screen bg-slate-50 pb-12">
+    <!-- Top Navigation -->
+    <header class="bg-white border-b border-slate-200">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-8">
+                    <span class="text-xl font-bold text-navy-900">LPxGP <span class="text-emerald-600 text-sm font-normal">LP Portal</span></span>
+                    <nav class="hidden md:flex space-x-6">
+                        <a href="lp-dashboard.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">Dashboard</a>
+                        <a href="lp-fund-matches.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">Fund Matches</a>
+                        <a href="lp-preferences.html" class="text-sm font-medium text-navy-900 border-b-2 border-emerald-600 pb-4 -mb-px">Preferences</a>
+                        <a href="lp-profile.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">Profile</a>
+                    </nav>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-sm text-navy-600">CalPERS</span>
+                    <a href="lp-profile.html" class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
+                        <span class="text-sm font-medium text-emerald-700">CP</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-4xl mx-auto px-6 py-8">
+        <div class="mb-8">
+            <h1 class="text-2xl font-semibold text-navy-900">Matching Preferences</h1>
+            <p class="text-sm text-navy-500 mt-1">Configure how funds are matched to your mandate</p>
+        </div>
+
+        <!-- Investment Criteria -->
+        <div class="card p-6 mb-6">
+            <h2 class="text-lg font-semibold text-navy-900 mb-6">Investment Criteria</h2>
+
+            <div class="grid grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-medium text-navy-700 mb-2">Strategies</label>
+                    <div class="space-y-2">
+                        <label class="flex items-center">
+                            <input type="checkbox" checked class="w-4 h-4 text-emerald-600 rounded border-slate-300">
+                            <span class="ml-2 text-sm text-navy-600">Growth Equity</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" checked class="w-4 h-4 text-emerald-600 rounded border-slate-300">
+                            <span class="ml-2 text-sm text-navy-600">Buyout</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" checked class="w-4 h-4 text-emerald-600 rounded border-slate-300">
+                            <span class="ml-2 text-sm text-navy-600">Climate / ESG</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" class="w-4 h-4 text-emerald-600 rounded border-slate-300">
+                            <span class="ml-2 text-sm text-navy-600">Venture Capital</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" class="w-4 h-4 text-emerald-600 rounded border-slate-300">
+                            <span class="ml-2 text-sm text-navy-600">Real Assets</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-navy-700 mb-2">Geography</label>
+                    <div class="space-y-2">
+                        <label class="flex items-center">
+                            <input type="checkbox" checked class="w-4 h-4 text-emerald-600 rounded border-slate-300">
+                            <span class="ml-2 text-sm text-navy-600">North America</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" checked class="w-4 h-4 text-emerald-600 rounded border-slate-300">
+                            <span class="ml-2 text-sm text-navy-600">Europe</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" class="w-4 h-4 text-emerald-600 rounded border-slate-300">
+                            <span class="ml-2 text-sm text-navy-600">Asia Pacific</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" class="w-4 h-4 text-emerald-600 rounded border-slate-300">
+                            <span class="ml-2 text-sm text-navy-600">Latin America</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" class="w-4 h-4 text-emerald-600 rounded border-slate-300">
+                            <span class="ml-2 text-sm text-navy-600">Global</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-navy-700 mb-2">Fund Size Range</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-xs text-navy-500">Minimum</label>
+                            <select class="form-input mt-1">
+                                <option>$100M</option>
+                                <option selected>$250M</option>
+                                <option>$500M</option>
+                                <option>$1B</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-xs text-navy-500">Maximum</label>
+                            <select class="form-input mt-1">
+                                <option>$1B</option>
+                                <option selected>$3B</option>
+                                <option>$5B</option>
+                                <option>$10B+</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-navy-700 mb-2">Check Size Range</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-xs text-navy-500">Minimum</label>
+                            <select class="form-input mt-1">
+                                <option>$10M</option>
+                                <option>$25M</option>
+                                <option selected>$50M</option>
+                                <option>$100M</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-xs text-navy-500">Maximum</label>
+                            <select class="form-input mt-1">
+                                <option>$100M</option>
+                                <option selected>$200M</option>
+                                <option>$500M</option>
+                                <option>$1B</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-navy-700 mb-2">Track Record Minimum</label>
+                    <select class="form-input">
+                        <option>Fund I (Emerging)</option>
+                        <option selected>Fund II+</option>
+                        <option>Fund III+</option>
+                        <option>Fund IV+</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-navy-700 mb-2">ESG Requirement</label>
+                    <select class="form-input">
+                        <option>Not Required</option>
+                        <option selected>Preferred</option>
+                        <option>Required</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Allocation Availability -->
+        <div class="card p-6 mb-6">
+            <h2 class="text-lg font-semibold text-navy-900 mb-6">Current Allocation</h2>
+
+            <div class="grid grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-medium text-navy-700 mb-2">Available Allocation (FY24)</label>
+                    <div class="flex items-center">
+                        <span class="text-navy-500 mr-2">$</span>
+                        <input type="text" value="850" class="form-input">
+                        <span class="text-navy-500 ml-2">M</span>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-navy-700 mb-2">Actively Looking</label>
+                    <label class="flex items-center mt-2">
+                        <input type="checkbox" checked class="w-4 h-4 text-emerald-600 rounded border-slate-300">
+                        <span class="ml-2 text-sm text-navy-600">Yes, show me matching funds</span>
+                    </label>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-navy-700 mb-2">Target Close Date</label>
+                    <input type="date" value="2024-12-31" class="form-input">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-navy-700 mb-2">Minimum Match Score</label>
+                    <select class="form-input">
+                        <option>60+</option>
+                        <option selected>70+</option>
+                        <option>80+</option>
+                        <option>90+</option>
+                    </select>
+                    <p class="text-xs text-navy-400 mt-1">Only show funds scoring above this threshold</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notification Preferences -->
+        <div class="card p-6 mb-6">
+            <h2 class="text-lg font-semibold text-navy-900 mb-6">Notification Preferences</h2>
+
+            <div class="space-y-4">
+                <label class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-navy-900">New high-score matches</p>
+                        <p class="text-xs text-navy-500">Get notified when a new fund scores 85+ on your criteria</p>
+                    </div>
+                    <input type="checkbox" checked class="w-4 h-4 text-emerald-600 rounded border-slate-300">
+                </label>
+
+                <label class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-navy-900">Fund updates</p>
+                        <p class="text-xs text-navy-500">Notify me when funds I've marked "interested" post updates</p>
+                    </div>
+                    <input type="checkbox" checked class="w-4 h-4 text-emerald-600 rounded border-slate-300">
+                </label>
+
+                <label class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-navy-900">Closing reminders</p>
+                        <p class="text-xs text-navy-500">Remind me 30 days before final close of interesting funds</p>
+                    </div>
+                    <input type="checkbox" checked class="w-4 h-4 text-emerald-600 rounded border-slate-300">
+                </label>
+
+                <label class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-navy-900">Weekly digest</p>
+                        <p class="text-xs text-navy-500">Receive a weekly summary of new matches</p>
+                    </div>
+                    <input type="checkbox" class="w-4 h-4 text-emerald-600 rounded border-slate-300">
+                </label>
+            </div>
+        </div>
+
+        <!-- Save Button -->
+        <div class="flex justify-end space-x-4">
+            <button class="btn-secondary">Cancel</button>
+            <button class="btn-primary">Save Preferences</button>
+        </div>
+    </main>
+</div>
+
+<!-- UX Context Footer -->
+<div class="fixed bottom-0 left-0 right-0 bg-slate-800 text-white text-xs py-2 px-4">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+        <span class="font-medium">UX Flow: LP User</span>
+        <div class="flex items-center space-x-2">
+            <a href="lp-dashboard.html" class="px-2 py-1 hover:bg-slate-700 rounded">LP Dashboard</a>
+            <a href="lp-fund-matches.html" class="px-2 py-1 hover:bg-slate-700 rounded">Fund Matches</a>
+            <span class="px-2 py-1 bg-emerald-700 rounded">Preferences</span>
+            <span class="text-slate-500">|</span>
+            <a href="lp-profile.html" class="px-2 py-1 hover:bg-slate-700 rounded">LP Profile</a>
+        </div>
+        <a href="index.html" class="text-slate-400 hover:text-white">← All Screens</a>
+    </div>
+</div>
+
+</body>
+</html>

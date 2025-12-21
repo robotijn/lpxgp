@@ -663,13 +663,127 @@ if std_dev(rule_score, semantic_score, llm_score, collaborative_score) > 20:
     }
 ```
 
-#### What NOT to Use
+#### What NOT to Use for Core Scoring
 
 | Approach | Why Not |
 |----------|---------|
-| **Agentic systems (LangChain, CrewAI)** | Adds abstraction complexity without quality improvement |
+| **Agentic frameworks for batch scoring** | Core scoring is embarrassingly parallel; asyncio + direct API calls is cleaner |
 | **Pure collaborative filtering** | Cold start problem severe for new funds |
 | **Single-method scoring** | Each method has blind spots; ensemble catches what individuals miss |
+
+---
+
+### 5.6.2 Agentic Architecture
+
+While the core scoring pipeline uses direct LLM calls, three specialized agents handle data enrichment and learning:
+
+#### Research Agent (Data Enrichment)
+
+**Trigger:** `data_quality_score < threshold` OR `last_verified > 6 months` OR user request
+
+**Purpose:** Enrich sparse LP/GP profiles with external data
+
+**Tools:**
+- `perplexity_search(query)` - General research, recent news, commitment announcements
+- `web_fetch(url)` - Scrape LP websites for mandate details
+- `news_api(entity, months)` - Recent fund commitment announcements
+- `linkedin_api(person, company)` - Verify/update contact information
+
+**Outputs:**
+- Enriched profile fields (AUM, mandate text, contacts)
+- LLM-generated summary (inferences from sparse data)
+- Interpreted constraints (what mandate IMPLIES - see below)
+
+**Human Review:** All proposed changes go to review queue before commit
+
+**Database:** See `research_jobs` and `lp_interpreted_constraints` tables in Section 6.2
+
+#### LLM Summaries for Sparse Data
+
+When LP data is sparse, the LLM generates a rich summary by reasoning about available signals:
+
+```
+Raw data:
+  name: "Nordic Pension Fund"
+  type: "pension"
+  aum: NULL
+  mandate: NULL
+
+LLM Summary (generated):
+  "Nordic Pension Fund is likely a Scandinavian public pension.
+   Nordic pensions typically have: AUM €50-200B, strong ESG requirements,
+   preference for Nordic/EU managers, long investment horizons.
+
+   Inferred constraints:
+   - Geography: EU preferred, Nordics strongly preferred
+   - ESG: Required (high confidence)
+   - Check size: €30-100M typical"
+```
+
+This summary gets embedded as `summary_embedding` and used in semantic matching.
+
+#### Interpreted Constraints (LLM-Derived Hard Filters)
+
+Mandate text contains implicit constraints that keyword matching misses:
+
+| Mandate Says | System Interprets |
+|--------------|-------------------|
+| "Invests in biodiversity" | Excludes: weapons, fossil_fuels, pharma, tech_hardware, mining |
+| "EU-focused growth equity" | Excludes: funds with geography NOT IN EU |
+| "Fund III+ only" | Excludes: Fund I, Fund II managers |
+| "ESG-integrated approach" | Requires: esg_policy = TRUE |
+
+These interpreted constraints power the hard filter stage (Stage 1).
+
+#### Explanation Agent (Interaction Learning)
+
+**Trigger:** GP shortlists, dismisses, edits pitch, provides feedback
+
+**Purpose:** Learn GP preferences from interactions to personalize recommendations
+
+**Observes:**
+- Which matches GP shortlists vs dismisses (implicit preference)
+- How GP edits generated pitches (style preference)
+- Explicit feedback ("this talking point was wrong")
+- Time patterns (when do they engage?)
+
+**Learns & Updates:**
+- GP profile: `pitch_style_preference`, `scoring_weight_overrides`
+- LP profile: "GP X found talking point Y ineffective"
+- Per-GP customization of ensemble weights
+
+**Example Learnings:**
+- "Acme Capital always shortens emails" → Learn concise preference
+- "Beta Partners dismisses all ESG LPs" → Reduce ESG weight for this GP
+- "This GP prefers detailed track record analysis" → Emphasize historical performance
+
+**Database:** See `gp_learned_preferences` table in Section 6.2
+
+#### Learning Agent (Cross-Company Intelligence)
+
+**Trigger:** Continuous, observes all outcomes across companies
+
+**Purpose:** Aggregate learnings to improve recommendations for everyone
+
+**Observes (Aggregated, Privacy-Safe):**
+- Response rates by LP (is this LP "hot" or "cold"?)
+- Strategy trends (climate funds getting 2x engagement)
+- Timing patterns (Q4 allocation windows)
+- Outcome correlations (what predicts commitment?)
+
+**Learns & Updates:**
+- Global LP signals: "CalPERS response rate dropped 40% this quarter"
+- Market priors: "Pensions prioritizing climate in 2024"
+- Model weights: Retrain ensemble on outcome data
+
+**Database:** See `global_learned_signals` table in Section 6.2
+
+**Privacy Boundary:**
+| Can Share | Cannot Share |
+|-----------|--------------|
+| "LP X has 60% response rate" (aggregated) | "Company A contacted LP X" |
+| "Strategy Y is trending" | Specific pitch content |
+| "Q4 allocation windows are real" | Commitment amounts in negotiation |
 
 ---
 
@@ -972,6 +1086,12 @@ CREATE TABLE organizations (
 
     -- Vector embedding for semantic search (LPs only)
     mandate_embedding       VECTOR(1024),
+
+    -- LLM-generated summary for sparse data (Research Agent output)
+    llm_summary             TEXT,
+    summary_embedding       VECTOR(1024),
+    summary_generated_at    TIMESTAMPTZ,
+    summary_sources         JSONB DEFAULT '[]',  -- Sources used to generate summary
 
     -- Data quality (primarily for LPs)
     data_source             TEXT DEFAULT 'manual',
@@ -1547,6 +1667,135 @@ CREATE TABLE import_jobs (
     created_at      TIMESTAMPTZ DEFAULT NOW(),
     completed_at    TIMESTAMPTZ
 );
+```
+
+#### Research Agent Jobs
+```sql
+CREATE TABLE research_jobs (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    org_id          UUID REFERENCES organizations(id) ON DELETE CASCADE,
+    person_id       UUID REFERENCES people(id) ON DELETE SET NULL,
+
+    job_type        TEXT NOT NULL CHECK (job_type IN ('org_enrichment', 'person_enrichment', 'market_research')),
+    status          TEXT CHECK (status IN ('pending', 'in_progress', 'completed', 'failed')) DEFAULT 'pending',
+
+    -- Research parameters
+    search_queries  TEXT[],
+    sources_to_check TEXT[] DEFAULT ARRAY['perplexity', 'web_search', 'linkedin'],
+
+    -- Results
+    findings        JSONB DEFAULT '{}',
+    confidence      DECIMAL(3,2),
+    sources_used    JSONB DEFAULT '[]',
+
+    -- Audit
+    triggered_by    TEXT,  -- 'low_data_quality', 'manual', 'scheduled', 'match_request'
+    created_at      TIMESTAMPTZ DEFAULT NOW(),
+    completed_at    TIMESTAMPTZ
+);
+
+CREATE INDEX idx_research_jobs_org ON research_jobs(org_id);
+CREATE INDEX idx_research_jobs_status ON research_jobs(status) WHERE status = 'pending';
+```
+
+#### LLM-Interpreted Constraints
+```sql
+CREATE TABLE lp_interpreted_constraints (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    lp_org_id       UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+
+    -- Original mandate text that was interpreted
+    source_text     TEXT NOT NULL,
+
+    -- LLM-derived constraints
+    hard_include    JSONB DEFAULT '{}',  -- {"strategies": ["buyout"], "geographies": ["EU"]}
+    hard_exclude    JSONB DEFAULT '{}',  -- {"sectors": ["weapons", "tobacco"], "geographies": ["Russia"]}
+    soft_preferences JSONB DEFAULT '{}', -- {"esg_preference": "strong", "emerging_ok": false}
+
+    -- Interpretation metadata
+    llm_reasoning   TEXT,                -- Why the LLM made these interpretations
+    confidence      DECIMAL(3,2),
+    model_used      TEXT,
+
+    -- Verification
+    human_verified  BOOLEAN DEFAULT FALSE,
+    verified_by     UUID REFERENCES people(id),
+    verified_at     TIMESTAMPTZ,
+
+    created_at      TIMESTAMPTZ DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_interpreted_constraints_lp ON lp_interpreted_constraints(lp_org_id);
+```
+
+#### Explanation Agent Learned Preferences
+```sql
+CREATE TABLE gp_learned_preferences (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    gp_org_id       UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+
+    -- Learned from GP interactions
+    preference_type TEXT NOT NULL CHECK (preference_type IN (
+        'lp_type_preference',      -- "Prefers family offices over pensions"
+        'geography_affinity',      -- "Strong track record with Texas LPs"
+        'size_sweet_spot',         -- "Best conversion with $50-100M checks"
+        'relationship_style',      -- "Values warm intros over cold outreach"
+        'timing_pattern',          -- "Closes better in Q4"
+        'objection_pattern'        -- "Often loses on track record concerns"
+    )),
+
+    -- The learned insight
+    insight         TEXT NOT NULL,
+    supporting_data JSONB,           -- Evidence from matches/outcomes
+
+    -- Confidence and validation
+    confidence      DECIMAL(3,2),
+    observation_count INTEGER DEFAULT 1,
+    last_validated  TIMESTAMPTZ,
+
+    created_at      TIMESTAMPTZ DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_learned_preferences_gp ON gp_learned_preferences(gp_org_id);
+CREATE INDEX idx_learned_preferences_type ON gp_learned_preferences(preference_type);
+```
+
+#### Learning Agent Global Signals
+```sql
+CREATE TABLE global_learned_signals (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+    -- Aggregated cross-company learning (privacy-safe)
+    signal_type     TEXT NOT NULL CHECK (signal_type IN (
+        'strategy_trend',          -- "Growth equity seeing 40% more interest this quarter"
+        'lp_type_pattern',         -- "Pensions responding faster than usual"
+        'geography_shift',         -- "APAC LPs more active in US funds"
+        'timing_insight',          -- "Q1 2024 seeing slower close rates"
+        'market_condition'         -- "Interest rates affecting LP allocations"
+    )),
+
+    -- The signal
+    insight         TEXT NOT NULL,
+    supporting_metrics JSONB,       -- Aggregated, anonymized stats
+
+    -- Applicability
+    applies_to_strategies TEXT[],   -- Which strategies this applies to
+    applies_to_geographies TEXT[],  -- Which geographies
+    applies_to_lp_types TEXT[],     -- Which LP types
+
+    -- Validity
+    confidence      DECIMAL(3,2),
+    observation_count INTEGER,
+    valid_from      DATE,
+    valid_until     DATE,
+
+    created_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_global_signals_type ON global_learned_signals(signal_type);
+CREATE INDEX idx_global_signals_validity ON global_learned_signals(valid_until) WHERE valid_until > NOW();
 ```
 
 ---

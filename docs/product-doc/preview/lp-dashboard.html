@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LP Dashboard - LPxGP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        navy: {
+                            50: '#f0f4f8',
+                            100: '#d9e2ec',
+                            200: '#bcccdc',
+                            300: '#9fb3c8',
+                            400: '#829ab1',
+                            500: '#627d98',
+                            600: '#486581',
+                            700: '#334e68',
+                            800: '#243b53',
+                            900: '#102a43',
+                        },
+                        accent: {
+                            DEFAULT: '#059669',
+                            dark: '#047857',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            background-color: #f8fafc;
+        }
+        .card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05);
+        }
+        .btn-primary {
+            background-color: #059669;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+        .btn-primary:hover {
+            background-color: #047857;
+        }
+        .btn-secondary {
+            background-color: white;
+            color: #334e68;
+            border: 1px solid #cbd5e1;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+        .btn-secondary:hover {
+            background-color: #f8fafc;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+
+<div class="min-h-screen bg-slate-50 pb-12">
+    <!-- Top Navigation - LP Version (Emerald accent) -->
+    <header class="bg-white border-b border-slate-200">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-8">
+                    <span class="text-xl font-bold text-navy-900">LPxGP <span class="text-emerald-600 text-sm font-normal">LP Portal</span></span>
+                    <nav class="hidden md:flex space-x-6">
+                        <a href="lp-dashboard.html" class="text-sm font-medium text-navy-900 border-b-2 border-emerald-600 pb-4 -mb-px">Dashboard</a>
+                        <a href="lp-fund-matches.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">Fund Matches</a>
+                        <a href="lp-preferences.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">Preferences</a>
+                        <a href="lp-profile.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">Profile</a>
+                    </nav>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-sm text-navy-600">CalPERS</span>
+                    <a href="lp-profile.html" class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
+                        <span class="text-sm font-medium text-emerald-700">CP</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-6 py-8">
+        <!-- Page Header -->
+        <div class="mb-8">
+            <h1 class="text-2xl font-semibold text-navy-900">LP Dashboard</h1>
+            <p class="text-sm text-navy-500 mt-1">Welcome back, Sarah. Here are funds matching your mandate.</p>
+        </div>
+
+        <!-- Stats Row -->
+        <div class="grid grid-cols-4 gap-6 mb-8">
+            <div class="card p-6">
+                <div class="text-sm font-medium text-navy-500 uppercase tracking-wide">New Matches</div>
+                <div class="mt-2 text-3xl font-semibold text-navy-900">24</div>
+                <div class="mt-1 text-sm text-emerald-600">+8 this week</div>
+            </div>
+            <div class="card p-6">
+                <div class="text-sm font-medium text-navy-500 uppercase tracking-wide">Reviewed</div>
+                <div class="mt-2 text-3xl font-semibold text-navy-900">156</div>
+                <div class="mt-1 text-sm text-navy-400">funds this quarter</div>
+            </div>
+            <div class="card p-6">
+                <div class="text-sm font-medium text-navy-500 uppercase tracking-wide">Interested</div>
+                <div class="mt-2 text-3xl font-semibold text-navy-900">12</div>
+                <div class="mt-1 text-sm text-navy-400">marked for follow-up</div>
+            </div>
+            <div class="card p-6">
+                <div class="text-sm font-medium text-navy-500 uppercase tracking-wide">Allocation</div>
+                <div class="mt-2 text-3xl font-semibold text-navy-900">$850M</div>
+                <div class="mt-1 text-sm text-emerald-600">available FY24</div>
+            </div>
+        </div>
+
+        <!-- Top Matches Section -->
+        <div class="mb-8">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-semibold text-navy-900">Top Fund Matches</h2>
+                <a href="lp-fund-matches.html" class="text-sm font-medium text-emerald-600 hover:text-emerald-700">View All Matches →</a>
+            </div>
+
+            <div class="card overflow-hidden">
+                <table class="w-full">
+                    <thead>
+                        <tr class="bg-slate-50 border-b border-slate-200">
+                            <th class="text-left text-xs font-semibold text-navy-500 uppercase tracking-wide px-6 py-3">Fund</th>
+                            <th class="text-left text-xs font-semibold text-navy-500 uppercase tracking-wide px-6 py-3">GP Firm</th>
+                            <th class="text-left text-xs font-semibold text-navy-500 uppercase tracking-wide px-6 py-3">Strategy</th>
+                            <th class="text-left text-xs font-semibold text-navy-500 uppercase tracking-wide px-6 py-3">Target Size</th>
+                            <th class="text-center text-xs font-semibold text-navy-500 uppercase tracking-wide px-6 py-3">Match Score</th>
+                            <th class="text-right text-xs font-semibold text-navy-500 uppercase tracking-wide px-6 py-3">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        <tr class="hover:bg-slate-50">
+                            <td class="px-6 py-4">
+                                <a href="lp-fund-match-detail.html" class="font-medium text-navy-900 hover:text-emerald-600">Sequoia Growth Fund VI</a>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-navy-600">Sequoia Capital</td>
+                            <td class="px-6 py-4">
+                                <span class="px-2 py-1 text-xs font-medium bg-blue-50 text-blue-700 rounded">Growth Equity</span>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-navy-900">$2.5B</td>
+                            <td class="px-6 py-4 text-center">
+                                <span class="px-3 py-1 text-sm font-semibold bg-emerald-50 text-emerald-700 rounded-full">94</span>
+                            </td>
+                            <td class="px-6 py-4 text-right">
+                                <a href="lp-fund-match-detail.html" class="text-sm font-medium text-emerald-600 hover:text-emerald-700">View →</a>
+                            </td>
+                        </tr>
+                        <tr class="hover:bg-slate-50">
+                            <td class="px-6 py-4">
+                                <a href="lp-fund-match-detail.html" class="font-medium text-navy-900 hover:text-emerald-600">Acme Growth Fund III</a>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-navy-600">Acme Capital</td>
+                            <td class="px-6 py-4">
+                                <span class="px-2 py-1 text-xs font-medium bg-blue-50 text-blue-700 rounded">Growth Equity</span>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-navy-900">$500M</td>
+                            <td class="px-6 py-4 text-center">
+                                <span class="px-3 py-1 text-sm font-semibold bg-emerald-50 text-emerald-700 rounded-full">91</span>
+                            </td>
+                            <td class="px-6 py-4 text-right">
+                                <a href="lp-fund-match-detail.html" class="text-sm font-medium text-emerald-600 hover:text-emerald-700">View →</a>
+                            </td>
+                        </tr>
+                        <tr class="hover:bg-slate-50">
+                            <td class="px-6 py-4">
+                                <a href="lp-fund-match-detail.html" class="font-medium text-navy-900 hover:text-emerald-600">Climate Partners Fund II</a>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-navy-600">Climate Partners</td>
+                            <td class="px-6 py-4">
+                                <span class="px-2 py-1 text-xs font-medium bg-green-50 text-green-700 rounded">Climate / ESG</span>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-navy-900">$800M</td>
+                            <td class="px-6 py-4 text-center">
+                                <span class="px-3 py-1 text-sm font-semibold bg-emerald-50 text-emerald-700 rounded-full">89</span>
+                            </td>
+                            <td class="px-6 py-4 text-right">
+                                <a href="lp-fund-match-detail.html" class="text-sm font-medium text-emerald-600 hover:text-emerald-700">View →</a>
+                            </td>
+                        </tr>
+                        <tr class="hover:bg-slate-50">
+                            <td class="px-6 py-4">
+                                <a href="lp-fund-match-detail.html" class="font-medium text-navy-900 hover:text-emerald-600">TechVentures Fund IV</a>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-navy-600">TechVentures Partners</td>
+                            <td class="px-6 py-4">
+                                <span class="px-2 py-1 text-xs font-medium bg-purple-50 text-purple-700 rounded">Venture Capital</span>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-navy-900">$300M</td>
+                            <td class="px-6 py-4 text-center">
+                                <span class="px-3 py-1 text-sm font-semibold bg-yellow-50 text-yellow-700 rounded-full">78</span>
+                            </td>
+                            <td class="px-6 py-4 text-right">
+                                <a href="lp-fund-match-detail.html" class="text-sm font-medium text-emerald-600 hover:text-emerald-700">View →</a>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Investment Mandate Summary -->
+        <div class="grid grid-cols-2 gap-6">
+            <div class="card p-6">
+                <h3 class="text-lg font-semibold text-navy-900 mb-4">Your Investment Mandate</h3>
+                <div class="space-y-3 text-sm">
+                    <div class="flex justify-between">
+                        <span class="text-navy-500">Strategies</span>
+                        <span class="font-medium text-navy-900">Growth Equity, Buyout, Climate</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-navy-500">Geography</span>
+                        <span class="font-medium text-navy-900">North America, Europe</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-navy-500">Check Size</span>
+                        <span class="font-medium text-navy-900">$50M - $200M</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-navy-500">Fund Size Preference</span>
+                        <span class="font-medium text-navy-900">$250M - $3B</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-navy-500">Track Record</span>
+                        <span class="font-medium text-navy-900">Fund II+</span>
+                    </div>
+                </div>
+                <div class="mt-4 pt-4 border-t border-slate-100">
+                    <a href="lp-preferences.html" class="text-sm font-medium text-emerald-600 hover:text-emerald-700">Edit Preferences →</a>
+                </div>
+            </div>
+
+            <div class="card p-6">
+                <h3 class="text-lg font-semibold text-navy-900 mb-4">Matching Alerts</h3>
+                <div class="space-y-4">
+                    <div class="flex items-start">
+                        <div class="w-2 h-2 rounded-full bg-emerald-500 mt-2 mr-3"></div>
+                        <div>
+                            <p class="text-sm font-medium text-navy-900">New high-match fund</p>
+                            <p class="text-xs text-navy-500">Climate Partners Fund II (score: 89) was added</p>
+                            <p class="text-xs text-navy-400 mt-1">2 hours ago</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start">
+                        <div class="w-2 h-2 rounded-full bg-blue-500 mt-2 mr-3"></div>
+                        <div>
+                            <p class="text-sm font-medium text-navy-900">Fund update</p>
+                            <p class="text-xs text-navy-500">Acme Growth Fund III updated their deck</p>
+                            <p class="text-xs text-navy-400 mt-1">Yesterday</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start">
+                        <div class="w-2 h-2 rounded-full bg-amber-500 mt-2 mr-3"></div>
+                        <div>
+                            <p class="text-sm font-medium text-navy-900">Closing soon</p>
+                            <p class="text-xs text-navy-500">Sequoia Growth Fund VI final close in 30 days</p>
+                            <p class="text-xs text-navy-400 mt-1">3 days ago</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-4 pt-4 border-t border-slate-100">
+                    <a href="lp-preferences.html" class="text-sm font-medium text-emerald-600 hover:text-emerald-700">Manage Alerts →</a>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- UX Context Footer -->
+<div class="fixed bottom-0 left-0 right-0 bg-slate-800 text-white text-xs py-2 px-4">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+        <span class="font-medium">UX Flow: LP User</span>
+        <div class="flex items-center space-x-2">
+            <span class="px-2 py-1 bg-emerald-700 rounded">LP Dashboard</span>
+            <span class="text-slate-500">|</span>
+            <a href="lp-fund-matches.html" class="px-2 py-1 hover:bg-slate-700 rounded">Fund Matches</a>
+            <a href="lp-fund-match-detail.html" class="px-2 py-1 hover:bg-slate-700 rounded">Match Detail</a>
+            <a href="lp-preferences.html" class="px-2 py-1 hover:bg-slate-700 rounded">Preferences</a>
+        </div>
+        <a href="index.html" class="text-slate-400 hover:text-white">← All Screens</a>
+    </div>
+</div>
+
+</body>
+</html>
