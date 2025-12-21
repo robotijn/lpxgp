@@ -5,14 +5,140 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LPxGP - Screen Mockups</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        <style>
+        /* Lively professional styling */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            background-color: #f8fafc;
+        }
+
+        /* Logo styling */
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .logo-text {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #0f172a;
+            letter-spacing: -0.025em;
+        }
+        .logo-x {
+            color: #d4a84b;
+        }
+
+        /* Subtle table styling */
+        .data-table {
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        .data-table th {
+            background-color: #f1f5f9;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            color: #64748b;
+        }
+        .data-table td {
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .data-table tr:hover td {
+            background-color: #f8fafc;
+        }
+
+        /* Card shadows */
+        .card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05);
+        }
+
+        /* Form inputs with gold focus */
+        .form-input {
+            border: 1px solid #cbd5e1;
+            border-radius: 0.375rem;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.875rem;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: #0ea5e9;
+            box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15);
+        }
+
+        /* Buttons with gold accent on hover */
+        .btn-primary {
+            background-color: #0f172a;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            font-weight: 500;
+            font-size: 0.875rem;
+            transition: all 0.15s;
+        }
+        .btn-primary:hover {
+            background-color: #1a3a5f;
+            box-shadow: 0 0 0 2px #d4a84b;
+        }
+
+        .btn-gold {
+            background-color: #d4a84b;
+            color: #0f172a;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            font-weight: 600;
+            font-size: 0.875rem;
+            transition: all 0.15s;
+        }
+        .btn-gold:hover {
+            background-color: #b8860b;
+            color: white;
+        }
+
+        .btn-secondary {
+            background-color: white;
+            color: #1e5075;
+            border: 1px solid #cbd5e1;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+        .btn-secondary:hover {
+            background-color: #f8fafc;
+            border-color: #7cc4ff;
+        }
+
+        /* Gold underline for active nav */
+        .nav-active {
+            border-bottom: 2px solid #d4a84b;
+            padding-bottom: 1rem;
+            margin-bottom: -1px;
+        }
+
+        /* Match score with gold highlight */
+        .score-excellent {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+        .score-gold {
+            background-color: #fef3c7;
+            color: #92400e;
+            border: 1px solid #d4a84b;
+        }
     </style>
 </head>
 <body class="bg-slate-900 min-h-screen">
     <div class="max-w-5xl mx-auto px-6 py-12">
         <div class="text-center mb-12">
-            <h1 class="text-4xl font-bold text-white mb-4">LPxGP</h1>
+            <h1 class="text-4xl font-bold text-white mb-4">LP<span style="color: #d4a84b;">×</span>GP</h1>
             <p class="text-xl text-slate-400">GP-LP Intelligence Platform</p>
             <p class="text-slate-500 mt-2">Screen Mockups & Design Preview</p>
             <p class="text-slate-600 mt-4 text-sm">30 screens | Conservative financial design</p>

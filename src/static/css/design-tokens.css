@@ -1,68 +1,90 @@
 /**
  * LPxGP Design Tokens
  *
- * Centralized color palette and design variables for the entire application.
- * Import this file in base.html and all templates to ensure consistency.
+ * Lively yet professional color palette for the GP-LP platform.
+ * Colors match the LP X GP logo (navy + gold).
  *
  * Usage in HTML:
  *   <div style="background-color: var(--navy-900);">
  *   <p class="text-[var(--navy-500)]">  (with Tailwind arbitrary values)
  *
  * Usage in CSS:
- *   .my-class { color: var(--accent); }
+ *   .my-class { color: var(--gold); }
  */
 
 :root {
   /* ==========================================================================
      NAVY COLOR PALETTE
-     Conservative financial color scheme - primary brand colors
+     Rich blue-navy tones (more vibrant than grey-navy)
      ========================================================================== */
-  --navy-50:  #f0f4f8;
-  --navy-100: #d9e2ec;
-  --navy-200: #bcccdc;
-  --navy-300: #9fb3c8;
-  --navy-400: #829ab1;
-  --navy-500: #627d98;
-  --navy-600: #486581;
-  --navy-700: #334e68;
-  --navy-800: #243b53;
-  --navy-900: #102a43;
+  --navy-50:  #f0f7ff;
+  --navy-100: #e0efff;
+  --navy-200: #b9ddff;
+  --navy-300: #7cc4ff;
+  --navy-400: #36a9ff;
+  --navy-500: '#0891b2;
+  --navy-600: #0369a1;
+  --navy-700: #1e5075;
+  --navy-800: #1a3a5f;
+  --navy-900: #0f172a;
 
   /* ==========================================================================
-     ACCENT COLORS
-     Used for primary actions, links, and highlights
+     GOLD ACCENT (Primary - matches logo)
+     Warm gold tones from the LP X GP logo
      ========================================================================== */
-  --accent:      #0d6efd;
-  --accent-dark: #0b5ed7;
-  --accent-light: #3d8bfd;
+  --gold:       #d4a84b;
+  --gold-light: #fef7e0;
+  --gold-dark:  #b8860b;
+  --gold-50:    #fffbeb;
+  --gold-100:   #fef3c7;
+  --gold-200:   #fde68a;
+  --gold-300:   #fcd34d;
+  --gold-400:   #fbbf24;
+  --gold-500:   #d4a84b;
+  --gold-600:   #b8860b;
+  --gold-700:   #92400e;
+
+  /* ==========================================================================
+     ACCENT COLORS (Secondary - teal for highlights)
+     Vibrant teal for CTAs and interactive elements
+     ========================================================================== */
+  --accent:       #0ea5e9;
+  --accent-light: #e0f7ff;
+  --accent-dark:  #0284c7;
+  --accent-50:    #f0f9ff;
+  --accent-100:   #e0f2fe;
+  --accent-200:   #bae6fd;
+  --accent-500:   #0ea5e9;
+  --accent-600:   #0284c7;
+  --accent-700:   #0369a1;
 
   /* ==========================================================================
      SEMANTIC COLORS
-     Status and feedback colors
+     Status and feedback colors (slightly warmer)
      ========================================================================== */
-  /* Success */
+  /* Success - warm green */
   --success:       #10b981;
   --success-light: #d1fae5;
   --success-dark:  #059669;
 
-  /* Warning */
+  /* Warning - amber (harmonizes with gold) */
   --warning:       #f59e0b;
   --warning-light: #fef3c7;
   --warning-dark:  #d97706;
 
-  /* Error */
+  /* Error - warm red */
   --error:       #ef4444;
   --error-light: #fee2e2;
   --error-dark:  #dc2626;
 
-  /* Info */
-  --info:       #3b82f6;
-  --info-light: #dbeafe;
-  --info-dark:  #2563eb;
+  /* Info - uses accent */
+  --info:       #0ea5e9;
+  --info-light: #e0f2fe;
+  --info-dark:  #0284c7;
 
   /* ==========================================================================
      NEUTRAL COLORS
-     For backgrounds, borders, and text
+     Warmer slate tones for backgrounds and text
      ========================================================================== */
   --slate-50:  #f8fafc;
   --slate-100: #f1f5f9;
@@ -89,7 +111,7 @@
      TYPOGRAPHY
      Font families and sizes
      ========================================================================== */
-  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
   /* ==========================================================================
@@ -134,40 +156,6 @@
 }
 
 /* ==========================================================================
-   TAILWIND CUSTOM CONFIG
-   Use this in <script> tags for Tailwind CDN to extend colors
-   ========================================================================== */
-/*
-tailwind.config = {
-  theme: {
-    extend: {
-      colors: {
-        navy: {
-          50:  '#f0f4f8',
-          100: '#d9e2ec',
-          200: '#bcccdc',
-          300: '#9fb3c8',
-          400: '#829ab1',
-          500: '#627d98',
-          600: '#486581',
-          700: '#334e68',
-          800: '#243b53',
-          900: '#102a43',
-        },
-        accent: {
-          DEFAULT: '#0d6efd',
-          dark: '#0b5ed7',
-        }
-      },
-      fontFamily: {
-        sans: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
-      }
-    }
-  }
-}
-*/
-
-/* ==========================================================================
    UTILITY CLASSES
    Common patterns used throughout the application
    ========================================================================== */
@@ -186,16 +174,16 @@ tailwind.config = {
   border-radius: var(--radius-md);
   padding: var(--space-sm) 0.75rem;
   font-size: 0.875rem;
-  transition: border-color 0.15s;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 .form-input:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.1);
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15);
 }
 
-/* Primary button */
+/* Primary button - navy with gold hover accent */
 .btn-primary {
   background-color: var(--navy-900);
   color: white;
@@ -203,18 +191,37 @@ tailwind.config = {
   border-radius: var(--radius-md);
   font-weight: 500;
   font-size: 0.875rem;
-  transition: background-color 0.15s;
+  transition: all 0.15s;
   cursor: pointer;
   border: none;
 }
 
 .btn-primary:hover {
   background-color: var(--navy-800);
+  box-shadow: 0 0 0 2px var(--gold);
 }
 
 .btn-primary:disabled {
   background-color: var(--slate-400);
   cursor: not-allowed;
+}
+
+/* Gold button - for special CTAs */
+.btn-gold {
+  background-color: var(--gold);
+  color: var(--navy-900);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 0.875rem;
+  transition: all 0.15s;
+  cursor: pointer;
+  border: none;
+}
+
+.btn-gold:hover {
+  background-color: var(--gold-dark);
+  color: white;
 }
 
 /* Secondary button */
@@ -231,6 +238,7 @@ tailwind.config = {
 
 .btn-secondary:hover {
   background-color: var(--slate-50);
+  border-color: var(--navy-300);
 }
 
 /* Danger button */
@@ -307,6 +315,11 @@ tailwind.config = {
   color: var(--info-dark);
 }
 
+.badge-gold {
+  background-color: var(--gold-light);
+  color: var(--gold-dark);
+}
+
 /* Match score badges */
 .score-badge {
   display: inline-flex;
@@ -343,4 +356,21 @@ body {
   -moz-osx-font-smoothing: grayscale;
   background-color: var(--slate-50);
   color: var(--navy-900);
+}
+
+/* Gold accent underline (like in logo) */
+.gold-underline {
+  border-bottom: 2px solid var(--gold);
+  padding-bottom: 2px;
+}
+
+/* Header logo styling */
+.logo-text {
+  font-weight: 700;
+  color: var(--navy-900);
+  letter-spacing: -0.025em;
+}
+
+.logo-x {
+  color: var(--gold);
 }
