@@ -2682,8 +2682,31 @@ Future (API integrations):
 | **CI/CD** | GitHub Actions | Integrated with repo, runs tests |
 | **Hosting** | Railway | Auto-deploys from GitHub, no Docker needed |
 | **Data Enrichment** | API integrations (future) | Preqin, PitchBook for institutional LP data |
+| **Agent Framework** | LangGraph | State machines for multi-agent debates |
+| **Agent Monitoring** | Langfuse (open source) | Self-hostable observability, prompt versioning |
 
-### 8.3 API Design
+### 8.3 Agent Implementation
+
+The multi-agent debate architecture (Section 5.6.3) is implemented using LangGraph for orchestration and Langfuse for monitoring. Full implementation specifications are in:
+
+| Document | Location | Contents |
+|----------|----------|----------|
+| **Agent Implementation** | `docs/architecture/agents-implementation.md` | LangGraph state machines, base agent classes, project structure |
+| **Agent Prompts** | `docs/architecture/agent-prompts.md` | Complete versioned prompts for all 12 agents |
+| **Batch Processing** | `docs/architecture/batch-processing.md` | Scheduler, processor, cache management |
+| **Monitoring & Observability** | `docs/architecture/monitoring-observability.md` | Langfuse integration, evaluation, A/B testing |
+
+**Framework Selection Rationale:**
+
+| Requirement | Solution |
+|-------------|----------|
+| Full agent inspection | Langfuse traces every debate with full conversation history |
+| Prompt versioning | Langfuse Prompt Registry with semantic versioning |
+| A/B testing | Langfuse supports traffic splitting between prompt versions |
+| Self-hosting | Langfuse is MIT licensed and can be deployed on Railway |
+| State machine orchestration | LangGraph handles debate cycles and regeneration |
+
+### 8.4 API Design
 
 ```
 /api/v1/
