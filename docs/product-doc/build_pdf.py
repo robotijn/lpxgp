@@ -446,13 +446,14 @@ def generate_pdf():
             background: #f8fafc;
         }}
 
-        /* Category headers */
+        /* Category headers - each category starts on new page */
         .category-header {{
             background: linear-gradient(135deg, #102a43 0%, #243b53 100%);
             color: white;
             padding: 1.2em 1.5em;
             border-radius: 8px;
-            margin: 2em 0 1.5em 0;
+            margin: 0 0 1.5em 0;
+            page-break-before: always;
             page-break-after: avoid;
         }}
 
