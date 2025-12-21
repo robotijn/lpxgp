@@ -38,7 +38,7 @@
 | F-MATCH-03 | Semantic Matching | ✅ | m3-matching | Thesis similarity |
 | F-MATCH-04 | Match Explanations | ✅ | m3-matching | AI-generated |
 | F-MATCH-05 | Match Feedback | ✅ | m3-matching | User ratings [P1] |
-| F-MATCH-06 | LP-Side Matching | ✅ | m3-matching | Bidirectional |
+| F-MATCH-06 | LP-Side Matching | ✅ | m3-matching | Bidirectional [Post-MVP] |
 | F-MATCH-07 | Enhanced Explanations | ✅ | m4-pitch | With learning |
 
 ### Priority C: Pitch Generation
@@ -178,20 +178,27 @@ PRD specifies different modes but tests don't clearly verify:
 
 **Suggested scenarios:**
 ```gherkin
-Feature: Real-Time vs Batch Processing
+Feature: Quality-First Async Processing
 
-  Scenario: New fund gets immediate matches
+  Scenario: New fund triggers async matching
     Given I create a new fund profile
-    When I request matches
-    Then I see results within 30 seconds
-    And scores are from simplified single-pass
-    And status shows "preliminary - full analysis tonight"
+    When I click "Generate Matches"
+    Then I see "Matching in progress..."
+    And job is queued for full agent debates
+    And I receive notification when matches are ready
 
-  Scenario: Refresh queues for batch
+  Scenario: Cached matches load instantly
+    Given my fund has cached matches
+    When I view my matches
+    Then results load instantly (< 500ms)
+    And I see match scores and explanations
+
+  Scenario: Refresh triggers re-analysis
     Given I have existing matches (cached)
     When I click "Refresh Matches"
-    Then I see message "Queued for overnight analysis"
-    And current cached results remain visible
+    Then I see "Re-analyzing..."
+    And a new job is queued
+    And current cached results remain visible until new ones ready
 ```
 
 ---

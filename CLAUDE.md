@@ -59,6 +59,30 @@ Note: Read these files on demand rather than auto-loading (to save context).
              └──────────┘ └──────────┘ └──────────┘
 ```
 
+**M3+ Agent Architecture:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Async Job Queue                          │
+│  (Fund created → Match job queued → Results cached)         │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    LangGraph State Machine                  │
+│  ┌─────────────┐   ┌─────────────┐   ┌─────────────┐       │
+│  │ Bull Agent  │──▶│ Bear Agent  │──▶│ Synthesizer │       │
+│  │ (optimist)  │   │ (skeptic)   │   │ (consensus) │       │
+│  └─────────────┘   └─────────────┘   └─────────────┘       │
+└─────────────────────────────────────────────────────────────┘
+                              │
+              ┌───────────────┼───────────────┐
+              ▼               ▼               ▼
+       ┌──────────┐    ┌──────────┐    ┌──────────┐
+       │OpenRouter│    │ Langfuse │    │  Cache   │
+       │  (LLM)   │    │(Monitor) │    │(Results) │
+       └──────────┘    └──────────┘    └──────────┘
+```
+
 ## Development Tools
 
 | Tool | Purpose |

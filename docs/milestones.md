@@ -147,8 +147,15 @@
 **Agent Architecture:**
 - LangGraph for state machine orchestration
 - Langfuse for monitoring and prompt versioning
-- Batch jobs run nightly; results cached for months
 - See `docs/architecture/` for implementation details
+
+**Matching Architecture (Quality First):**
+- Initial match generation: Async job queue (takes 5 min to 24 hours)
+  - GP creates fund → job queued → full agent debates run
+  - Shows "Matching in progress..." → notification when ready
+- Results cached for months until fund/LP data changes
+- Cached matches load instantly for GP
+- Re-match triggers: fund edit, LP data update, manual refresh
 
 **Deliverables:**
 - [ ] API: CRUD /api/v1/funds
@@ -272,12 +279,19 @@
 
 ---
 
-## Post-MVP: Enrichment
+## Post-MVP Features
 
 **Only if needed after real usage.**
 
+### Data Enrichment
 - Data integrations (Preqin API, partner feeds)
 - Automated enrichment from external APIs
+
+### LP-Side Matching (Bidirectional)
+- LP users can log in and see which funds match their mandate
+- LP dashboard with fund recommendations
+- LP preference settings for fund notifications
+- Bidirectional matching: LPs find funds, funds find LPs
 
 ---
 

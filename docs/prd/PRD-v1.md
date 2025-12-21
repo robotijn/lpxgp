@@ -223,7 +223,7 @@ Priority B (Second): Matching Engine
 ├── F-MATCH-03: Semantic Matching [P0]
 ├── F-MATCH-04: Match Explanations [P0]
 ├── F-MATCH-05: Match Feedback [P1] (post-MVP)
-├── F-MATCH-06: LP-Side Matching [P0] (bidirectional)
+├── F-MATCH-06: LP-Side Matching [Post-MVP] (bidirectional)
 └── F-MATCH-07: Enhanced Match Explanations [P0]
 
 Priority C (Third): Pitch Generation
@@ -1058,16 +1058,23 @@ Debates run **asynchronously as batch jobs**, not in real-time. This enables exh
 
 **Database:** See `batch_jobs` and `entity_cache` tables in Section 6.2
 
-#### When Debates Run: Real-Time vs Batch
+#### When Debates Run: Quality-First Async Processing
+
+**Design principle:** Quality over speed. Matching takes time but results are cached for instant access.
 
 | Trigger | Processing Mode | User Experience |
 |---------|-----------------|-----------------|
-| New fund created | Immediate (simplified single-pass) | Matches in ~30 seconds |
-| GP requests refresh | Queued for batch | "Refreshing..." - available next morning |
-| New LP added | Queued for batch | Available next morning |
-| Nightly batch | Full multi-round debate | Comprehensive cached results |
+| New fund created | Async job queue | "Matching in progress..." → notification when ready |
+| GP requests refresh | Async job queue | "Re-analyzing..." → notification when ready |
+| New LP added | Async job queue | Existing match caches invalidated, re-processed |
+| Subsequent access | Cache hit | Matches load instantly |
 
-**Note:** Real-time requests use simplified scoring or cached results. The nightly batch runs exhaustive multi-round Bull/Bear debates for maximum accuracy.
+**Matching times:** 5 minutes to 24 hours depending on queue depth and LP database size.
+
+**Cache lifecycle:**
+- Results cached for months until fund/LP data changes
+- Cache invalidation triggers: fund edit, LP data update, manual refresh
+- Cached matches load instantly for GP users
 
 ---
 

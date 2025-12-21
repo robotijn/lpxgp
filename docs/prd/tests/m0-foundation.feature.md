@@ -71,14 +71,23 @@ Feature: LP Profile Storage
       | Total AUM | -$10B |
     Then I see error "AUM cannot be negative"
 
-  Scenario: Reject unrealistic AUM
+  Scenario: Reject unrealistic AUM (too high)
     Given I am importing LP data
     When I create an LP with:
       | Field | Value |
       | Name | Test LP |
       | Type | Public Pension |
       | Total AUM | $999999999T |
-    Then I see error "AUM value is unrealistic"
+    Then I see error "AUM must be between $1M and $2T"
+
+  Scenario: Reject unrealistic AUM (too low)
+    Given I am importing LP data
+    When I create an LP with:
+      | Field | Value |
+      | Name | Test LP |
+      | Type | Public Pension |
+      | Total AUM | $500 |
+    Then I see error "AUM must be between $1M and $2T"
 
   # Negative: Name length limits
   Scenario: Reject name that is too long

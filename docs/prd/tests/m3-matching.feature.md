@@ -205,7 +205,7 @@ Feature: Fund Profile Creation
       """
       We invest.
       """
-    Then I see warning "Investment thesis is very short. Consider adding more detail for better matching."
+    Then I see warning "Investment thesis is under 100 words. Consider adding more detail for better matching."
 
   Scenario: Investment thesis too long
     When I write an investment thesis longer than 10,000 characters
@@ -2886,7 +2886,7 @@ Feature: Learning Agent Cross-Company Intelligence
 
 ---
 
-## F-MATCH-06: LP-Side Matching (Bidirectional) [P1]
+## F-MATCH-06: LP-Side Matching (Bidirectional) [Post-MVP]
 
 ```gherkin
 Feature: LP-Side Matching (Bidirectional)

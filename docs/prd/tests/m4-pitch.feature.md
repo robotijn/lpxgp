@@ -15,7 +15,7 @@ Feature: LP-Specific Executive Summary
   Scenario: Generate executive summary
     Given I have a match with LP "CalPERS"
     When I click "Generate Summary"
-    Then AI generates a 1-page summary
+    Then AI generates a summary of 300-500 words
     And summary is tailored to CalPERS
 
   Scenario: Summary content
@@ -1143,7 +1143,7 @@ Feature: Complete Pitch Generation Journey
     When I select "CalPERS" (score 92)
     And I click "Generate Summary"
     Then summary is generated in 8 seconds
-    And I see personalized 1-page summary
+    And I see personalized summary (300-500 words)
 
     # Review and download summary
     When I review the summary

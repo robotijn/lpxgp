@@ -38,7 +38,7 @@ The following agent-based features are tested within M3 and M4:
 | F-AGENT-02 | LLM-Interpreted Constraints | M3 |
 | F-AGENT-03 | Learning Agent (Cross-Company Intelligence) | M3 |
 | F-AGENT-04 | Explanation Agent (Interaction Learning) | M4 |
-| F-MATCH-06 | LP-Side Matching (Bidirectional) | M3 |
+| F-MATCH-06 | LP-Side Matching (Bidirectional) | Post-MVP |
 | F-MATCH-07 | Enhanced Match Explanations with Learning | M4 |
 | F-DEBATE | Multi-Agent Debate System (Bull/Bear/Synthesizer) | M3 |
 | F-OBSERVE | Agent Observability with Langfuse | M3 |
