@@ -5,23 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Matches - Growth Fund III - LPxGP</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script>
-                tailwind.config = {
+        tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        // Lively financial color palette
                         navy: {
-                            50: '#f0f7ff',
-                            100: '#e0efff',
-                            200: '#b9ddff',
-                            300: '#7cc4ff',
-                            400: '#36a9ff',
-                            500: '#0891b2',
-                            600: '#0369a1',
-                            700: '#1e5075',
-                            800: '#1a3a5f',
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
                             900: '#0f172a',
+                            950: '#020617',
                         },
                         gold: {
                             50: '#fffbeb',
@@ -35,176 +38,246 @@
                             DEFAULT: '#d4a84b',
                         },
                         accent: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
                             DEFAULT: '#0ea5e9',
-                            dark: '#0284c7',
-                            light: '#e0f2fe',
+                        },
+                        emerald: {
+                            50: '#ecfdf5',
+                            100: '#d1fae5',
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
                         }
                     },
                     fontFamily: {
-                        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'soft': '0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04)',
+                        'card': '0 0 0 1px rgba(0,0,0,0.03), 0 2px 4px rgba(0,0,0,0.05)',
                     }
                 }
             }
         }
     </script>
-        <style>
-        /* Lively professional styling */
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-        
+    <style>
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
             -webkit-font-smoothing: antialiased;
-            background-color: #f8fafc;
+            -moz-osx-font-smoothing: grayscale;
         }
 
-        /* Logo styling */
-        .logo-container {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        .logo-text {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: #0f172a;
-            letter-spacing: -0.025em;
-        }
-        .logo-x {
-            color: #d4a84b;
-        }
-
-        /* Subtle table styling */
-        .data-table {
-            border-collapse: separate;
-            border-spacing: 0;
-        }
-        .data-table th {
-            background-color: #f1f5f9;
-            font-weight: 600;
-            text-transform: uppercase;
-            font-size: 0.75rem;
-            letter-spacing: 0.05em;
-            color: #64748b;
-        }
-        .data-table td {
-            border-bottom: 1px solid #e2e8f0;
-        }
-        .data-table tr:hover td {
-            background-color: #f8fafc;
-        }
-
-        /* Card shadows */
+        /* Refined card with subtle gold accent on hover */
         .card {
             background: white;
             border: 1px solid #e2e8f0;
-            border-radius: 0.5rem;
-            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05);
+            border-radius: 0.75rem;
+            box-shadow: 0 0 0 1px rgba(0,0,0,0.03), 0 2px 4px rgba(0,0,0,0.05);
+            transition: all 0.2s ease;
+        }
+        .card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            border-color: #d4a84b;
         }
 
-        /* Form inputs with gold focus */
-        .form-input {
-            border: 1px solid #cbd5e1;
-            border-radius: 0.375rem;
-            padding: 0.5rem 0.75rem;
-            font-size: 0.875rem;
-            transition: border-color 0.15s, box-shadow 0.15s;
-        }
-        .form-input:focus {
-            outline: none;
-            border-color: #0ea5e9;
-            box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15);
-        }
-
-        /* Buttons with gold accent on hover */
+        /* Premium button styles */
         .btn-primary {
-            background-color: #0f172a;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
             color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 0.375rem;
+            padding: 0.625rem 1.25rem;
+            border-radius: 0.5rem;
             font-weight: 500;
             font-size: 0.875rem;
-            transition: all 0.15s;
+            transition: all 0.2s ease;
+            border: none;
+            cursor: pointer;
         }
         .btn-primary:hover {
-            background-color: #1a3a5f;
-            box-shadow: 0 0 0 2px #d4a84b;
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            box-shadow: 0 0 0 3px rgba(212, 168, 75, 0.3);
+            transform: translateY(-1px);
         }
 
         .btn-gold {
-            background-color: #d4a84b;
+            background: linear-gradient(135deg, #d4a84b 0%, #b8860b 100%);
             color: #0f172a;
-            padding: 0.5rem 1rem;
-            border-radius: 0.375rem;
+            padding: 0.625rem 1.25rem;
+            border-radius: 0.5rem;
             font-weight: 600;
             font-size: 0.875rem;
-            transition: all 0.15s;
+            transition: all 0.2s ease;
+            border: none;
+            cursor: pointer;
         }
         .btn-gold:hover {
-            background-color: #b8860b;
+            background: linear-gradient(135deg, #b8860b 0%, #92400e 100%);
             color: white;
+            transform: translateY(-1px);
         }
 
         .btn-secondary {
-            background-color: white;
-            color: #1e5075;
-            border: 1px solid #cbd5e1;
-            padding: 0.5rem 1rem;
-            border-radius: 0.375rem;
+            background: white;
+            color: #334155;
+            border: 1px solid #e2e8f0;
+            padding: 0.625rem 1.25rem;
+            border-radius: 0.5rem;
             font-weight: 500;
             font-size: 0.875rem;
+            transition: all 0.2s ease;
+            cursor: pointer;
         }
         .btn-secondary:hover {
-            background-color: #f8fafc;
-            border-color: #7cc4ff;
+            background: #f8fafc;
+            border-color: #cbd5e1;
         }
 
-        /* Gold underline for active nav */
+        /* Form inputs */
+        .form-input {
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            padding: 0.625rem 0.875rem;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+            width: 100%;
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: #d4a84b;
+            box-shadow: 0 0 0 3px rgba(212, 168, 75, 0.15);
+        }
+
+        /* Data tables */
+        .data-table {
+            border-collapse: separate;
+            border-spacing: 0;
+            width: 100%;
+        }
+        .data-table th {
+            background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.7rem;
+            letter-spacing: 0.05em;
+            color: #64748b;
+            padding: 0.875rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .data-table td {
+            padding: 0.875rem 1rem;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .data-table tbody tr:hover td {
+            background: #fafbfc;
+        }
+
+        /* Active nav with gold underline */
         .nav-active {
+            color: #0f172a !important;
             border-bottom: 2px solid #d4a84b;
-            padding-bottom: 1rem;
+            padding-bottom: 1.125rem;
             margin-bottom: -1px;
         }
 
-        /* Match score with gold highlight */
-        .score-excellent {
-            background-color: #d1fae5;
-            color: #065f46;
+        /* Mobile menu */
+        .mobile-menu {
+            display: none;
         }
-        .score-gold {
-            background-color: #fef3c7;
-            color: #92400e;
-            border: 1px solid #d4a84b;
+        .mobile-menu.open {
+            display: block;
+        }
+
+        /* Score badges */
+        .score-excellent { background: #d1fae5; color: #065f46; }
+        .score-good { background: #dcfce7; color: #166534; }
+        .score-moderate { background: #fef9c3; color: #854d0e; }
+        .score-low { background: #ffedd5; color: #9a3412; }
+        .score-poor { background: #fee2e2; color: #991b1b; }
+
+        /* Gold accent elements */
+        .gold-accent { border-left: 3px solid #d4a84b; }
+        .gold-dot::before {
+            content: '';
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            background: #d4a84b;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        /* Smooth animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.3s ease-out;
         }
     </style>
 </head>
-<body class="bg-slate-50 min-h-screen">
+
+<body class="bg-navy-50 min-h-screen">
     
-<div class="min-h-screen bg-slate-50 pb-12">
-    <!-- Top Navigation -->
-    <header class="bg-white border-b border-slate-200">
-        <div class="max-w-7xl mx-auto px-6">
+    <!-- Header -->
+    <header class="bg-white border-b border-navy-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6">
             <div class="flex justify-between items-center h-16">
-                <div class="flex items-center space-x-8">
-                    LP<span style="color: #d4a84b;">×</span>GP
-                    <nav class="hidden md:flex space-x-6">
+                <!-- Logo + Nav -->
+                <div class="flex items-center">
+                    <a href="index.html" class="flex items-center mr-8">
+                        <img src="logo-primary.png" alt="LPxGP" class="h-8 w-auto">
+                        
+                    </a>
+                    <nav class="hidden lg:flex items-center space-x-6">
                         <a href="dashboard.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">Dashboard</a>
-                        <a href="fund-list.html" class="text-sm font-medium text-navy-900 border-b-2 border-navy-900 pb-4 -mb-px">Funds</a>
+                        <a href="fund-list.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">Funds</a>
                         <a href="lp-search.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">Search</a>
+                        <a href="matches.html" class="text-sm font-medium text-navy-900 nav-active">Matches</a>
                         <a href="outreach-hub.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">Outreach</a>
                     </nav>
                 </div>
+
+                <!-- Right side -->
                 <div class="flex items-center space-x-4">
-                    <span class="text-sm text-navy-600">Acme Capital</span>
-                    <a href="settings-profile.html" class="w-8 h-8 rounded-full bg-navy-100 flex items-center justify-center">
-                        <span class="text-sm font-medium text-navy-600">JP</span>
+                    <span class="hidden sm:block text-sm text-navy-600">Acme Capital</span>
+                    <a href="settings-profile.html" class="w-8 h-8 rounded-full bg-gradient-to-br from-navy-100 to-navy-200 flex items-center justify-center hover:from-gold-100 hover:to-gold-200 transition-all">
+                        <span class="text-sm font-semibold text-navy-700">JP</span>
                     </a>
+                    <!-- Mobile menu button -->
+                    <button onclick="toggleMobileMenu()" class="lg:hidden p-2 rounded-md hover:bg-navy-50">
+                        <svg id="menu-icon" class="w-6 h-6 text-navy-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Mobile Navigation -->
+            <div id="mobile-menu" class="mobile-menu lg:hidden border-t border-navy-100 py-2">
+                <a href="dashboard.html" class="block px-4 py-3 text-sm font-medium text-navy-600 hover:bg-navy-50">Dashboard</a>
+                <a href="fund-list.html" class="block px-4 py-3 text-sm font-medium text-navy-600 hover:bg-navy-50">Funds</a>
+                <a href="lp-search.html" class="block px-4 py-3 text-sm font-medium text-navy-600 hover:bg-navy-50">Search</a>
+                <a href="matches.html" class="block px-4 py-3 text-sm font-medium text-navy-900 bg-gold-50 border-l-2 border-gold">Matches</a>
+                <a href="outreach-hub.html" class="block px-4 py-3 text-sm font-medium text-navy-600 hover:bg-navy-50">Outreach</a>
+                <div class="border-t border-navy-100 mt-2 pt-2">
+                    <a href="settings-profile.html" class="block px-4 py-3 text-sm font-medium text-navy-600 hover:bg-navy-50">Settings</a>
                 </div>
             </div>
         </div>
     </header>
 
+    <div class="min-h-screen bg-slate-50 pb-12">
+    <!-- Top Navigation -->
     <!-- Main Content -->
-    <main class="max-w-7xl mx-auto px-6 py-8">
+    <main style="padding-bottom: 3rem;" class="max-w-7xl mx-auto px-4 lg:px-6 py-6 lg:py-8">
         <!-- Breadcrumb -->
         <div class="flex items-center text-sm mb-6">
             <a href="fund-list.html" class="text-navy-500 hover:text-navy-700">Funds</a>
@@ -217,7 +290,7 @@
         <!-- Page Header -->
         <div class="flex justify-between items-start mb-6">
             <div>
-                <h1 class="text-2xl font-semibold text-navy-900">LP Matches</h1>
+                <h1 class="text-xl lg:text-2xl font-semibold text-navy-900">LP Matches</h1>
                 <p class="text-sm text-navy-500 mt-1">Growth Fund III - 45 matched LPs ranked by fit score</p>
             </div>
             <button class="btn-primary flex items-center">
@@ -232,19 +305,19 @@
         <div class="grid grid-cols-4 gap-4 mb-6">
             <div class="card p-4">
                 <div class="text-sm text-navy-500">Total Matches</div>
-                <div class="text-2xl font-semibold text-navy-900">45</div>
+                <div class="text-xl lg:text-2xl font-semibold text-navy-900">45</div>
             </div>
             <div class="card p-4">
                 <div class="text-sm text-navy-500">Avg Score</div>
-                <div class="text-2xl font-semibold text-navy-900">72</div>
+                <div class="text-xl lg:text-2xl font-semibold text-navy-900">72</div>
             </div>
             <div class="card p-4">
                 <div class="text-sm text-navy-500">Shortlisted</div>
-                <div class="text-2xl font-semibold text-navy-900">12</div>
+                <div class="text-xl lg:text-2xl font-semibold text-navy-900">12</div>
             </div>
             <div class="card p-4">
                 <div class="text-sm text-navy-500">Contacted</div>
-                <div class="text-2xl font-semibold text-navy-900">8</div>
+                <div class="text-xl lg:text-2xl font-semibold text-navy-900">8</div>
             </div>
         </div>
 
@@ -407,22 +480,36 @@
         </div>
     </main>
 </div>
-
+    
 <!-- UX Context Footer -->
-<div class="fixed bottom-0 left-0 right-0 bg-slate-800 text-white text-xs py-2 px-4">
+<div class="fixed bottom-0 left-0 right-0 bg-navy-900 text-white text-xs py-2 px-4 z-50">
     <div class="max-w-7xl mx-auto flex items-center justify-between">
-        <span class="font-medium">UX Flow: GP User</span>
-        <div class="flex items-center space-x-2">
-            <a href="dashboard.html" class="px-2 py-1 hover:bg-slate-700 rounded">Dashboard</a>
-            <span class="text-slate-500">|</span>
-            <a href="fund-detail.html" class="px-2 py-1 hover:bg-slate-700 rounded">Fund</a>
-            <span class="px-2 py-1 bg-slate-700 rounded">Matches</span>
-            <a href="match-detail.html" class="px-2 py-1 hover:bg-slate-700 rounded">Match Detail</a>
-            <a href="shortlist.html" class="px-2 py-1 hover:bg-slate-700 rounded">Shortlist</a>
+        <span class="font-medium text-gold">GP User</span>
+        <div class="hidden sm:flex items-center space-x-1">
+            <span class="px-2 py-1 bg-navy-800 rounded text-gold-300">Matches</span>
         </div>
-        <a href="index.html" class="text-slate-400 hover:text-white">← All Screens</a>
+        <a href="index.html" class="text-navy-400 hover:text-white flex items-center">
+            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
+            </svg>
+            All Screens
+        </a>
     </div>
 </div>
+
+    
+<script>
+    function toggleMobileMenu() {
+        const menu = document.getElementById('mobile-menu');
+        const icon = document.getElementById('menu-icon');
+        menu.classList.toggle('open');
+        if (menu.classList.contains('open')) {
+            icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>';
+        } else {
+            icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>';
+        }
+    }
+</script>
 
 </body>
 </html>

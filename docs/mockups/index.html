@@ -5,298 +5,243 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LPxGP - Screen Mockups</title>
     <script src="https://cdn.tailwindcss.com"></script>
-        <style>
-        /* Lively professional styling */
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-        
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            -webkit-font-smoothing: antialiased;
-            background-color: #f8fafc;
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        navy: {
+                            50: '#f8fafc', 100: '#f1f5f9', 200: '#e2e8f0', 300: '#cbd5e1',
+                            400: '#94a3b8', 500: '#64748b', 600: '#475569', 700: '#334155',
+                            800: '#1e293b', 900: '#0f172a', 950: '#020617',
+                        },
+                        gold: {
+                            50: '#fffbeb', 100: '#fef3c7', 200: '#fde68a', 300: '#fcd34d',
+                            400: '#fbbf24', 500: '#d4a84b', 600: '#b8860b', 700: '#92400e',
+                            DEFAULT: '#d4a84b',
+                        },
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
         }
-
-        /* Logo styling */
-        .logo-container {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        .logo-text {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: #0f172a;
-            letter-spacing: -0.025em;
-        }
-        .logo-x {
-            color: #d4a84b;
-        }
-
-        /* Subtle table styling */
-        .data-table {
-            border-collapse: separate;
-            border-spacing: 0;
-        }
-        .data-table th {
-            background-color: #f1f5f9;
-            font-weight: 600;
-            text-transform: uppercase;
-            font-size: 0.75rem;
-            letter-spacing: 0.05em;
-            color: #64748b;
-        }
-        .data-table td {
-            border-bottom: 1px solid #e2e8f0;
-        }
-        .data-table tr:hover td {
-            background-color: #f8fafc;
-        }
-
-        /* Card shadows */
-        .card {
-            background: white;
-            border: 1px solid #e2e8f0;
-            border-radius: 0.5rem;
-            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05);
-        }
-
-        /* Form inputs with gold focus */
-        .form-input {
-            border: 1px solid #cbd5e1;
-            border-radius: 0.375rem;
-            padding: 0.5rem 0.75rem;
-            font-size: 0.875rem;
-            transition: border-color 0.15s, box-shadow 0.15s;
-        }
-        .form-input:focus {
-            outline: none;
-            border-color: #0ea5e9;
-            box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15);
-        }
-
-        /* Buttons with gold accent on hover */
-        .btn-primary {
-            background-color: #0f172a;
-            color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 0.375rem;
-            font-weight: 500;
-            font-size: 0.875rem;
-            transition: all 0.15s;
-        }
-        .btn-primary:hover {
-            background-color: #1a3a5f;
-            box-shadow: 0 0 0 2px #d4a84b;
-        }
-
-        .btn-gold {
-            background-color: #d4a84b;
-            color: #0f172a;
-            padding: 0.5rem 1rem;
-            border-radius: 0.375rem;
-            font-weight: 600;
-            font-size: 0.875rem;
-            transition: all 0.15s;
-        }
-        .btn-gold:hover {
-            background-color: #b8860b;
-            color: white;
-        }
-
-        .btn-secondary {
-            background-color: white;
-            color: #1e5075;
-            border: 1px solid #cbd5e1;
-            padding: 0.5rem 1rem;
-            border-radius: 0.375rem;
-            font-weight: 500;
-            font-size: 0.875rem;
-        }
-        .btn-secondary:hover {
-            background-color: #f8fafc;
-            border-color: #7cc4ff;
-        }
-
-        /* Gold underline for active nav */
-        .nav-active {
-            border-bottom: 2px solid #d4a84b;
-            padding-bottom: 1rem;
-            margin-bottom: -1px;
-        }
-
-        /* Match score with gold highlight */
-        .score-excellent {
-            background-color: #d1fae5;
-            color: #065f46;
-        }
-        .score-gold {
-            background-color: #fef3c7;
-            color: #92400e;
-            border: 1px solid #d4a84b;
-        }
+    </script>
+    <style>
+        body { font-family: 'Inter', system-ui, sans-serif; }
+        .card-hover { transition: all 0.2s ease; }
+        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 8px 25px -5px rgba(0,0,0,0.1); border-color: #d4a84b; }
     </style>
 </head>
-<body class="bg-slate-900 min-h-screen">
-    <div class="max-w-5xl mx-auto px-6 py-12">
-        <div class="text-center mb-12">
-            <h1 class="text-4xl font-bold text-white mb-4">LP<span style="color: #d4a84b;">×</span>GP</h1>
-            <p class="text-xl text-slate-400">GP-LP Intelligence Platform</p>
-            <p class="text-slate-500 mt-2">Screen Mockups & Design Preview</p>
-            <p class="text-slate-600 mt-4 text-sm">30 screens | Conservative financial design</p>
+<body class="bg-gradient-to-b from-navy-900 via-navy-900 to-navy-950 min-h-screen">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-16">
+        <!-- Header -->
+        <div class="text-center mb-12 sm:mb-16">
+            <img src="logo-dark.png" alt="LPxGP" class="h-12 sm:h-16 mx-auto mb-6">
+            <p class="text-lg sm:text-xl text-navy-300">GP-LP Intelligence Platform</p>
+            <p class="text-navy-500 mt-2">Screen Mockups & Design Preview</p>
+            <div class="flex justify-center items-center space-x-4 mt-6">
+                <span class="px-3 py-1 bg-navy-800 text-gold rounded-full text-sm font-medium">30 Screens</span>
+                <span class="px-3 py-1 bg-navy-800 text-navy-300 rounded-full text-sm">Financial Design</span>
+                <span class="px-3 py-1 bg-navy-800 text-navy-300 rounded-full text-sm">Mobile Ready</span>
+            </div>
         </div>
 
-        <div class="grid gap-6">
+        <div class="space-y-8">
             <!-- Public Screens -->
-            <div class="bg-slate-800 rounded-lg p-6">
-                <h2 class="text-lg font-semibold text-white mb-4">Public Screens (4)</h2>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <a href="login.html" class="block bg-slate-700 hover:bg-slate-600 rounded-lg p-4 transition">
-                        <div class="text-white font-medium">Login</div>
-                        <div class="text-sm text-slate-400">User authentication</div>
+            <section class="bg-navy-800/50 rounded-2xl p-6 sm:p-8 backdrop-blur">
+                <div class="flex items-center mb-6">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-gold-400 to-gold-600 flex items-center justify-center mr-4">
+                        <svg class="w-5 h-5 text-navy-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-semibold text-white">Public Screens</h2>
+                        <p class="text-sm text-navy-400">Authentication & onboarding</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                    <a href="login.html" class="card-hover block bg-navy-700/50 border border-navy-600 rounded-xl p-4 sm:p-5">
+                        <div class="text-white font-medium mb-1">Login</div>
+                        <div class="text-xs sm:text-sm text-navy-400">User authentication</div>
                     </a>
-                    <a href="accept-invitation.html" class="block bg-slate-700 hover:bg-slate-600 rounded-lg p-4 transition">
-                        <div class="text-white font-medium">Accept Invitation</div>
-                        <div class="text-sm text-slate-400">New user onboarding</div>
+                    <a href="accept-invitation.html" class="card-hover block bg-navy-700/50 border border-navy-600 rounded-xl p-4 sm:p-5">
+                        <div class="text-white font-medium mb-1">Accept Invitation</div>
+                        <div class="text-xs sm:text-sm text-navy-400">New user onboarding</div>
                     </a>
-                    <a href="forgot-password.html" class="block bg-slate-700 hover:bg-slate-600 rounded-lg p-4 transition">
-                        <div class="text-white font-medium">Forgot Password</div>
-                        <div class="text-sm text-slate-400">Request reset link</div>
+                    <a href="forgot-password.html" class="card-hover block bg-navy-700/50 border border-navy-600 rounded-xl p-4 sm:p-5">
+                        <div class="text-white font-medium mb-1">Forgot Password</div>
+                        <div class="text-xs sm:text-sm text-navy-400">Request reset link</div>
                     </a>
-                    <a href="reset-password.html" class="block bg-slate-700 hover:bg-slate-600 rounded-lg p-4 transition">
-                        <div class="text-white font-medium">Reset Password</div>
-                        <div class="text-sm text-slate-400">Create new password</div>
+                    <a href="reset-password.html" class="card-hover block bg-navy-700/50 border border-navy-600 rounded-xl p-4 sm:p-5">
+                        <div class="text-white font-medium mb-1">Reset Password</div>
+                        <div class="text-xs sm:text-sm text-navy-400">Create new password</div>
                     </a>
                 </div>
-            </div>
+            </section>
 
             <!-- GP User Screens -->
-            <div class="bg-slate-800 rounded-lg p-6">
-                <h2 class="text-lg font-semibold text-white mb-4">GP User Screens (13)</h2>
-                <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    <a href="dashboard.html" class="block bg-slate-700 hover:bg-slate-600 rounded-lg p-4 transition">
-                        <div class="text-white font-medium">Dashboard</div>
-                        <div class="text-sm text-slate-400">Fund overview & activity</div>
+            <section class="bg-navy-800/50 rounded-2xl p-6 sm:p-8 backdrop-blur">
+                <div class="flex items-center mb-6">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-accent-400 to-accent-600 flex items-center justify-center mr-4">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-semibold text-white">GP User Screens</h2>
+                        <p class="text-sm text-navy-400">Fund manager experience</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+                    <a href="dashboard.html" class="card-hover block bg-navy-700/50 border border-navy-600 rounded-xl p-4 sm:p-5">
+                        <div class="text-white font-medium mb-1">Dashboard</div>
+                        <div class="text-xs sm:text-sm text-navy-400">Overview & activity</div>
                     </a>
-                    <a href="fund-list.html" class="block bg-slate-700 hover:bg-slate-600 rounded-lg p-4 transition">
-                        <div class="text-white font-medium">Fund List</div>
-                        <div class="text-sm text-slate-400">All funds overview</div>
+                    <a href="fund-list.html" class="card-hover block bg-navy-700/50 border border-navy-600 rounded-xl p-4 sm:p-5">
+                        <div class="text-white font-medium mb-1">Fund List</div>
+                        <div class="text-xs sm:text-sm text-navy-400">All funds overview</div>
                     </a>
-                    <a href="fund-detail.html" class="block bg-slate-700 hover:bg-slate-600 rounded-lg p-4 transition">
-                        <div class="text-white font-medium">Fund Detail</div>
-                        <div class="text-sm text-slate-400">Fund profile & stats</div>
+                    <a href="fund-detail.html" class="card-hover block bg-navy-700/50 border border-navy-600 rounded-xl p-4 sm:p-5">
+                        <div class="text-white font-medium mb-1">Fund Detail</div>
+                        <div class="text-xs sm:text-sm text-navy-400">Fund profile & stats</div>
                     </a>
-                    <a href="fund-create.html" class="block bg-slate-700 hover:bg-slate-600 rounded-lg p-4 transition">
-                        <div class="text-white font-medium">Create Fund</div>
-                        <div class="text-sm text-slate-400">New fund form</div>
+                    <a href="fund-create.html" class="card-hover block bg-navy-700/50 border border-navy-600 rounded-xl p-4 sm:p-5">
+                        <div class="text-white font-medium mb-1">Create Fund</div>
+                        <div class="text-xs sm:text-sm text-navy-400">New fund form</div>
                     </a>
-                    <a href="lp-search.html" class="block bg-slate-700 hover:bg-slate-600 rounded-lg p-4 transition">
-                        <div class="text-white font-medium">LP Search</div>
-                        <div class="text-sm text-slate-400">Search & filter LPs</div>
+                    <a href="lp-search.html" class="card-hover block bg-navy-700/50 border border-navy-600 rounded-xl p-4 sm:p-5">
+                        <div class="text-white font-medium mb-1">LP Search</div>
+                        <div class="text-xs sm:text-sm text-navy-400">Search & filter LPs</div>
                     </a>
-                    <a href="lp-detail.html" class="block bg-slate-700 hover:bg-slate-600 rounded-lg p-4 transition">
-                        <div class="text-white font-medium">LP Detail</div>
-                        <div class="text-sm text-slate-400">LP profile & contacts</div>
+                    <a href="lp-detail.html" class="card-hover block bg-navy-700/50 border border-navy-600 rounded-xl p-4 sm:p-5">
+                        <div class="text-white font-medium mb-1">LP Detail</div>
+                        <div class="text-xs sm:text-sm text-navy-400">LP profile & contacts</div>
                     </a>
-                    <a href="matches.html" class="block bg-slate-700 hover:bg-slate-600 rounded-lg p-4 transition">
-                        <div class="text-white font-medium">Matches</div>
-                        <div class="text-sm text-slate-400">AI-ranked LP matches</div>
+                    <a href="matches.html" class="card-hover block bg-navy-700/50 border border-navy-600 rounded-xl p-4 sm:p-5">
+                        <div class="text-white font-medium mb-1">Matches</div>
+                        <div class="text-xs sm:text-sm text-navy-400">AI-ranked LP matches</div>
                     </a>
-                    <a href="match-detail.html" class="block bg-slate-700 hover:bg-slate-600 rounded-lg p-4 transition">
-                        <div class="text-white font-medium">Match Analysis</div>
-                        <div class="text-sm text-slate-400">AI insights & talking points</div>
+                    <a href="match-detail.html" class="card-hover block bg-navy-700/50 border border-navy-600 rounded-xl p-4 sm:p-5">
+                        <div class="text-white font-medium mb-1">Match Analysis</div>
+                        <div class="text-xs sm:text-sm text-navy-400">AI insights & points</div>
                     </a>
-                    <a href="pitch-generator.html" class="block bg-slate-700 hover:bg-slate-600 rounded-lg p-4 transition">
-                        <div class="text-white font-medium">Pitch Generator</div>
-                        <div class="text-sm text-slate-400">AI-powered outreach</div>
+                    <a href="pitch-generator.html" class="card-hover block bg-navy-700/50 border border-navy-600 rounded-xl p-4 sm:p-5">
+                        <div class="text-white font-medium mb-1">Pitch Generator</div>
+                        <div class="text-xs sm:text-sm text-navy-400">AI-powered outreach</div>
                     </a>
-                    <a href="shortlist.html" class="block bg-slate-700 hover:bg-slate-600 rounded-lg p-4 transition">
-                        <div class="text-white font-medium">Shortlist</div>
-                        <div class="text-sm text-slate-400">LPs for outreach</div>
+                    <a href="shortlist.html" class="card-hover block bg-navy-700/50 border border-navy-600 rounded-xl p-4 sm:p-5">
+                        <div class="text-white font-medium mb-1">Shortlist</div>
+                        <div class="text-xs sm:text-sm text-navy-400">LPs for outreach</div>
                     </a>
-                    <a href="outreach-hub.html" class="block bg-slate-700 hover:bg-slate-600 rounded-lg p-4 transition">
-                        <div class="text-white font-medium">Outreach Hub</div>
-                        <div class="text-sm text-slate-400">Activity & pipeline</div>
+                    <a href="outreach-hub.html" class="card-hover block bg-navy-700/50 border border-navy-600 rounded-xl p-4 sm:p-5">
+                        <div class="text-white font-medium mb-1">Outreach Hub</div>
+                        <div class="text-xs sm:text-sm text-navy-400">Activity & pipeline</div>
                     </a>
-                    <a href="settings-profile.html" class="block bg-slate-700 hover:bg-slate-600 rounded-lg p-4 transition">
-                        <div class="text-white font-medium">Settings - Profile</div>
-                        <div class="text-sm text-slate-400">User profile settings</div>
-                    </a>
-                    <a href="settings-team.html" class="block bg-slate-700 hover:bg-slate-600 rounded-lg p-4 transition">
-                        <div class="text-white font-medium">Settings - Team</div>
-                        <div class="text-sm text-slate-400">Team management</div>
+                    <a href="settings-profile.html" class="card-hover block bg-navy-700/50 border border-navy-600 rounded-xl p-4 sm:p-5">
+                        <div class="text-white font-medium mb-1">Settings</div>
+                        <div class="text-xs sm:text-sm text-navy-400">Profile & team</div>
                     </a>
                 </div>
-            </div>
+            </section>
 
             <!-- Admin Screens -->
-            <div class="bg-slate-800 rounded-lg p-6">
-                <h2 class="text-lg font-semibold text-white mb-4">Super Admin Screens (10)</h2>
-                <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    <a href="admin-dashboard.html" class="block bg-slate-700 hover:bg-slate-600 rounded-lg p-4 transition">
-                        <div class="text-white font-medium">Admin Dashboard</div>
-                        <div class="text-sm text-slate-400">Platform overview</div>
+            <section class="bg-navy-800/50 rounded-2xl p-6 sm:p-8 backdrop-blur">
+                <div class="flex items-center mb-6">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center mr-4">
+                        <svg class="w-5 h-5 text-navy-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-semibold text-white">Super Admin Screens</h2>
+                        <p class="text-sm text-navy-400">Platform management</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+                    <a href="admin-dashboard.html" class="card-hover block bg-navy-700/50 border border-navy-600 rounded-xl p-4 sm:p-5">
+                        <div class="text-white font-medium mb-1">Admin Dashboard</div>
+                        <div class="text-xs sm:text-sm text-navy-400">Platform overview</div>
                     </a>
-                    <a href="admin-companies.html" class="block bg-slate-700 hover:bg-slate-600 rounded-lg p-4 transition">
-                        <div class="text-white font-medium">Companies</div>
-                        <div class="text-sm text-slate-400">Manage GP firms</div>
+                    <a href="admin-companies.html" class="card-hover block bg-navy-700/50 border border-navy-600 rounded-xl p-4 sm:p-5">
+                        <div class="text-white font-medium mb-1">Companies</div>
+                        <div class="text-xs sm:text-sm text-navy-400">Manage GP firms</div>
                     </a>
-                    <a href="admin-company-detail.html" class="block bg-slate-700 hover:bg-slate-600 rounded-lg p-4 transition">
-                        <div class="text-white font-medium">Company Detail</div>
-                        <div class="text-sm text-slate-400">Company management</div>
+                    <a href="admin-company-detail.html" class="card-hover block bg-navy-700/50 border border-navy-600 rounded-xl p-4 sm:p-5">
+                        <div class="text-white font-medium mb-1">Company Detail</div>
+                        <div class="text-xs sm:text-sm text-navy-400">Company management</div>
                     </a>
-                    <a href="admin-users.html" class="block bg-slate-700 hover:bg-slate-600 rounded-lg p-4 transition">
-                        <div class="text-white font-medium">Users</div>
-                        <div class="text-sm text-slate-400">All platform users</div>
+                    <a href="admin-users.html" class="card-hover block bg-navy-700/50 border border-navy-600 rounded-xl p-4 sm:p-5">
+                        <div class="text-white font-medium mb-1">Users</div>
+                        <div class="text-xs sm:text-sm text-navy-400">All platform users</div>
                     </a>
-                    <a href="admin-people.html" class="block bg-slate-700 hover:bg-slate-600 rounded-lg p-4 transition">
-                        <div class="text-white font-medium">People</div>
-                        <div class="text-sm text-slate-400">LP contacts database</div>
+                    <a href="admin-people.html" class="card-hover block bg-navy-700/50 border border-navy-600 rounded-xl p-4 sm:p-5">
+                        <div class="text-white font-medium mb-1">People</div>
+                        <div class="text-xs sm:text-sm text-navy-400">LP contacts database</div>
                     </a>
-                    <a href="admin-lps.html" class="block bg-slate-700 hover:bg-slate-600 rounded-lg p-4 transition">
-                        <div class="text-white font-medium">LPs</div>
-                        <div class="text-sm text-slate-400">LP database</div>
+                    <a href="admin-lps.html" class="card-hover block bg-navy-700/50 border border-navy-600 rounded-xl p-4 sm:p-5">
+                        <div class="text-white font-medium mb-1">LPs</div>
+                        <div class="text-xs sm:text-sm text-navy-400">LP database</div>
                     </a>
-                    <a href="admin-lp-detail.html" class="block bg-slate-700 hover:bg-slate-600 rounded-lg p-4 transition">
-                        <div class="text-white font-medium">Edit LP</div>
-                        <div class="text-sm text-slate-400">LP data management</div>
+                    <a href="admin-lp-detail.html" class="card-hover block bg-navy-700/50 border border-navy-600 rounded-xl p-4 sm:p-5">
+                        <div class="text-white font-medium mb-1">Edit LP</div>
+                        <div class="text-xs sm:text-sm text-navy-400">LP data management</div>
                     </a>
-                    <a href="admin-data-quality.html" class="block bg-slate-700 hover:bg-slate-600 rounded-lg p-4 transition">
-                        <div class="text-white font-medium">Data Quality</div>
-                        <div class="text-sm text-slate-400">Quality monitoring</div>
+                    <a href="admin-data-quality.html" class="card-hover block bg-navy-700/50 border border-navy-600 rounded-xl p-4 sm:p-5">
+                        <div class="text-white font-medium mb-1">Data Quality</div>
+                        <div class="text-xs sm:text-sm text-navy-400">Quality monitoring</div>
                     </a>
-                    <a href="admin-import.html" class="block bg-slate-700 hover:bg-slate-600 rounded-lg p-4 transition">
-                        <div class="text-white font-medium">Import Wizard</div>
-                        <div class="text-sm text-slate-400">CSV import tool</div>
+                    <a href="admin-import.html" class="card-hover block bg-navy-700/50 border border-navy-600 rounded-xl p-4 sm:p-5">
+                        <div class="text-white font-medium mb-1">Import Wizard</div>
+                        <div class="text-xs sm:text-sm text-navy-400">CSV import tool</div>
                     </a>
-                    <a href="admin-health.html" class="block bg-slate-700 hover:bg-slate-600 rounded-lg p-4 transition">
-                        <div class="text-white font-medium">System Health</div>
-                        <div class="text-sm text-slate-400">Services & integrations</div>
+                    <a href="admin-health.html" class="card-hover block bg-navy-700/50 border border-navy-600 rounded-xl p-4 sm:p-5">
+                        <div class="text-white font-medium mb-1">System Health</div>
+                        <div class="text-xs sm:text-sm text-navy-400">Services & integrations</div>
                     </a>
                 </div>
-            </div>
+            </section>
 
             <!-- UI States -->
-            <div class="bg-slate-800 rounded-lg p-6">
-                <h2 class="text-lg font-semibold text-white mb-4">UI States (3)</h2>
-                <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    <a href="dashboard-empty.html" class="block bg-slate-700 hover:bg-slate-600 rounded-lg p-4 transition">
-                        <div class="text-white font-medium">Empty Dashboard</div>
-                        <div class="text-sm text-slate-400">First-time user experience</div>
+            <section class="bg-navy-800/50 rounded-2xl p-6 sm:p-8 backdrop-blur">
+                <div class="flex items-center mb-6">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center mr-4">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-semibold text-white">UI States</h2>
+                        <p class="text-sm text-navy-400">Loading, empty & error states</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+                    <a href="dashboard-empty.html" class="card-hover block bg-navy-700/50 border border-navy-600 rounded-xl p-4 sm:p-5">
+                        <div class="text-white font-medium mb-1">Empty Dashboard</div>
+                        <div class="text-xs sm:text-sm text-navy-400">First-time user</div>
                     </a>
-                    <a href="loading-matches.html" class="block bg-slate-700 hover:bg-slate-600 rounded-lg p-4 transition">
-                        <div class="text-white font-medium">Loading Matches</div>
-                        <div class="text-sm text-slate-400">Match generation progress</div>
+                    <a href="loading-matches.html" class="card-hover block bg-navy-700/50 border border-navy-600 rounded-xl p-4 sm:p-5">
+                        <div class="text-white font-medium mb-1">Loading Matches</div>
+                        <div class="text-xs sm:text-sm text-navy-400">Progress indicator</div>
                     </a>
-                    <a href="error-api.html" class="block bg-slate-700 hover:bg-slate-600 rounded-lg p-4 transition">
-                        <div class="text-white font-medium">API Error</div>
-                        <div class="text-sm text-slate-400">Error state handling</div>
+                    <a href="error-api.html" class="card-hover block bg-navy-700/50 border border-navy-600 rounded-xl p-4 sm:p-5">
+                        <div class="text-white font-medium mb-1">API Error</div>
+                        <div class="text-xs sm:text-sm text-navy-400">Error handling</div>
                     </a>
                 </div>
-            </div>
+            </section>
         </div>
 
-        <div class="text-center mt-12 text-slate-500 text-sm">
-            <p>Conservative financial design | Built with Tailwind CSS</p>
-            <p class="mt-2">&copy; 2024 LPxGP</p>
+        <!-- Footer -->
+        <div class="text-center mt-12 sm:mt-16 text-navy-500 text-sm">
+            <p>Built with Tailwind CSS | Financial Design System</p>
+            <p class="mt-2 text-gold">&copy; 2024 LPxGP - Connecting Capital with Opportunity</p>
         </div>
     </div>
 </body>

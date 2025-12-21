@@ -13,7 +13,7 @@ from datetime import datetime
 # Paths
 SCRIPT_DIR = Path(__file__).parent
 TEMPLATES_DIR = SCRIPT_DIR / "templates"
-MOCKUPS_DIR = SCRIPT_DIR / "preview"
+MOCKUPS_DIR = SCRIPT_DIR.parent / "mockups"
 SCREENSHOTS_DIR = SCRIPT_DIR / "screenshots"
 OUTPUT_PDF = SCRIPT_DIR.parent / "LPxGP-Product-Document.pdf"
 
