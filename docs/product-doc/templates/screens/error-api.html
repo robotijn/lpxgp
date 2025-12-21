@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}Error - LPxGP{% endblock %}
+{% block body %}
+<div class="min-h-screen bg-slate-50 pb-12">
+    <!-- Top Navigation -->
+    <header class="bg-white border-b border-slate-200">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-8">
+                    <span class="text-xl font-bold text-navy-900">LPxGP</span>
+                    <nav class="hidden md:flex space-x-6">
+                        <a href="dashboard.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">Dashboard</a>
+                        <a href="fund-list.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">Funds</a>
+                        <a href="lp-search.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">Search</a>
+                        <a href="outreach-hub.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">Outreach</a>
+                    </nav>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-sm text-navy-600">Acme Capital</span>
+                    <a href="settings-profile.html" class="w-8 h-8 rounded-full bg-navy-100 flex items-center justify-center">
+                        <span class="text-sm font-medium text-navy-600">JP</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-6 py-8">
+        <!-- Error Card -->
+        <div class="card p-12 text-center mt-12">
+            <div class="max-w-md mx-auto">
+                <!-- Error Icon -->
+                <div class="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-6">
+                    <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                    </svg>
+                </div>
+
+                <!-- Error Message -->
+                <h1 class="text-2xl font-semibold text-navy-900 mb-2">Something went wrong</h1>
+                <p class="text-navy-500 mb-6">We encountered an error while processing your request. This might be a temporary issue with our service.</p>
+
+                <!-- Error Details (Optional) -->
+                <div class="bg-slate-50 rounded-lg p-4 mb-6 text-left">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-medium text-navy-500 uppercase tracking-wide">Error Details</span>
+                        <button class="text-xs text-navy-400 hover:text-navy-600">Copy</button>
+                    </div>
+                    <div class="text-sm font-mono text-navy-600 bg-white border border-slate-200 rounded p-3">
+                        <div class="flex justify-between">
+                            <span class="text-navy-400">Error Code:</span>
+                            <span class="text-red-600">API_503</span>
+                        </div>
+                        <div class="flex justify-between mt-1">
+                            <span class="text-navy-400">Timestamp:</span>
+                            <span>2024-01-15 14:32:18 UTC</span>
+                        </div>
+                        <div class="flex justify-between mt-1">
+                            <span class="text-navy-400">Request ID:</span>
+                            <span>req_7f3a8b2c9d4e</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
+                    <button onclick="window.location.reload()" class="btn-primary w-full sm:w-auto flex items-center justify-center">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                        Try Again
+                    </button>
+                    <a href="javascript:history.back()" class="btn-secondary w-full sm:w-auto flex items-center justify-center">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                        </svg>
+                        Go Back
+                    </a>
+                </div>
+
+                <!-- Help Links -->
+                <div class="mt-8 pt-6 border-t border-slate-100">
+                    <p class="text-sm text-navy-500 mb-3">Need help?</p>
+                    <div class="flex items-center justify-center gap-4 text-sm">
+                        <a href="dashboard.html" class="text-accent hover:text-accent-dark">Go to Dashboard</a>
+                        <span class="text-navy-300">|</span>
+                        <a href="mailto:support@lpxgp.com" class="text-accent hover:text-accent-dark">Contact Support</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- UX Context Footer -->
+<div class="fixed bottom-0 left-0 right-0 bg-slate-800 text-white text-xs py-2 px-4">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+        <span class="font-medium">UX Flow: Error State</span>
+        <div class="flex items-center space-x-2">
+            <span class="px-2 py-1 bg-slate-700 rounded">API Error</span>
+            <span class="text-slate-500">|</span>
+            <a href="dashboard.html" class="px-2 py-1 hover:bg-slate-700 rounded">Dashboard</a>
+            <a href="loading-matches.html" class="px-2 py-1 hover:bg-slate-700 rounded">Loading State</a>
+        </div>
+        <a href="index.html" class="text-slate-400 hover:text-white">← All Screens</a>
+    </div>
+</div>
+{% endblock %}

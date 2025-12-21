@@ -61,6 +61,10 @@ SCREENS = [
     "admin-data-quality.html",
     "admin-import.html",
     "admin-health.html",
+    # UI State screens
+    "dashboard-empty.html",
+    "loading-matches.html",
+    "error-api.html",
 ]
 
 def render_all():
@@ -102,7 +106,7 @@ def create_index():
             <h1 class="text-4xl font-bold text-white mb-4">LPxGP</h1>
             <p class="text-xl text-slate-400">GP-LP Intelligence Platform</p>
             <p class="text-slate-500 mt-2">Screen Mockups & Design Preview</p>
-            <p class="text-slate-600 mt-4 text-sm">27 screens | Conservative financial design</p>
+            <p class="text-slate-600 mt-4 text-sm">30 screens | Conservative financial design</p>
         </div>
 
         <div class="grid gap-6">
@@ -231,6 +235,25 @@ def create_index():
                     <a href="admin-health.html" class="block bg-slate-700 hover:bg-slate-600 rounded-lg p-4 transition">
                         <div class="text-white font-medium">System Health</div>
                         <div class="text-sm text-slate-400">Services & integrations</div>
+                    </a>
+                </div>
+            </div>
+
+            <!-- UI States -->
+            <div class="bg-slate-800 rounded-lg p-6">
+                <h2 class="text-lg font-semibold text-white mb-4">UI States (3)</h2>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <a href="dashboard-empty.html" class="block bg-slate-700 hover:bg-slate-600 rounded-lg p-4 transition">
+                        <div class="text-white font-medium">Empty Dashboard</div>
+                        <div class="text-sm text-slate-400">First-time user experience</div>
+                    </a>
+                    <a href="loading-matches.html" class="block bg-slate-700 hover:bg-slate-600 rounded-lg p-4 transition">
+                        <div class="text-white font-medium">Loading Matches</div>
+                        <div class="text-sm text-slate-400">Match generation progress</div>
+                    </a>
+                    <a href="error-api.html" class="block bg-slate-700 hover:bg-slate-600 rounded-lg p-4 transition">
+                        <div class="text-white font-medium">API Error</div>
+                        <div class="text-sm text-slate-400">Error state handling</div>
                     </a>
                 </div>
             </div>

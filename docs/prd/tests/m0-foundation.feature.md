@@ -1481,3 +1481,221 @@ Feature: Large File Handling Edge Cases
     And I can paginate through preview data
     And full import only starts when I approve
 ```
+
+---
+
+## Large Data Operations
+
+```gherkin
+Feature: Large Data Operations
+  As a platform
+  I want to handle large-scale data operations reliably
+  So that the system can scale with growing LP databases
+
+  # ==========================================================================
+  # Bulk Import of 50,000+ LPs
+  # ==========================================================================
+
+  Scenario: Bulk import of 50,000 LPs with progress tracking
+    Given I am an admin
+    When I upload a CSV file with 50,000 LP records
+    Then the file is accepted for background processing
+    And I see "Processing 50,000 records in background"
+    And progress updates every 5 seconds:
+      | Progress | Records | ETA |
+      | 10% | 5,000/50,000 | ~8 minutes |
+      | 50% | 25,000/50,000 | ~4 minutes |
+      | 100% | 50,000/50,000 | Complete |
+    And I receive email notification on completion
+
+  Scenario: Progress persistence across page reloads
+    Given I started a bulk import of 50,000 LPs
+    And 20,000 have been processed
+    When I refresh the browser
+    Then I still see the import progress
+    And progress shows "20,000/50,000 (40%)"
+    And I can continue monitoring
+
+  Scenario: Progress available via API for external monitoring
+    Given a bulk import job is running
+    When I query the job status API
+    Then I receive JSON with:
+      | Field | Value |
+      | job_id | uuid |
+      | status | running |
+      | total | 50000 |
+      | processed | 25000 |
+      | successful | 24800 |
+      | failed | 200 |
+      | started_at | timestamp |
+      | estimated_completion | timestamp |
+
+  Scenario: Bulk import cancellation
+    Given I started a bulk import of 50,000 LPs
+    And 15,000 have been processed
+    When I click "Cancel Import"
+    Then I see confirmation "Cancel import? 15,000 records already imported will remain."
+    When I confirm cancellation
+    Then the import job stops within 10 seconds
+    And I see "Import cancelled. 15,000 of 50,000 records imported."
+    And already-imported records are kept in database
+    And I can export a list of unprocessed records
+
+  Scenario: Bulk import cancellation and restart
+    Given I cancelled an import at 15,000/50,000 records
+    When I upload the same file again
+    Then I see "Detected previously cancelled import"
+    And I can choose to:
+      | Option | Description |
+      | Resume | Continue from record 15,001 |
+      | Restart | Start over from beginning |
+      | Skip imported | Import only records not yet in database |
+
+  Scenario: Bulk import with partial success
+    Given I am importing 50,000 LPs
+    And 500 records have validation errors
+    When the import completes
+    Then I see "49,500 records imported successfully, 500 failed"
+    And I can download error report with failed records
+    And error report includes:
+      | Row | Error | Original Data |
+      | 1542 | Invalid LP type | ... |
+      | 3201 | Missing name | ... |
+
+  # ==========================================================================
+  # Concurrent Edit Conflict Detection at Scale
+  # ==========================================================================
+
+  Scenario: Concurrent edits from 100 users on different LPs
+    Given 100 users are editing different LPs simultaneously
+    When all users save their changes within 1 minute
+    Then all edits are saved successfully
+    And no data corruption occurs
+    And database handles concurrent writes efficiently
+
+  Scenario: Concurrent edits on same LP by multiple users
+    Given 10 users are editing the same LP "CalPERS"
+    When all users try to save within 5 seconds
+    Then the first user's save succeeds
+    And remaining 9 users see "This record was modified by another user"
+    And conflict resolution options are shown:
+      | Option |
+      | View changes and merge |
+      | Overwrite with my changes |
+      | Discard my changes |
+
+  Scenario: Optimistic locking with version numbers at scale
+    Given LP "CalPERS" is at version 42
+    And 50 concurrent requests try to update it
+    When all requests are processed
+    Then exactly 1 request succeeds (becomes version 43)
+    And 49 requests fail with version conflict
+    And all failed requests receive consistent error message
+    And database version is exactly 43
+
+  Scenario: Concurrent import and manual edit conflict
+    Given admin A is bulk importing LPs
+    And admin B is manually editing LP "Yale Endowment"
+    When import tries to update "Yale Endowment" while B is editing
+    Then import marks that record for review
+    And B's manual edit is prioritized
+    And admin is notified of import conflict
+
+  Scenario: Lock escalation prevention under high concurrency
+    Given 500 concurrent database transactions
+    When operations are executing
+    Then row-level locking is used (not table-level)
+    And no deadlocks occur
+    And operations complete within acceptable time
+    And monitoring tracks lock wait times
+
+  # ==========================================================================
+  # Database Performance with 100k+ Records
+  # ==========================================================================
+
+  Scenario: LP listing performance with 100,000 records
+    Given the database contains 100,000 LP records
+    When I load the LP listing page
+    Then the first page loads in under 1 second
+    And pagination is server-side
+    And I see "Showing 1-50 of 100,000 LPs"
+
+  Scenario: LP search performance with 100,000 records
+    Given the database contains 100,000 LP records
+    When I search for "pension" in LP names
+    Then results return in under 500ms
+    And results are properly indexed
+    And search uses database full-text index
+
+  Scenario: LP filtering performance with 100,000 records
+    Given the database contains 100,000 LP records
+    When I filter by:
+      | Filter | Value |
+      | Type | Public Pension |
+      | Geography | North America |
+      | AUM | > $10B |
+    Then results return in under 500ms
+    And query uses appropriate indexes
+    And filter counts are calculated efficiently
+
+  Scenario: Aggregation queries on 100,000 records
+    Given the database contains 100,000 LP records
+    When I view dashboard with aggregate statistics:
+      | Metric |
+      | Total LPs by type |
+      | Average AUM by region |
+      | Data quality distribution |
+    Then all aggregations complete in under 2 seconds
+    And results are cached for 5 minutes
+
+  Scenario: Export all 100,000 LPs to CSV
+    Given the database contains 100,000 LP records
+    When I click "Export All LPs"
+    Then export runs in background
+    And I see "Generating export file..."
+    And I receive download link within 5 minutes
+    And exported file is properly formatted
+
+  Scenario: Database vacuum and performance maintenance
+    Given the database has 100,000 LPs with frequent updates
+    When auto-vacuum runs
+    Then table bloat is managed
+    And query performance remains stable
+    And no visible impact to users during maintenance
+
+  Scenario: Index performance with 100,000 records
+    Given the database contains 100,000 LP records
+    When I query by various indexed fields:
+      | Query Type | Expected Time |
+      | By ID (primary key) | < 10ms |
+      | By name (text index) | < 100ms |
+      | By type (enum index) | < 50ms |
+      | By created_at (date range) | < 100ms |
+    Then all queries meet performance targets
+    And index usage is verified in query plans
+
+  Scenario: Memory usage with large result sets
+    Given the database contains 100,000 LP records
+    When a query returns 10,000 records
+    Then results are streamed, not loaded entirely into memory
+    And server memory usage remains stable
+    And client receives data progressively
+
+  Scenario: Database connection pool under load
+    Given 200 concurrent users are accessing LP data
+    When all make database queries
+    Then connection pool manages connections efficiently
+    And no "too many connections" errors occur
+    And query wait times remain under 100ms
+
+  Scenario: Stress test with sustained high load
+    Given 100 users performing continuous operations
+    When load is sustained for 1 hour:
+      | Operation | Frequency |
+      | LP list/search | 10 req/sec |
+      | LP view | 5 req/sec |
+      | LP edit | 1 req/sec |
+    Then system remains responsive throughout
+    And error rate stays below 0.1%
+    And p99 latency stays under 2 seconds
+```

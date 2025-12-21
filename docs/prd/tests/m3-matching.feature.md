@@ -2024,3 +2024,256 @@ Feature: Error Handling Across M3
     And results are consistent
     And no data corruption occurs
 ```
+
+---
+
+## Batch Operations and Load Testing
+
+```gherkin
+Feature: Batch Matching Operations at Scale
+  As a platform
+  I want matching to perform well with large LP databases
+  So that GPs get results quickly even with 100,000+ LPs
+
+  # ==========================================================================
+  # Match Generation for Large LP Databases
+  # ==========================================================================
+
+  Scenario: Match generation with 100,000 LPs
+    Given the database contains 100,000 LPs
+    And my fund is published with complete profile
+    When I click "Find Matching LPs"
+    Then matching completes within 30 seconds
+    And I see progress updates:
+      | Phase | Progress | Time |
+      | Hard filtering | 100,000 LPs evaluated | ~5s |
+      | Soft scoring | 2,500 candidates scored | ~15s |
+      | Ranking | Top 500 selected | ~2s |
+      | Complete | Results ready | ~25s total |
+
+  Scenario: Hard filter performance with 100,000 LPs
+    Given the database contains 100,000 LPs
+    When hard filters run for:
+      | Criterion | Filter Type |
+      | Strategy | Must match |
+      | Geography | Must overlap |
+      | Fund size | Must be in range |
+    Then filtering completes in under 5 seconds
+    And database indexes are utilized efficiently
+    And memory usage remains stable
+
+  Scenario: Soft scoring performance with 5,000 candidates
+    Given hard filters returned 5,000 candidate LPs
+    When soft scoring runs
+    Then all 5,000 LPs are scored in under 20 seconds
+    And scores are calculated in parallel batches
+    And progress is reported every 500 LPs
+
+  Scenario: Semantic similarity calculation at scale
+    Given 5,000 LPs need semantic scoring
+    And each LP has a mandate embedding
+    When semantic similarity is calculated
+    Then vector comparisons complete in under 10 seconds
+    And pgvector is used for efficient batch comparison
+    And results are accurate to 4 decimal places
+
+  Scenario: Match generation with minimal filtering
+    Given a fund with very broad criteria
+    When matching runs and hard filters return 50,000 LPs
+    Then system handles large candidate set:
+      | Approach | Action |
+      | Sampling | Top 10,000 by pre-score |
+      | Tiered scoring | Quick score first, detailed for top 1,000 |
+    And user is warned "Very broad criteria - results may be less precise"
+    And matching still completes in under 60 seconds
+
+  Scenario: Match generation caching and invalidation
+    Given I previously generated matches for my fund
+    And no fund or LP data has changed
+    When I view matches again
+    Then cached results are shown instantly
+    And I see "Results from [timestamp]. Refresh?"
+
+  Scenario: Match result caching with LP updates
+    Given I generated matches yesterday
+    And 100 LPs have been updated since
+    When I view matches
+    Then I see "100 LP profiles updated since last match"
+    And I can refresh matches for updated LPs only
+
+  # ==========================================================================
+  # Bulk Match Feedback Operations
+  # ==========================================================================
+
+  Scenario: Bulk thumbs up on 50 matches
+    Given I have 100 matches displayed
+    When I select 50 matches
+    And I click "Mark all as relevant"
+    Then all 50 receive thumbs up feedback
+    And operation completes in under 2 seconds
+    And UI shows "50 matches marked as relevant"
+
+  Scenario: Bulk thumbs down with reason
+    Given I have 100 matches displayed
+    When I select 30 matches
+    And I click "Mark as not relevant"
+    And I select reason "Already in contact"
+    Then all 30 receive thumbs down with same reason
+    And operation completes in under 2 seconds
+
+  Scenario: Bulk add to shortlist
+    Given I have 100 matches displayed
+    When I select 25 matches
+    And I click "Add to Shortlist"
+    Then all 25 are added to my shortlist
+    And operation completes in under 2 seconds
+    And duplicates are handled (not added twice)
+
+  Scenario: Bulk remove from shortlist
+    Given my shortlist has 50 LPs
+    When I select 20 LPs
+    And I click "Remove from Shortlist"
+    Then all 20 are removed
+    And operation completes in under 1 second
+    And remaining 30 are still in shortlist
+
+  Scenario: Bulk feedback with partial failures
+    Given I select 50 matches for feedback
+    And 3 matches reference deleted LPs
+    When I submit bulk feedback
+    Then 47 feedbacks succeed
+    And I see "47 of 50 feedbacks saved. 3 LPs no longer available."
+    And failed LPs are listed for removal
+
+  Scenario: Bulk operations transaction safety
+    Given I am adding 50 LPs to shortlist
+    When database error occurs at LP 30
+    Then either:
+      | All 50 succeed (transaction committed) |
+      | All 50 fail (transaction rolled back) |
+    And no partial state exists (0-29 added, 30-49 not)
+
+  Scenario: Bulk export of matched LPs
+    Given I have 200 matches
+    When I click "Export all matches"
+    Then CSV export includes all 200 LPs
+    And export includes:
+      | Column |
+      | LP Name |
+      | Score |
+      | Key Reasons |
+      | Contact Info |
+    And export completes in under 5 seconds
+
+  # ==========================================================================
+  # Concurrent Match Generation Requests
+  # ==========================================================================
+
+  Scenario: Same user requests matching twice rapidly
+    Given I clicked "Find Matching LPs"
+    And matching is in progress
+    When I click "Find Matching LPs" again
+    Then I see "Matching already in progress"
+    And second request is ignored
+    And original matching continues
+
+  Scenario: Multiple users run matching simultaneously
+    Given 10 GPs each have a published fund
+    When all 10 click "Find Matching LPs" within 30 seconds
+    Then all 10 matching jobs run in parallel
+    And each job completes within 60 seconds
+    And results are isolated per user/fund
+
+  Scenario: Matching request queue under high load
+    Given 50 matching requests arrive within 10 seconds
+    When system processes requests
+    Then requests are queued fairly
+    And each user sees "Your request is #X in queue"
+    And priority users (premium) may jump queue
+    And no requests are dropped
+
+  Scenario: Matching resource allocation
+    Given matching is CPU and memory intensive
+    When 20 concurrent matching jobs run
+    Then system limits concurrent jobs to 10
+    And remaining 10 are queued
+    And system resources are not exhausted
+    And other features remain responsive
+
+  Scenario: Matching timeout handling
+    Given matching normally takes 30 seconds
+    When a matching job takes longer than 2 minutes
+    Then job is terminated
+    And user sees "Matching timed out. Please try again."
+    And partial results are not saved
+    And job ID is logged for investigation
+
+  Scenario: Matching job recovery after crash
+    Given matching job crashed at 50% completion
+    When system recovers
+    Then job status shows "Failed - Server error"
+    And user can retry matching
+    And no corrupt match data exists
+
+  Scenario: Rate limiting for matching requests
+    Given user has run matching 5 times in last hour
+    When user tries to run matching again
+    Then user sees "Rate limit reached. Please wait 30 minutes."
+    And rate limit is per-user, not global
+
+  Scenario: Concurrent matching and LP update
+    Given matching is running for Fund A
+    And LP X is being updated by admin
+    When matching reads LP X during update
+    Then matching reads consistent LP data:
+      | Either old version (pre-update) |
+      | Or new version (post-update) |
+    And no inconsistent data is used
+    And database isolation level ensures consistency
+
+  Scenario: Matching with database maintenance
+    Given database vacuum is running
+    When matching job executes
+    Then matching completes successfully
+    And performance may be slightly degraded
+    And no errors occur
+
+  # ==========================================================================
+  # Load Testing Scenarios
+  # ==========================================================================
+
+  Scenario: Sustained matching load for 1 hour
+    Given 20 GPs run matching every 5 minutes for 1 hour
+    When load test executes
+    Then system handles all requests:
+      | Metric | Target |
+      | Success rate | > 99% |
+      | p50 latency | < 30s |
+      | p99 latency | < 90s |
+      | Error rate | < 1% |
+    And no memory leaks occur
+    And database connections are managed properly
+
+  Scenario: Spike load test
+    Given normal load is 5 matching requests/minute
+    When spike of 50 requests arrives in 30 seconds
+    Then system handles spike gracefully
+    And queue mechanism activates
+    And no requests fail with 5xx errors
+    And system recovers to normal within 5 minutes
+
+  Scenario: Match generation with degraded external services
+    Given Voyage AI is responding slowly (5s latency)
+    When matching runs
+    Then semantic scoring uses longer timeout
+    And overall matching still completes within 90 seconds
+    And user is warned "Some features slower than usual"
+
+  Scenario: Graceful degradation under extreme load
+    Given system is at 95% capacity
+    When additional matching requests arrive
+    Then new requests see "System busy. Estimated wait: X minutes"
+    And existing jobs complete
+    And system does not crash
+    And degradation is logged for capacity planning
+```

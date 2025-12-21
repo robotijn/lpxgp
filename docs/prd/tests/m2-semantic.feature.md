@@ -1183,3 +1183,246 @@ Feature: Semantic Search Technical Implementation
     And search completes, populating cache
     And subsequent searches are faster
 ```
+
+---
+
+## Performance and Scale Tests
+
+```gherkin
+Feature: Semantic Search Performance at Scale
+  As a platform
+  I want semantic search to perform well with large datasets
+  So that users have a responsive experience even with 100,000+ LPs
+
+  # ==========================================================================
+  # Semantic Search with 100,000 LPs Under 2 Seconds
+  # ==========================================================================
+
+  Scenario: Semantic search performance with 100,000 LPs
+    Given the database contains 100,000 LPs with embeddings
+    When I perform a semantic search "technology investors in healthcare"
+    Then results return in under 2 seconds
+    And top 50 results are returned
+    And results are properly ranked by similarity
+
+  Scenario: Semantic search performance varies by query complexity
+    Given the database contains 100,000 LPs with embeddings
+    When I perform searches of varying complexity:
+      | Query | Max Time |
+      | "tech" (simple) | 1 second |
+      | "growth equity technology investors" (medium) | 1.5 seconds |
+      | "European pension funds interested in emerging market infrastructure with ESG focus" (complex) | 2 seconds |
+    Then all queries complete within their time limits
+
+  Scenario: Concurrent semantic searches
+    Given the database contains 100,000 LPs
+    And 50 users perform semantic searches simultaneously
+    When all searches execute
+    Then all searches complete within 5 seconds
+    And no searches fail due to resource exhaustion
+    And p95 latency is under 3 seconds
+
+  Scenario: Semantic search with filters on 100,000 LPs
+    Given the database contains 100,000 LPs
+    When I perform semantic search "technology" with filters:
+      | Filter | Value |
+      | Type | Endowment |
+      | Geography | North America |
+      | Check Size | $25M - $100M |
+    Then results return in under 2 seconds
+    And filtering is applied before semantic ranking
+    And result count reflects all active filters
+
+  Scenario: Semantic search pagination performance
+    Given a semantic search returned 5,000 results
+    When I paginate through results:
+      | Page | Expected Time |
+      | Page 1 (1-50) | < 2 seconds (initial search) |
+      | Page 2 (51-100) | < 500ms (cached) |
+      | Page 10 (451-500) | < 500ms (cached) |
+      | Page 100 (4951-5000) | < 500ms (cached) |
+    Then pagination is fast for all pages
+    And result ordering is consistent
+
+  Scenario: pgvector index performance with 100,000 embeddings
+    Given 100,000 LP embeddings are stored in pgvector
+    When vector similarity search executes
+    Then approximate nearest neighbor search is used (IVFFlat or HNSW)
+    And search completes in under 2 seconds
+    And recall rate is above 95%
+
+  Scenario: Index type selection for optimal performance
+    Given 100,000 LP embeddings
+    When configuring pgvector index
+    Then HNSW index is used for optimal search performance:
+      | Setting | Value |
+      | m | 16 |
+      | ef_construction | 64 |
+      | ef_search | 40 |
+    And index build time is acceptable
+    And memory usage is monitored
+
+  Scenario: Search performance degradation monitoring
+    Given semantic search normally completes in 1.5 seconds
+    When a search takes longer than 3 seconds
+    Then performance alert is triggered
+    And slow query is logged with details
+    And system auto-tunes if pattern persists
+
+  # ==========================================================================
+  # Batch Embedding Generation for 10,000 LPs
+  # ==========================================================================
+
+  Scenario: Batch embedding generation for 10,000 new LPs
+    Given I imported 10,000 new LPs without embeddings
+    When the batch embedding job runs
+    Then embeddings are generated in batches of 100
+    And progress is tracked:
+      | Progress | LPs Embedded | Time |
+      | 10% | 1,000 | ~2 min |
+      | 50% | 5,000 | ~10 min |
+      | 100% | 10,000 | ~20 min |
+    And job completes within 30 minutes
+
+  Scenario: Batch embedding with Voyage AI rate limits
+    Given I need to embed 10,000 LP mandates
+    And Voyage AI rate limit is 100 requests/minute
+    When batch embedding runs
+    Then requests are throttled to respect rate limits
+    And exponential backoff is used on 429 responses
+    And job completes without errors
+
+  Scenario: Batch embedding resumable after failure
+    Given batch embedding is processing 10,000 LPs
+    And job fails at LP 4,500 due to service outage
+    When the service recovers
+    Then job resumes from LP 4,501
+    And already-embedded LPs are not re-processed
+    And progress is maintained
+
+  Scenario: Batch embedding prioritization
+    Given 10,000 LPs need embeddings
+    And some LPs are marked as high-priority
+    When batch embedding runs
+    Then high-priority LPs are embedded first
+    And regular LPs are processed after
+
+  Scenario: Batch embedding with text preprocessing
+    Given LP mandates vary in length and quality
+    When batch embedding runs
+    Then text is normalized before embedding:
+      | Preprocessing | Action |
+      | Long text | Truncated to 8000 tokens |
+      | Empty text | Skipped with default embedding |
+      | Special chars | Cleaned |
+      | Multiple languages | Detected and noted |
+
+  Scenario: Batch embedding parallel processing
+    Given 10,000 LPs need embeddings
+    When batch embedding runs with parallelization
+    Then 5 parallel embedding requests are made
+    And requests are load-balanced
+    And overall throughput is maximized
+    And no single-point-of-failure exists
+
+  Scenario: Batch embedding cost tracking
+    Given 10,000 LPs need embeddings
+    When batch embedding completes
+    Then cost is tracked:
+      | Metric | Value |
+      | Total tokens | ~2M |
+      | API calls | 100 batches |
+      | Estimated cost | ~$X |
+    And cost is logged for billing
+
+  Scenario: Batch embedding quality validation
+    Given batch embedding completed for 10,000 LPs
+    When post-processing validation runs
+    Then embeddings are validated:
+      | Check | Criteria |
+      | Dimension | 1024 dimensions |
+      | Magnitude | 0.8-1.2 (normalized) |
+      | Not all zeros | True |
+      | Not NaN | True |
+    And invalid embeddings are flagged for re-generation
+
+  # ==========================================================================
+  # Embedding Index Performance
+  # ==========================================================================
+
+  Scenario: Index build time for 100,000 embeddings
+    Given 100,000 LP embeddings need indexing
+    When pgvector index is built
+    Then HNSW index completes in under 30 minutes
+    And index is usable during build (partial results)
+    And system remains responsive
+
+  Scenario: Index rebuild without downtime
+    Given existing index with 100,000 embeddings
+    When index rebuild is triggered
+    Then old index remains active during rebuild
+    And cutover is atomic
+    And users experience no disruption
+    And search results remain consistent
+
+  Scenario: Index performance with incremental updates
+    Given index exists for 100,000 embeddings
+    When 1,000 new LPs are added
+    Then index is updated incrementally
+    And full rebuild is not required
+    And search performance remains stable
+
+  Scenario: Index memory usage with 100,000 embeddings
+    Given 100,000 embeddings (1024 dimensions each)
+    When index is loaded in memory
+    Then memory usage is approximately:
+      | Component | Size |
+      | Raw embeddings | ~400MB |
+      | HNSW index | ~800MB |
+      | Total | ~1.2GB |
+    And memory is within server limits
+
+  Scenario: Index recovery after server restart
+    Given server crashes with 100,000 indexed embeddings
+    When server restarts
+    Then index is recovered from disk
+    And recovery completes in under 5 minutes
+    And search is available after recovery
+    And no embeddings are lost
+
+  Scenario: Index performance monitoring dashboard
+    Given semantic search is running with 100,000 LPs
+    When I view the admin dashboard
+    Then I see index health metrics:
+      | Metric | Value |
+      | Index size | 1.2GB |
+      | Embeddings indexed | 100,000 |
+      | Average search time | 1.2s |
+      | Cache hit rate | 85% |
+      | Last rebuild | timestamp |
+    And alerts are configured for degradation
+
+  Scenario: Multi-index strategy for different use cases
+    Given 100,000 LP embeddings
+    When configuring search indexes
+    Then multiple indexes are available:
+      | Index | Use Case | Tradeoff |
+      | HNSW | Fast search | More memory |
+      | IVFFlat | Memory efficient | Slower search |
+    And appropriate index is selected based on query
+
+  Scenario: Index fragmentation handling
+    Given index has been updated frequently
+    When fragmentation exceeds 20%
+    Then background reindex is scheduled
+    And reindex runs during low-traffic period
+    And performance is restored post-reindex
+
+  Scenario: Search performance with hot and cold embeddings
+    Given frequently-searched LP embeddings are "hot"
+    And rarely-searched embeddings are "cold"
+    When search includes both
+    Then hot embeddings return faster (cached)
+    And cold embeddings are fetched from disk
+    And overall search still meets 2-second SLA
+```

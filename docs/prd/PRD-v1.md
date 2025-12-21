@@ -1135,7 +1135,7 @@ CREATE INDEX idx_pitches_match ON pitches(match_id);
 CREATE TABLE enrichment_log (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     lp_id           UUID REFERENCES lps(id) ON DELETE CASCADE,
-    contact_id      UUID REFERENCES lp_contacts(id) ON DELETE CASCADE,
+    person_id       UUID REFERENCES people(id) ON DELETE SET NULL,
 
     source          TEXT NOT NULL,
     field_updated   TEXT,
