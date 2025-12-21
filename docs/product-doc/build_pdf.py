@@ -141,7 +141,8 @@ async def take_screenshots():
 
     async with async_playwright() as p:
         browser = await p.chromium.launch()
-        page = await browser.new_page(viewport={"width": 1440, "height": 900})
+        # Use 1280x720 viewport for cleaner screenshots that fit on PDF pages
+        page = await browser.new_page(viewport={"width": 1280, "height": 720})
 
         for category, screens in SCREENS.items():
             for item in screens:
@@ -156,7 +157,8 @@ async def take_screenshots():
                 await page.wait_for_timeout(500)  # Wait for Tailwind to load
 
                 screenshot_path = SCREENSHOTS_DIR / filename.replace(".html", ".png")
-                await page.screenshot(path=str(screenshot_path), full_page=True)
+                # Capture viewport only (not full page) for consistent sizing
+                await page.screenshot(path=str(screenshot_path), full_page=False)
                 print(f"  Screenshot: {screenshot_path.name}")
 
         await browser.close()
@@ -340,52 +342,56 @@ def generate_pdf():
             page-break-before: avoid;
         }}
 
-        /* Screen mockup with explanation */
+        /* Screen mockup with explanation - each screen on its own page */
         .screen {{
-            page-break-inside: avoid;
-            margin-bottom: 1.5em;
             page-break-before: always;
+            page-break-inside: avoid;
         }}
 
         .screen-header {{
             background: linear-gradient(135deg, #102a43 0%, #1e3a5f 100%);
             color: white;
-            padding: 1em 1.2em;
+            padding: 0.8em 1em;
             border-radius: 8px 8px 0 0;
+            margin-bottom: 0;
         }}
 
         .screen-title {{
-            font-size: 16pt;
+            font-size: 14pt;
             font-weight: 600;
             margin: 0;
         }}
 
         .screen-subtitle {{
-            font-size: 10pt;
+            font-size: 9pt;
             opacity: 0.8;
             margin-top: 0.2em;
+        }}
+
+        .screen-image {{
+            border: 1px solid #e2e8f0;
+            border-top: none;
+            overflow: hidden;
+        }}
+
+        .screen-image img {{
+            width: 100%;
+            max-height: 380px;
+            object-fit: contain;
+            object-position: top;
+            display: block;
+            background: #f8fafc;
         }}
 
         .screen-explanation {{
             background: #f8fafc;
             border: 1px solid #e2e8f0;
             border-top: none;
-            padding: 1em 1.2em;
-            font-size: 10pt;
-            line-height: 1.5;
-            color: #475569;
-        }}
-
-        .screen-image {{
-            border: 1px solid #e2e8f0;
-            border-top: none;
             border-radius: 0 0 8px 8px;
-            overflow: hidden;
-        }}
-
-        .screen-image img {{
-            width: 100%;
-            display: block;
+            padding: 0.8em 1em;
+            font-size: 9pt;
+            line-height: 1.4;
+            color: #475569;
         }}
 
         /* Info boxes */
@@ -979,11 +985,11 @@ Stage 6: LEARNING LOOP (Continuous)
                 <div class="screen-title">{title}</div>
                 <div class="screen-subtitle">{short_desc}</div>
             </div>
-            <div class="screen-explanation">
-                {explanation}
-            </div>
             <div class="screen-image">
                 <img src="file://{screenshot_path}" alt="{title}">
+            </div>
+            <div class="screen-explanation">
+                {explanation}
             </div>
         </div>
 """
