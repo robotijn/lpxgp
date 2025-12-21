@@ -369,26 +369,19 @@ def generate_pdf():
         }}
 
         .screen-image {{
-            border: 1px solid #e2e8f0;
-            border-top: none;
-            overflow: hidden;
+            /* Clean screenshot display - no borders */
         }}
 
         .screen-image img {{
             width: 100%;
-            max-height: 380px;
-            object-fit: contain;
-            object-position: top;
             display: block;
-            background: #f8fafc;
         }}
 
         .screen-explanation {{
             background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-top: none;
-            border-radius: 0 0 8px 8px;
+            border-radius: 8px;
             padding: 0.8em 1em;
+            margin-top: 0.5em;
             font-size: 9pt;
             line-height: 1.4;
             color: #475569;
