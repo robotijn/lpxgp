@@ -115,7 +115,7 @@
 </head>
 <body class="bg-slate-50 min-h-screen">
     
-<div class="min-h-screen bg-slate-50">
+<div class="min-h-screen bg-slate-50 pb-12">
     <!-- Top Navigation -->
     <header class="bg-white border-b border-slate-200">
         <div class="max-w-7xl mx-auto px-6">
@@ -123,17 +123,17 @@
                 <div class="flex items-center space-x-8">
                     <span class="text-xl font-bold text-navy-900">LPxGP</span>
                     <nav class="hidden md:flex space-x-6">
-                        <a href="#" class="text-sm font-medium text-navy-500 hover:text-navy-700">Dashboard</a>
-                        <a href="#" class="text-sm font-medium text-navy-500 hover:text-navy-700">Funds</a>
-                        <a href="#" class="text-sm font-medium text-navy-500 hover:text-navy-700">Search</a>
-                        <a href="#" class="text-sm font-medium text-navy-900 border-b-2 border-navy-900 pb-4 -mb-px">Outreach</a>
+                        <a href="dashboard.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">Dashboard</a>
+                        <a href="fund-list.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">Funds</a>
+                        <a href="lp-search.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">Search</a>
+                        <a href="outreach-hub.html" class="text-sm font-medium text-navy-900 border-b-2 border-navy-900 pb-4 -mb-px">Outreach</a>
                     </nav>
                 </div>
                 <div class="flex items-center space-x-4">
                     <span class="text-sm text-navy-600">Acme Capital</span>
-                    <div class="w-8 h-8 rounded-full bg-navy-100 flex items-center justify-center">
+                    <a href="settings-profile.html" class="w-8 h-8 rounded-full bg-navy-100 flex items-center justify-center">
                         <span class="text-sm font-medium text-navy-600">JP</span>
-                    </div>
+                    </a>
                 </div>
             </div>
         </div>
@@ -193,7 +193,7 @@
                                 </div>
                                 <div class="flex-1">
                                     <p class="text-sm text-navy-900">
-                                        Meeting scheduled with <span class="font-medium">Yale Endowment</span>
+                                        Meeting scheduled with <a href="lp-detail.html" class="font-medium hover:text-accent">Yale Endowment</a>
                                     </p>
                                     <p class="text-xs text-navy-400 mt-1">January 15, 2025 at 2:00 PM EST</p>
                                     <p class="text-xs text-navy-500 mt-1">Growth Fund III</p>
@@ -210,7 +210,7 @@
                                 </div>
                                 <div class="flex-1">
                                     <p class="text-sm text-navy-900">
-                                        Email sent to <span class="font-medium">CalPERS</span> (Michael Smith)
+                                        Email sent to <a href="lp-detail.html" class="font-medium hover:text-accent">CalPERS</a> (Michael Smith)
                                     </p>
                                     <p class="text-xs text-navy-500 mt-1">Growth Fund III</p>
                                 </div>
@@ -226,7 +226,7 @@
                                 </div>
                                 <div class="flex-1">
                                     <p class="text-sm text-navy-900">
-                                        Pitch generated for <span class="font-medium">Ontario Teachers</span>
+                                        Pitch generated for <a href="lp-detail.html" class="font-medium hover:text-accent">Ontario Teachers</a>
                                     </p>
                                     <p class="text-xs text-navy-500 mt-1">Growth Fund III</p>
                                 </div>
@@ -262,15 +262,15 @@
                 <div class="card p-6">
                     <h2 class="font-semibold text-navy-900 mb-4">Quick Actions</h2>
                     <div class="space-y-2">
-                        <a href="#" class="block w-full text-left px-4 py-3 text-sm text-navy-600 hover:bg-slate-50 rounded-lg transition">
+                        <a href="pitch-generator.html" class="block w-full text-left px-4 py-3 text-sm text-navy-600 hover:bg-slate-50 rounded-lg transition">
                             Generate Batch Pitches
                         </a>
-                        <a href="#" class="block w-full text-left px-4 py-3 text-sm text-navy-600 hover:bg-slate-50 rounded-lg transition">
+                        <a href="shortlist.html" class="block w-full text-left px-4 py-3 text-sm text-navy-600 hover:bg-slate-50 rounded-lg transition">
                             Export Shortlist to CSV
                         </a>
-                        <a href="#" class="block w-full text-left px-4 py-3 text-sm text-navy-600 hover:bg-slate-50 rounded-lg transition">
+                        <button class="block w-full text-left px-4 py-3 text-sm text-navy-600 hover:bg-slate-50 rounded-lg transition">
                             View All Meetings
-                        </a>
+                        </button>
                     </div>
                 </div>
 
@@ -278,14 +278,14 @@
                 <div class="card p-6">
                     <h2 class="font-semibold text-navy-900 mb-4">Upcoming Meetings</h2>
                     <div class="space-y-4">
-                        <div class="p-3 bg-slate-50 rounded-lg">
+                        <a href="lp-detail.html" class="p-3 bg-slate-50 rounded-lg block hover:bg-slate-100 transition">
                             <p class="text-sm font-medium text-navy-900">Yale Endowment</p>
                             <p class="text-xs text-navy-500">Jan 15, 2:00 PM</p>
-                        </div>
-                        <div class="p-3 bg-slate-50 rounded-lg">
+                        </a>
+                        <a href="lp-detail.html" class="p-3 bg-slate-50 rounded-lg block hover:bg-slate-100 transition">
                             <p class="text-sm font-medium text-navy-900">Stanford Endowment</p>
                             <p class="text-xs text-navy-500">Jan 18, 10:00 AM</p>
-                        </div>
+                        </a>
                     </div>
                 </div>
 
@@ -293,23 +293,39 @@
                 <div class="card p-6">
                     <h2 class="font-semibold text-navy-900 mb-4">Needs Follow-up</h2>
                     <div class="space-y-3">
-                        <div class="flex items-center justify-between">
+                        <a href="lp-detail.html" class="flex items-center justify-between hover:text-accent">
                             <span class="text-sm text-navy-600">Ontario Teachers</span>
                             <span class="text-xs text-amber-600">5 days</span>
-                        </div>
-                        <div class="flex items-center justify-between">
+                        </a>
+                        <a href="lp-detail.html" class="flex items-center justify-between hover:text-accent">
                             <span class="text-sm text-navy-600">CalPERS</span>
                             <span class="text-xs text-amber-600">3 days</span>
-                        </div>
-                        <div class="flex items-center justify-between">
+                        </a>
+                        <a href="lp-detail.html" class="flex items-center justify-between hover:text-accent">
                             <span class="text-sm text-navy-600">CPPIB</span>
                             <span class="text-xs text-red-600">7 days</span>
-                        </div>
+                        </a>
                     </div>
                 </div>
             </div>
         </div>
     </main>
+</div>
+
+<!-- UX Context Footer -->
+<div class="fixed bottom-0 left-0 right-0 bg-slate-800 text-white text-xs py-2 px-4">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+        <span class="font-medium">UX Flow: GP User</span>
+        <div class="flex items-center space-x-2">
+            <a href="dashboard.html" class="px-2 py-1 hover:bg-slate-700 rounded">Dashboard</a>
+            <span class="text-slate-500">|</span>
+            <a href="fund-list.html" class="px-2 py-1 hover:bg-slate-700 rounded">Funds</a>
+            <a href="lp-search.html" class="px-2 py-1 hover:bg-slate-700 rounded">Search</a>
+            <span class="px-2 py-1 bg-slate-700 rounded">Outreach</span>
+            <a href="shortlist.html" class="px-2 py-1 hover:bg-slate-700 rounded">Shortlist</a>
+        </div>
+        <a href="index.html" class="text-slate-400 hover:text-white">← All Screens</a>
+    </div>
 </div>
 
 </body>

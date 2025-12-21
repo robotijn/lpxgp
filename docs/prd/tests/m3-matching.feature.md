@@ -1477,6 +1477,507 @@ Feature: Complete Fund to Match Journey
 
 ---
 
+---
+
+## Negative Tests: Additional Edge Cases
+
+```gherkin
+Feature: Additional Negative Test Scenarios
+  As a system
+  I want to handle edge cases and failures gracefully
+  So that data integrity is maintained and users receive clear feedback
+
+  # ============================================
+  # @negative - Fund Profile Invalid State Transitions
+  # ============================================
+
+  @negative
+  Scenario: Cannot transition from archived to active directly
+    Given I have an archived fund
+    When I try to publish the fund directly
+    Then I see error "Archived funds must be restored to draft before publishing"
+    And fund remains in archived state
+
+  @negative
+  Scenario: Cannot transition from draft to archived without explicit action
+    Given I have a draft fund
+    When I try to archive without saving
+    Then I see warning "Unsaved changes will be lost. Continue?"
+    And I must confirm before archiving
+
+  @negative
+  Scenario: Cannot unpublish a fund with active matches
+    Given I have a published fund
+    And the fund has 50 active matches
+    When I try to change status to draft
+    Then I see error "Cannot unpublish fund with active matches. Archive matches first."
+    And fund remains published
+
+  @negative
+  Scenario: Invalid status value rejected
+    Given I have a fund
+    When API receives status = "invalid_status"
+    Then API returns 400 Bad Request
+    And error message is "Invalid status. Must be: draft, active, archived"
+
+  @negative
+  Scenario: Concurrent status changes cause conflict
+    Given user A is changing fund status to archived
+    And user B is changing fund status to active
+    When both submit simultaneously
+    Then one succeeds
+    And the other sees "Fund status was changed by another user. Please refresh."
+    And database maintains consistent state
+
+  @negative
+  Scenario: Cannot publish deleted fund
+    Given a fund was soft-deleted
+    When I try to publish via direct API call
+    Then API returns 404 Not Found
+    And error message is "Fund not found"
+
+  @negative
+  Scenario: Status transition with missing required fields fails
+    Given I have a draft fund
+    And investment_thesis is empty
+    When I try to change status to active
+    Then I see error "Cannot publish: investment_thesis is required"
+    And fund remains in draft
+
+  # ============================================
+  # @negative - Match Calculation with Missing LP Data
+  # ============================================
+
+  @negative
+  Scenario: LP missing all preference fields
+    Given LP has no strategy, geography, or size preferences set
+    When hard filters run
+    Then LP is excluded from matching
+    And LP is logged as "Insufficient data for matching"
+
+  @negative
+  Scenario: LP with null strategy array
+    Given LP has strategy_preferences = null
+    When hard filters run
+    Then LP is excluded
+    And matching continues for other LPs
+
+  @negative
+  Scenario: LP with empty strategy array
+    Given LP has strategy_preferences = []
+    When hard filters run
+    Then LP is excluded
+    And reason is logged "No strategy preferences defined"
+
+  @negative
+  Scenario: LP with corrupted size range data
+    Given LP has min_fund_size = "not_a_number"
+    When hard filters attempt to parse
+    Then LP is excluded from matching
+    And data quality error is logged
+    And matching continues for valid LPs
+
+  @negative
+  Scenario: LP with inverted size range
+    Given LP has min_fund_size = $500M and max_fund_size = $100M
+    When hard filters run
+    Then LP is excluded
+    And data quality warning is logged "Invalid size range: min > max"
+
+  @negative
+  Scenario: LP with null geographic preferences
+    Given LP has geographic_preferences = null
+    When hard filters run for geography
+    Then LP is excluded from geography filter
+    And reason is "No geographic preferences set"
+
+  @negative
+  Scenario: LP deleted mid-matching
+    Given matching is running for 1000 LPs
+    And LP X is deleted during matching
+    When matching reaches LP X
+    Then LP X is skipped gracefully
+    And matching continues
+    And final results exclude LP X
+
+  @negative
+  Scenario: LP with missing mandate blocks semantic matching
+    Given LP has no mandate_description
+    And no mandate_embedding
+    When semantic matching runs
+    Then LP gets default semantic score of 50
+    And explanation notes "Semantic matching unavailable - no mandate text"
+
+  @negative
+  Scenario: Partial LP data allows partial scoring
+    Given LP has:
+      | Field | Value |
+      | strategy_preferences | ["Private Equity"] |
+      | geographic_preferences | null |
+      | size_range | valid |
+    When matching runs
+    Then LP passes strategy filter
+    And LP is excluded by geography (null = no preference data)
+    Or system uses "global" as default if configured
+
+  # ============================================
+  # @negative - Concurrent Fund Edits
+  # ============================================
+
+  @negative
+  Scenario: Optimistic locking prevents lost updates
+    Given user A loaded fund at version 5
+    And user B loaded fund at version 5
+    When user A saves changes (becomes version 6)
+    And user B tries to save changes
+    Then user B sees "Fund was modified. Your version: 5, Current: 6"
+    And user B must reload before saving
+
+  @negative
+  Scenario: Concurrent edits to same field
+    Given user A changes target_size to $200M
+    And user B changes target_size to $300M
+    When both submit within milliseconds
+    Then database uses optimistic locking
+    And second user sees merge conflict
+    And audit log shows both attempts
+
+  @negative
+  Scenario: Concurrent edits to different fields
+    Given user A changes target_size
+    And user B changes fund_name
+    When both submit
+    Then first save succeeds
+    And second save shows conflict warning
+    And user B can choose to merge or overwrite
+
+  @negative
+  Scenario: Auto-save conflicts with manual save
+    Given auto-save runs every 30 seconds
+    And user manually clicks save at same moment
+    When both requests arrive
+    Then manual save takes precedence
+    And auto-save is discarded
+    And user sees "Saved successfully"
+
+  @negative
+  Scenario: Session A times out during long edit
+    Given user A has unsaved changes for 45 minutes
+    When session expires at 30 minutes
+    And user A tries to save
+    Then user sees "Session expired. Please log in."
+    And changes are preserved in local storage
+    And user can recover after login
+
+  @negative
+  Scenario: Multiple browser tabs editing same fund
+    Given I have fund open in tabs A and B
+    When I save in tab A
+    Then tab B shows "Fund updated in another tab"
+    And tab B offers to reload or continue editing
+
+  @negative
+  Scenario: Database deadlock during concurrent edits
+    Given high contention on fund row
+    When deadlock occurs
+    Then one transaction retries automatically
+    And user sees brief delay
+    And save eventually succeeds
+    And no data is lost
+
+  # ============================================
+  # @negative - AI Extraction Failures (Timeout, Parsing)
+  # ============================================
+
+  @negative
+  Scenario: OpenRouter timeout during extraction
+    Given I uploaded a deck for extraction
+    When OpenRouter takes longer than 60 seconds
+    Then extraction is cancelled
+    And I see "Extraction timed out. The service may be busy."
+    And options are:
+      | Retry extraction |
+      | Enter fields manually |
+    And my uploaded deck is preserved
+
+  @negative
+  Scenario: OpenRouter returns malformed JSON
+    Given AI extraction is processing
+    When OpenRouter returns invalid JSON response
+    Then parsing fails gracefully
+    And I see "Could not parse extraction results"
+    And raw response is logged for debugging
+    And I can retry or enter manually
+
+  @negative
+  Scenario: OpenRouter returns empty response
+    Given AI extraction is processing
+    When OpenRouter returns 200 OK with empty body
+    Then I see error "Extraction returned no data"
+    And retry is available
+    And fallback to manual entry is offered
+
+  @negative
+  Scenario: OpenRouter returns partial extraction
+    Given deck has 10 extractable fields
+    When OpenRouter returns only 3 fields
+    Then I see partial results
+    And missing fields show "Not extracted - please enter"
+    And I can proceed with partial data
+
+  @negative
+  Scenario: OpenRouter rate limit (429) during extraction
+    Given I submit extraction request
+    When OpenRouter returns 429 Too Many Requests
+    Then I see "AI service is busy. Queued for processing."
+    And extraction retries after backoff
+    And I receive notification when complete
+
+  @negative
+  Scenario: OpenRouter server error (500) during extraction
+    Given I submit extraction request
+    When OpenRouter returns 500 Internal Server Error
+    Then I see "AI service temporarily unavailable"
+    And automatic retry happens after 30 seconds
+    And maximum 3 retries before giving up
+
+  @negative
+  Scenario: OpenRouter authentication failure
+    Given OPENROUTER_API_KEY is invalid or expired
+    When extraction is attempted
+    Then I see "AI service configuration error"
+    And admin is notified
+    And manual entry is only option
+
+  @negative
+  Scenario: Extraction response validation fails
+    Given OpenRouter returns:
+      | Field | Value |
+      | target_size | "banana" |
+      | vintage_year | 9999 |
+    When response is validated
+    Then invalid fields are marked as "Could not validate - please enter"
+    And valid fields are preserved
+    And validation errors are shown inline
+
+  @negative
+  Scenario: Extraction response contains injection attempt
+    Given OpenRouter returns field value containing "<script>alert('xss')</script>"
+    When response is processed
+    Then content is sanitized
+    And script tags are removed
+    And cleaned value is shown for review
+
+  @negative
+  Scenario: Network error during extraction
+    Given extraction request is in flight
+    When network connection drops
+    Then I see "Network error. Please check connection and retry."
+    And extraction state is preserved for retry
+    And uploaded deck is not lost
+
+  @negative
+  Scenario: Extraction memory limit exceeded
+    Given deck is extremely complex with many tables
+    When parsing exceeds memory limit
+    Then extraction fails gracefully
+    And I see "Document too complex for automatic extraction"
+    And simplified extraction is attempted
+    Or manual entry is suggested
+
+  # ============================================
+  # @negative - Score Calculation Edge Cases
+  # ============================================
+
+  @negative
+  Scenario: All scoring factors return zero
+    Given LP has minimal overlap with fund:
+      | Factor | Raw Score |
+      | Sector Overlap | 0 |
+      | Size Fit | 0 |
+      | Track Record | 0 |
+      | ESG | 0 |
+      | Semantic | 0 |
+    When total score is calculated
+    Then total score is 0
+    And LP appears at bottom of results
+    And explanation notes "Very low compatibility"
+
+  @negative
+  Scenario: NaN in sector overlap calculation
+    Given sector data causes division by zero
+    When sector overlap score is calculated
+    Then NaN is caught
+    And sector score defaults to 0
+    And error is logged "NaN in sector calculation for LP X"
+    And total score calculation continues
+
+  @negative
+  Scenario: NaN in size fit calculation
+    Given LP has max_fund_size = 0
+    And calculation involves division by max
+    When size fit is calculated
+    Then NaN is prevented
+    And size fit score is 0
+    And warning is logged
+
+  @negative
+  Scenario: Infinity in score calculation
+    Given calculation produces Infinity
+    When score is processed
+    Then Infinity is clamped to 100
+    And warning is logged "Infinity in score calculation"
+    And results remain valid
+
+  @negative
+  Scenario: Negative intermediate score
+    Given weighted calculation produces -10
+    When final score is computed
+    Then negative is clamped to 0
+    And score is valid
+    And calculation method is reviewed
+
+  @negative
+  Scenario: Score exceeds 100 due to floating point
+    Given weighted sum produces 100.0000001
+    When final score is computed
+    Then score is rounded to 100
+    And display shows 100
+
+  @negative
+  Scenario: All factors have null data
+    Given LP passed hard filters
+    But has null for all soft scoring fields
+    When soft scoring runs
+    Then all factors default to 50
+    And total score is 50
+    And LP is flagged "Insufficient data for detailed scoring"
+
+  @negative
+  Scenario: Mixed null and valid factor data
+    Given LP has:
+      | Factor | Data |
+      | Sector | valid |
+      | Size | null |
+      | Track Record | valid |
+      | ESG | null |
+      | Semantic | valid |
+    When soft scoring runs
+    Then valid factors score normally
+    And null factors default to 50
+    And explanation notes which factors used defaults
+
+  @negative
+  Scenario: Extremely small numbers in calculation
+    Given sector overlap is 0.0000001
+    When score is calculated and displayed
+    Then score shows as 0
+    And precision is maintained internally
+    And no underflow occurs
+
+  @negative
+  Scenario: Score calculation timeout
+    Given semantic similarity calculation is slow
+    When calculation exceeds 5 second timeout
+    Then semantic factor uses default 50
+    And I see "Some scores used default values due to timeout"
+    And other factors complete normally
+
+  # ============================================
+  # @negative - Orphaned Match Data After LP Deletion
+  # ============================================
+
+  @negative
+  Scenario: LP deleted leaves orphaned matches
+    Given fund A has matches with LP X, LP Y, LP Z
+    When LP X is deleted from database
+    Then fund A's match with LP X becomes orphaned
+    And match record remains with lp_id pointing to deleted LP
+    And orphan cleanup job runs nightly
+
+  @negative
+  Scenario: View matches with deleted LP
+    Given I have a match with LP X
+    And LP X was deleted
+    When I view my matches
+    Then I see "LP X (No longer available)"
+    And score and explanation are still visible
+    And I can remove the orphaned match
+
+  @negative
+  Scenario: Generate pitch for deleted LP
+    Given I shortlisted LP X
+    And LP X was deleted
+    When I try to generate pitch for LP X
+    Then I see error "LP no longer exists. Cannot generate pitch."
+    And I am prompted to remove from shortlist
+
+  @negative
+  Scenario: Bulk operations with mixed valid/orphaned matches
+    Given I have 10 shortlisted LPs
+    And 2 have been deleted
+    When I click "Generate all pitches"
+    Then 8 pitches are generated successfully
+    And I see "2 LPs could not be processed (no longer available)"
+    And orphaned entries are highlighted
+
+  @negative
+  Scenario: Match explanation for deleted LP
+    Given I have cached explanation for LP X
+    And LP X was deleted
+    When I view the explanation
+    Then cached explanation is shown
+    And I see warning "This LP is no longer in our database"
+    And refresh is disabled
+
+  @negative
+  Scenario: Foreign key constraint on LP deletion
+    Given database has foreign key from matches to LPs
+    When LP X is deleted
+    Then either:
+      | CASCADE deletes related matches |
+      | SET NULL marks matches as orphaned |
+    And data integrity is maintained
+
+  @negative
+  Scenario: Orphan cleanup job handles large volumes
+    Given 10,000 matches reference deleted LPs
+    When nightly orphan cleanup runs
+    Then orphans are cleaned in batches
+    And database load is managed
+    And cleanup completes within maintenance window
+
+  @negative
+  Scenario: LP restored after deletion
+    Given LP X was soft-deleted
+    And matches with LP X exist
+    When LP X is restored
+    Then matches become valid again
+    And no data loss occurred
+    And match scores may need recalculation
+
+  @negative
+  Scenario: Concurrent LP deletion and match creation
+    Given GP is adding LP X to shortlist
+    And admin is deleting LP X
+    When both operations execute
+    Then either:
+      | Shortlist add fails with "LP not found" |
+      | Shortlist add succeeds then becomes orphaned |
+    And no database errors occur
+    And state is consistent
+
+  @negative
+  Scenario: Reporting with orphaned data
+    Given analytics include orphaned matches
+    When I view matching statistics
+    Then orphaned matches are excluded from active counts
+    And historical data is preserved
+    And report notes "X matches excluded (LP no longer available)"
+```
+
+---
+
 ## Error Handling Summary
 
 ```gherkin

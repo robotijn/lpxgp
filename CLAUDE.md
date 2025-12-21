@@ -19,6 +19,8 @@ Note: Read these files on demand rather than auto-loading (to save context).
 - **Deep thinking:** Always use Opus, don't switch to faster models
 - **Parallel execution:** Always run independent tool calls in parallel
 - **Use subagents:** Always use Task tool with subagents for parallel work when possible
+- **Plan mode:** Use plan mode proactively for complex tasks - do NOT ask for permission
+- **Quality focus:** After completing work, proactively check for inconsistencies, missing tests, and improvements
 
 ## Tech Stack
 
@@ -123,8 +125,15 @@ After M1, every push auto-deploys to lpxgp.com.
 
 ## Current Status
 
-**Phase:** Ready for Milestone 0
-**Next:** Project structure, Supabase setup, data import
+**Phase:** Milestone 0 - Documentation complete, ready for implementation
+**Next:** Supabase schema setup, data import scripts
+
+**Completed:**
+- Full PRD with 50+ feature specifications
+- 27 UI screen mockups with working navigation
+- BDD test specifications for all milestones
+- UX storylines and user journey documentation
+- PDF product document for stakeholders
 
 ## Key Concepts
 

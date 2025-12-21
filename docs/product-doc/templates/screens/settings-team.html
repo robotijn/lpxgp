@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Settings - Team - LPxGP{% endblock %}
 {% block body %}
-<div class="min-h-screen bg-slate-50">
+<div class="min-h-screen bg-slate-50 pb-12">
     <!-- Top Navigation -->
     <header class="bg-white border-b border-slate-200">
         <div class="max-w-7xl mx-auto px-6">
@@ -9,17 +9,17 @@
                 <div class="flex items-center space-x-8">
                     <span class="text-xl font-bold text-navy-900">LPxGP</span>
                     <nav class="hidden md:flex space-x-6">
-                        <a href="#" class="text-sm font-medium text-navy-500 hover:text-navy-700">Dashboard</a>
-                        <a href="#" class="text-sm font-medium text-navy-500 hover:text-navy-700">Funds</a>
-                        <a href="#" class="text-sm font-medium text-navy-500 hover:text-navy-700">Search</a>
-                        <a href="#" class="text-sm font-medium text-navy-500 hover:text-navy-700">Outreach</a>
+                        <a href="dashboard.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">Dashboard</a>
+                        <a href="fund-list.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">Funds</a>
+                        <a href="lp-search.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">Search</a>
+                        <a href="outreach-hub.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">Outreach</a>
                     </nav>
                 </div>
                 <div class="flex items-center space-x-4">
                     <span class="text-sm text-navy-600">Acme Capital</span>
-                    <div class="w-8 h-8 rounded-full bg-navy-100 flex items-center justify-center">
+                    <a href="settings-profile.html" class="w-8 h-8 rounded-full bg-navy-100 flex items-center justify-center">
                         <span class="text-sm font-medium text-navy-600">JP</span>
-                    </div>
+                    </a>
                 </div>
             </div>
         </div>
@@ -32,11 +32,11 @@
             <div class="w-56 shrink-0">
                 <h2 class="text-lg font-semibold text-navy-900 mb-4">Settings</h2>
                 <nav class="space-y-1">
-                    <a href="#" class="block px-4 py-2 text-sm font-medium text-navy-500 hover:bg-slate-50 rounded-lg">Profile</a>
-                    <a href="#" class="block px-4 py-2 text-sm font-medium text-navy-900 bg-slate-100 rounded-lg">Team</a>
-                    <a href="#" class="block px-4 py-2 text-sm font-medium text-navy-500 hover:bg-slate-50 rounded-lg">Company</a>
-                    <a href="#" class="block px-4 py-2 text-sm font-medium text-navy-500 hover:bg-slate-50 rounded-lg">Notifications</a>
-                    <a href="#" class="block px-4 py-2 text-sm font-medium text-navy-500 hover:bg-slate-50 rounded-lg">Security</a>
+                    <a href="settings-profile.html" class="block px-4 py-2 text-sm font-medium text-navy-500 hover:bg-slate-50 rounded-lg">Profile</a>
+                    <a href="settings-team.html" class="block px-4 py-2 text-sm font-medium text-navy-900 bg-slate-100 rounded-lg">Team</a>
+                    <span class="block px-4 py-2 text-sm font-medium text-navy-300 cursor-not-allowed rounded-lg" title="Coming soon">Company</span>
+                    <span class="block px-4 py-2 text-sm font-medium text-navy-300 cursor-not-allowed rounded-lg" title="Coming soon">Notifications</span>
+                    <span class="block px-4 py-2 text-sm font-medium text-navy-300 cursor-not-allowed rounded-lg" title="Coming soon">Security</span>
                 </nav>
             </div>
 
@@ -164,5 +164,19 @@
             </div>
         </div>
     </main>
+</div>
+
+<!-- UX Context Footer -->
+<div class="fixed bottom-0 left-0 right-0 bg-slate-800 text-white text-xs py-2 px-4">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+        <span class="font-medium">UX Flow: GP User</span>
+        <div class="flex items-center space-x-2">
+            <a href="dashboard.html" class="px-2 py-1 hover:bg-slate-700 rounded">Dashboard</a>
+            <span class="text-slate-500">|</span>
+            <a href="settings-profile.html" class="px-2 py-1 hover:bg-slate-700 rounded">Profile</a>
+            <span class="px-2 py-1 bg-slate-700 rounded">Settings: Team</span>
+        </div>
+        <a href="index.html" class="text-slate-400 hover:text-white">← All Screens</a>
+    </div>
 </div>
 {% endblock %}

@@ -909,3 +909,575 @@ Feature: Complete Data Import Journey
     And I receive email notification on completion
     And I can check status anytime
 ```
+
+---
+
+## Negative Test Scenarios
+
+### Database Constraint Violations
+
+```gherkin
+Feature: Database Constraint Handling
+  As a platform
+  I want to handle database constraint violations gracefully
+  So that data integrity is maintained and users get clear error messages
+
+  @negative
+  Scenario: Reject duplicate LP name and location (unique constraint)
+    Given an LP exists:
+      | Name | Headquarters |
+      | CalPERS | Sacramento, CA |
+    When I create an LP with:
+      | Name | Headquarters |
+      | CalPERS | Sacramento, CA |
+    Then I see error "An LP with this name and location already exists"
+    And the duplicate is not created
+
+  @negative
+  Scenario: Reject person with duplicate email (unique constraint)
+    Given a person exists with email "jsmith@example.com"
+    When I create a person with:
+      | Full Name | Email |
+      | Jane Doe | jsmith@example.com |
+    Then I see error "A person with this email already exists"
+    And the duplicate person is not created
+
+  @negative
+  Scenario: Reject employment referencing non-existent organization (foreign key)
+    Given no LP with ID "non-existent-lp-id" exists
+    When I create an employment record:
+      | Organization ID | Title |
+      | non-existent-lp-id | CIO |
+    Then I see error "Organization not found"
+    And the employment record is not created
+
+  @negative
+  Scenario: Reject commitment referencing non-existent LP (foreign key)
+    Given no LP with ID "non-existent-lp-id" exists
+    When I add a historical commitment:
+      | LP ID | Fund | Amount |
+      | non-existent-lp-id | Sequoia XVI | $200M |
+    Then I see error "LP not found"
+    And the commitment is not created
+
+  @negative
+  Scenario: Reject employment referencing non-existent person (foreign key)
+    Given no person with ID "non-existent-person-id" exists
+    When I create an employment record:
+      | Person ID | Organization | Title |
+      | non-existent-person-id | CalPERS | CIO |
+    Then I see error "Person not found"
+    And the employment record is not created
+
+  @negative
+  Scenario: Handle cascade delete protection for LP with relationships
+    Given an LP "CalPERS" exists
+    And CalPERS has 5 associated people via employment
+    And CalPERS has 10 historical commitments
+    When I try to delete CalPERS
+    Then I see error "Cannot delete LP with existing relationships"
+    And I see "5 employment records and 10 commitments reference this LP"
+    And the LP is not deleted
+
+  @negative
+  Scenario: Handle cascade delete protection for person with employment
+    Given a person "John Smith" exists
+    And John Smith has 3 employment records
+    When I try to delete John Smith
+    Then I see error "Cannot delete person with existing employment history"
+    And I see "3 employment records reference this person"
+    And the person is not deleted
+
+  @negative
+  Scenario: Reject invalid enum value (check constraint)
+    Given I am creating an LP
+    When I set verification_status to "invalid_status"
+    Then I see error "Invalid verification status"
+    And valid options are shown: "unverified, verified, pending_review"
+
+  @negative
+  Scenario: Reject data_source with invalid value (check constraint)
+    Given I am creating an LP
+    When I set data_source to "magic"
+    Then I see error "Invalid data source"
+    And valid options are shown: "import, manual, api, enrichment"
+```
+
+### Invalid Data Formats in Imports
+
+```gherkin
+Feature: Invalid Import Data Format Handling
+  As an admin
+  I want clear errors when import data has invalid formats
+  So that I can fix the source data
+
+  @negative
+  Scenario: Reject CSV with binary content
+    Given I am on the import page
+    When I upload a file that is actually a PNG image renamed to .csv
+    Then I see error "File content does not match CSV format"
+    And the file is rejected
+
+  @negative
+  Scenario: Reject CSV with null bytes
+    Given I am on the import page
+    When I upload a CSV containing null bytes (binary data)
+    Then I see error "File contains invalid characters (null bytes)"
+    And the file is rejected
+
+  @negative
+  Scenario: Handle CSV with mixed line endings
+    Given I am on the import page
+    When I upload a CSV with mixed CRLF and LF line endings
+    Then the file is normalized
+    And all rows are parsed correctly
+
+  @negative
+  Scenario: Reject CSV with BOM causing column issues
+    Given I am on the import page
+    When I upload a CSV with UTF-8 BOM
+    Then the BOM is stripped
+    And the first column name is parsed correctly
+    And no hidden characters remain
+
+  @negative
+  Scenario: Handle CSV with quoted fields containing newlines
+    Given I am on the import page
+    When I upload a CSV where a field contains:
+      """
+      "Multi
+      line
+      value"
+      """
+    Then the field is parsed as single value with newlines
+    And the row count is correct
+
+  @negative
+  Scenario: Reject CSV with unescaped quotes
+    Given I am on the import page
+    When I upload a CSV with field: "Value with "unescaped" quotes"
+    Then I see error "Malformed CSV: unescaped quotes on row 5"
+    And the row number is indicated
+
+  @negative
+  Scenario: Handle extremely long single row
+    Given I am on the import page
+    When I upload a CSV where one row has 100,000+ characters
+    Then I see error "Row 42 exceeds maximum length (10,000 characters)"
+    And the row is skipped
+    And processing continues
+
+  @negative
+  Scenario: Reject CSV with too many columns
+    Given I am on the import page
+    When I upload a CSV with 500 columns
+    Then I see error "Too many columns (max 100)"
+    And the file is rejected
+
+  @negative
+  Scenario: Handle date format variations
+    Given I am importing data with date fields
+    When dates are in various formats:
+      | Input | Parsed |
+      | 2024-01-15 | 2024-01-15 |
+      | 01/15/2024 | 2024-01-15 |
+      | 15-Jan-2024 | 2024-01-15 |
+      | January 15, 2024 | 2024-01-15 |
+    Then all valid dates are parsed correctly
+
+  @negative
+  Scenario: Reject invalid date formats
+    Given I am importing data with date fields
+    When a date field contains:
+      | Invalid Date |
+      | not-a-date |
+      | 2024-13-45 |
+      | 00/00/0000 |
+      | 32-Jan-2024 |
+    Then each is flagged as invalid
+    And I see "Invalid date format" error
+
+  @negative
+  Scenario: Handle AUM format variations
+    Given I am importing LP data
+    When AUM values are in various formats:
+      | Input | Parsed |
+      | $450B | 450000000000 |
+      | 450 billion | 450000000000 |
+      | $10M | 10000000 |
+      | 10,000,000 | 10000000 |
+      | 450bn | 450000000000 |
+    Then all valid AUM values are parsed correctly
+
+  @negative
+  Scenario: Reject ambiguous AUM formats
+    Given I am importing LP data
+    When AUM value is "450" without unit
+    Then it is flagged as ambiguous
+    And I see warning "AUM value lacks unit (M/B/T) - please verify"
+
+  @negative
+  Scenario: Handle percentage format variations
+    Given I am importing LP requirements
+    When IRR threshold values are:
+      | Input | Parsed |
+      | 15% | 0.15 |
+      | 15 | 0.15 |
+      | 0.15 | 0.15 |
+      | 15 percent | 0.15 |
+    Then all valid percentages are parsed correctly
+
+  @negative
+  Scenario: Reject Excel file with password protection
+    Given I am on the import page
+    When I upload a password-protected Excel file
+    Then I see error "Password-protected files are not supported"
+    And the file is rejected
+```
+
+### Data Corruption Handling
+
+```gherkin
+Feature: Data Corruption Detection and Recovery
+  As a platform
+  I want to detect and handle data corruption
+  So that data integrity is maintained
+
+  @negative
+  Scenario: Detect corrupted JSON in strategy field
+    Given an LP record has corrupted JSON in strategies field: "{invalid json"
+    When I try to load the LP profile
+    Then the error is logged
+    And I see a graceful error message: "Some data could not be loaded"
+    And the page still renders with available data
+    And the record is flagged for admin review
+
+  @negative
+  Scenario: Detect orphaned employment records
+    Given an employment record references LP ID "deleted-lp"
+    And no LP with that ID exists (orphaned record)
+    When the data integrity check runs
+    Then the orphaned record is detected
+    And it is moved to a quarantine table
+    And admin is notified
+
+  @negative
+  Scenario: Detect orphaned commitment records
+    Given a commitment record references a non-existent LP
+    When the data integrity check runs
+    Then the orphaned record is detected
+    And it is logged for admin review
+    And it does not break LP listing queries
+
+  @negative
+  Scenario: Handle truncated data in long text fields
+    Given notes field was truncated mid-sentence: "This LP focuses on growth equi..."
+    When I view the LP profile
+    Then the truncated data is displayed
+    And a warning icon indicates incomplete data
+
+  @negative
+  Scenario: Detect and handle invalid UTF-8 sequences
+    Given a record contains invalid UTF-8 bytes
+    When I try to load the record
+    Then invalid sequences are replaced with replacement character
+    And the record is flagged for cleaning
+    And the page renders successfully
+
+  @negative
+  Scenario: Handle database connection failure during write
+    Given I am creating a new LP
+    When the database connection fails mid-transaction
+    Then the transaction is rolled back
+    And I see error "Unable to save. Please try again."
+    And no partial data is written
+
+  @negative
+  Scenario: Handle database timeout during read
+    Given I am loading an LP profile
+    When the database query times out after 30 seconds
+    Then I see error "Request timed out. Please try again."
+    And a retry button is shown
+
+  @negative
+  Scenario: Detect circular employment references
+    Given person A has employment at org B
+    And org B is somehow linked to person A as owner
+    When the data integrity check runs
+    Then circular references are detected
+    And they are flagged for manual resolution
+
+  @negative
+  Scenario: Handle corrupted file upload (partial upload)
+    Given I am uploading a large CSV file
+    When the upload is interrupted at 50%
+    Then I see error "Upload incomplete"
+    And no partial file is processed
+    And I can retry the upload
+
+  @negative
+  Scenario: Detect schema version mismatch
+    Given the database schema was updated
+    And some records have old schema format
+    When I load a record with old format
+    Then backward compatibility handler runs
+    And the record is migrated to new format
+    And migration is logged
+
+  @negative
+  Scenario: Handle vector embedding corruption
+    Given an LP has a corrupted embedding (wrong dimensions)
+    When semantic search runs
+    Then the corrupted embedding is skipped
+    And search results exclude that LP
+    And the LP is flagged for re-embedding
+
+  @negative
+  Scenario: Detect duplicate primary keys after restore
+    Given database was restored from backup
+    And new records were created before restore
+    When I try to create a record with existing ID
+    Then I see error "Record ID conflict"
+    And the conflict is logged for admin resolution
+```
+
+### Concurrent Edit Conflicts
+
+```gherkin
+Feature: Concurrent Edit Conflict Handling
+  As a platform
+  I want to handle concurrent edits gracefully
+  So that users don't lose their work
+
+  @negative
+  Scenario: Detect concurrent edit on LP profile
+    Given user A is editing LP "CalPERS"
+    And user B is also editing LP "CalPERS"
+    When user A saves changes at 10:00:00
+    And user B tries to save changes at 10:00:05
+    Then user B sees error "This record was modified by another user"
+    And user B sees the conflicting changes
+    And user B can choose to:
+      | Option |
+      | Overwrite with my changes |
+      | Discard my changes |
+      | Merge changes manually |
+
+  @negative
+  Scenario: Prevent lost updates with optimistic locking
+    Given I loaded LP "CalPERS" at version 5
+    When another user updates it to version 6
+    And I try to save my changes
+    Then I see error "Record has been updated since you loaded it"
+    And my changes are preserved in the form
+    And I can reload and reapply changes
+
+  @negative
+  Scenario: Handle concurrent import jobs
+    Given admin A starts importing "file1.csv" with 500 LPs
+    And admin B starts importing "file2.csv" with 500 LPs
+    When both jobs try to create LP "CalPERS"
+    Then one job succeeds
+    And the other job flags it as duplicate
+    And no data corruption occurs
+
+  @negative
+  Scenario: Handle concurrent delete and update
+    Given user A is editing LP "CalPERS"
+    When user B deletes LP "CalPERS"
+    And user A tries to save changes
+    Then user A sees error "This record has been deleted"
+    And user A's changes are not saved
+    And user A can create a new record with their data
+
+  @negative
+  Scenario: Handle concurrent person merge
+    Given two merge operations on the same person are initiated
+    When both try to execute simultaneously
+    Then only one merge succeeds
+    And the other sees error "Record is being modified"
+    And data integrity is maintained
+
+  @negative
+  Scenario: Handle session timeout during edit
+    Given I am editing an LP profile
+    And my session has been open for 2 hours
+    When my session expires
+    And I try to save changes
+    Then I see "Session expired. Please log in again."
+    And my changes are preserved in local storage
+    And after re-login I can recover my edits
+
+  @negative
+  Scenario: Handle concurrent employment updates for same person
+    Given person "John Smith" works at "CalPERS"
+    And admin A is updating John's title to "CIO"
+    And admin B is updating John's title to "Director"
+    When both save simultaneously
+    Then one update succeeds
+    And the other sees conflict notification
+    And employment history shows both attempts
+
+  @negative
+  Scenario: Prevent race condition in duplicate detection
+    Given I am importing 1000 LPs
+    And "CalPERS" appears twice in the file (rows 50 and 500)
+    When import runs in parallel batches
+    Then only one "CalPERS" is created
+    And the duplicate is detected and skipped
+    And no constraint violation occurs
+
+  @negative
+  Scenario: Handle concurrent data quality score updates
+    Given LP "CalPERS" has quality score 75%
+    And two different enrichment jobs update it simultaneously
+    When both try to update the quality score
+    Then the final score reflects the latest complete calculation
+    And intermediate states are not visible to users
+
+  @negative
+  Scenario: Lock record during long-running operation
+    Given I initiate AI extraction on LP notes (takes 30 seconds)
+    When another user tries to edit the LP
+    Then they see warning "Record is being processed"
+    And they can choose to wait or edit anyway
+    And if they edit anyway, they're warned of potential conflicts
+```
+
+### Large File Handling Edge Cases
+
+```gherkin
+Feature: Large File Handling Edge Cases
+  As an admin
+  I want reliable handling of large import files
+  So that bulk imports don't fail unexpectedly
+
+  @negative
+  Scenario: Handle file with 100,000+ rows
+    Given I am on the import page
+    When I upload a CSV with 150,000 rows
+    Then the file is accepted
+    And processing is queued for background execution
+    And I see estimated processing time: "~15 minutes"
+    And I receive email notification on completion
+
+  @negative
+  Scenario: Handle file approaching memory limits
+    Given I am on the import page
+    When I upload a 45MB CSV file (near the 50MB limit)
+    Then the file is accepted
+    And streaming processing is used
+    And memory usage remains stable
+    And progress is reported every 1000 rows
+
+  @negative
+  Scenario: Reject file exceeding absolute limit
+    Given I am on the import page
+    When I upload a 100MB CSV file
+    Then I see error "File too large (max 50MB)"
+    And the upload is rejected before complete transfer
+    And server resources are not exhausted
+
+  @negative
+  Scenario: Handle slow upload on poor connection
+    Given I am on the import page
+    And my connection speed is 100Kbps
+    When I upload a 10MB file
+    Then upload progress is shown
+    And timeout is extended for slow connections
+    And upload completes successfully after 15 minutes
+
+  @negative
+  Scenario: Handle upload interruption and resume
+    Given I am uploading a 40MB file
+    And upload reaches 60% complete
+    When network interruption occurs
+    Then I see "Upload interrupted"
+    And I can resume from 60%
+    And I don't need to restart from beginning
+
+  @negative
+  Scenario: Handle file with very wide rows (many columns)
+    Given I am on the import page
+    When I upload a CSV with 80 columns and 10,000 rows
+    Then the file is accepted
+    And column mapping interface handles scrolling
+    And performance remains acceptable
+
+  @negative
+  Scenario: Handle file with very long cell values
+    Given I am on the import page
+    When I upload a CSV where notes field contains 50,000 characters
+    Then I see warning "Row 42: notes field truncated to 10,000 characters"
+    And import continues with truncated data
+    And original full text is logged for recovery
+
+  @negative
+  Scenario: Handle compressed file uploads
+    Given I am on the import page
+    When I upload "lps.csv.gz" (gzipped CSV)
+    Then the file is decompressed
+    And the CSV is processed normally
+    And I see "Decompressed size: 40MB"
+
+  @negative
+  Scenario: Reject zip bomb attack
+    Given I am on the import page
+    When I upload a small file that expands to 10GB when decompressed
+    Then decompression stops at 50MB limit
+    And I see error "Compressed file expands beyond limits"
+    And the file is rejected
+
+  @negative
+  Scenario: Handle background job failure recovery
+    Given I started a large import (50,000 rows)
+    And processing fails at row 25,000 due to server restart
+    When the server recovers
+    Then the job is automatically resumed
+    And processing continues from row 25,000
+    And no duplicate records are created
+
+  @negative
+  Scenario: Handle concurrent large imports from multiple admins
+    Given admin A uploads 50,000 rows
+    And admin B uploads 30,000 rows simultaneously
+    When both imports run in parallel
+    Then both complete successfully
+    And system resources are balanced fairly
+    And neither job starves the other
+
+  @negative
+  Scenario: Report progress accurately for large files
+    Given I am importing 100,000 rows
+    When I check progress at various points
+    Then progress percentage matches actual row count
+    And estimated time remaining is reasonably accurate
+    And I can see rows processed per second
+
+  @negative
+  Scenario: Handle import cancellation midway
+    Given I started importing 50,000 rows
+    And 20,000 rows have been processed
+    When I click "Cancel Import"
+    Then processing stops within 5 seconds
+    And already-imported records remain (no rollback)
+    And I see "Import cancelled. 20,000 records imported."
+    And I can continue or restart import later
+
+  @negative
+  Scenario: Handle validation on very large files
+    Given I upload a CSV with 100,000 rows
+    When validation runs on all rows
+    Then validation completes in reasonable time (<5 minutes)
+    And errors are batched for display (show first 100)
+    And I can download full error report as CSV
+
+  @negative
+  Scenario: Handle preview for large files
+    Given I upload a CSV with 100,000 rows
+    When I reach the preview step
+    Then only first 100 rows are shown
+    And I see "Showing 100 of 100,000 rows"
+    And I can paginate through preview data
+    And full import only starts when I approve
+```

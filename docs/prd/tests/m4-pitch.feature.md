@@ -1264,3 +1264,535 @@ Feature: Complete Pitch Generation Journey
     Then I can write email manually
     And the journey can still be completed
 ```
+
+---
+
+## Additional Negative Test Scenarios
+
+```gherkin
+Feature: Negative Test Scenarios for Pitch Generation
+  As a developer
+  I want comprehensive negative test coverage
+  So that the system handles all edge cases gracefully
+
+  # ============================================================
+  # @negative: OpenRouter API Failures
+  # ============================================================
+
+  @negative
+  Scenario: Handle OpenRouter API timeout during summary generation
+    Given I have a match with LP "CalPERS"
+    When I click "Generate Summary"
+    And the OpenRouter API does not respond within 30 seconds
+    Then the request is cancelled
+    And I see error message "Request timed out. The AI service is taking too long."
+    And I see a "Retry" button
+    And I see option to "Try with shorter content"
+    And no partial content is saved
+
+  @negative
+  Scenario: Handle OpenRouter API timeout during email generation
+    Given I have a match with LP "Harvard Endowment"
+    When I click "Generate Email"
+    And the OpenRouter API does not respond within 30 seconds
+    Then the request is cancelled
+    And I see error message "Email generation timed out. Please try again."
+    And I can retry with the same parameters
+    And previous form selections (tone, etc.) are preserved
+
+  @negative
+  Scenario: Handle OpenRouter rate limit with retry-after header
+    Given I have made multiple API requests
+    When I click "Generate Summary"
+    And OpenRouter returns HTTP 429 with Retry-After: 60 header
+    Then I see error message "Rate limit exceeded. Please wait 60 seconds."
+    And I see a countdown timer showing remaining wait time
+    And the "Generate" button is disabled until countdown completes
+    And I see option to upgrade plan for higher limits
+
+  @negative
+  Scenario: Handle OpenRouter rate limit without retry-after header
+    Given I have made multiple API requests
+    When I click "Generate Email"
+    And OpenRouter returns HTTP 429 without Retry-After header
+    Then I see error message "Too many requests. Please try again in a few minutes."
+    And I see default wait time of 60 seconds
+    And I can manually retry after waiting
+
+  @negative
+  Scenario: Handle OpenRouter content filter rejection
+    Given I have a match with LP "Controversial Fund"
+    And the LP profile contains potentially flagged content
+    When I click "Generate Summary"
+    And OpenRouter returns content filter rejection
+    Then I see error message "Content could not be generated due to policy restrictions."
+    And I see option to "Review LP Profile" for problematic content
+    And the specific flagged content is logged for admin review
+    And I can try generating with modified LP data
+
+  @negative
+  Scenario: Handle OpenRouter content filter on generated output
+    Given I have a match with LP "CalPERS"
+    When I click "Generate Summary"
+    And OpenRouter generates content that triggers output filter
+    Then I see error message "Generated content was filtered. Regenerating..."
+    And the system automatically retries with modified prompt
+    And if retry fails, I see "Unable to generate appropriate content"
+    And I can manually create content instead
+
+  @negative
+  Scenario: Handle OpenRouter model unavailable
+    Given I have a match with LP "CalPERS"
+    When I click "Generate Summary"
+    And the requested model is unavailable on OpenRouter
+    Then I see error message "AI model temporarily unavailable."
+    And I see option to use fallback model
+    And fallback model selection is logged
+
+  @negative
+  Scenario: Handle OpenRouter insufficient credits
+    Given our OpenRouter account has no remaining credits
+    When I click "Generate Summary"
+    And OpenRouter returns HTTP 402 Payment Required
+    Then I see error message "AI service credits exhausted. Please contact support."
+    And error is logged for admin notification
+    And I cannot generate any AI content
+    And I see option to use cached/template content
+
+  @negative
+  Scenario: Handle OpenRouter authentication failure
+    Given the OpenRouter API key is invalid or revoked
+    When I click "Generate Summary"
+    And OpenRouter returns HTTP 401 Unauthorized
+    Then I see error message "Configuration error. Please contact support."
+    And no API key details are shown to user
+    And error is logged with full details for admin
+    And all AI generation features are disabled
+
+  # ============================================================
+  # @negative: LLM Response Parsing Errors
+  # ============================================================
+
+  @negative
+  Scenario: Handle malformed JSON in LLM response
+    Given I have a match with LP "CalPERS"
+    When I click "Generate Summary"
+    And the LLM returns invalid JSON (unclosed braces, missing quotes)
+    Then I see error message "Error processing AI response. Retrying..."
+    And the system automatically retries up to 3 times
+    And if all retries fail, I see "Unable to parse AI response. Please try again."
+    And the malformed response is logged for debugging
+
+  @negative
+  Scenario: Handle LLM response with wrong schema
+    Given I have a match with LP "CalPERS"
+    When I click "Generate Summary"
+    And the LLM returns valid JSON but missing required fields
+    Then I see warning "AI response incomplete"
+    And I see which fields could not be generated:
+      | Field |
+      | track_record |
+      | team_section |
+    And I can regenerate specific sections
+    And partial content is displayed for available fields
+
+  @negative
+  Scenario: Handle LLM response with unexpected field types
+    Given I have a match with LP "CalPERS"
+    When I click "Generate Summary"
+    And the LLM returns a string where an object was expected
+    Then the system attempts type coercion
+    And if coercion fails, I see error message "Invalid response format"
+    And I can retry generation
+
+  @negative
+  Scenario: Handle truncated LLM response
+    Given I have a match with LP "CalPERS"
+    When I click "Generate Summary"
+    And the LLM response is cut off mid-sentence (token limit reached)
+    Then I see warning "Content was truncated due to length limits"
+    And I see the partial content with "[Content truncated]" marker
+    And I can request "Continue generation" to get remaining content
+    And I can edit the truncation point manually
+
+  @negative
+  Scenario: Handle LLM response with encoding issues
+    Given I have a match with LP "International LP with Unicode name"
+    When I click "Generate Summary"
+    And the LLM returns content with invalid UTF-8 sequences
+    Then invalid characters are replaced with replacement character
+    And I see warning "Some characters could not be displayed correctly"
+    And the content is still usable
+    And I can edit to fix character issues
+
+  @negative
+  Scenario: Handle LLM response containing only whitespace
+    Given I have a match with LP "CalPERS"
+    When I click "Generate Summary"
+    And the LLM returns a response that is only whitespace or empty strings
+    Then I see error message "AI returned empty content. Please try again."
+    And the system logs this as a failed generation
+    And I can retry with different parameters
+
+  @negative
+  Scenario: Handle LLM response with HTML/script injection
+    Given I have a match with LP "CalPERS"
+    When I click "Generate Summary"
+    And the LLM returns content containing <script> tags or HTML
+    Then all HTML/script content is sanitized
+    And content is rendered as plain text
+    And no scripts are executed
+    And I see the safe, sanitized content
+
+  @negative
+  Scenario: Handle LLM response exceeding maximum size
+    Given I have a match with LP "CalPERS"
+    When I click "Generate Summary"
+    And the LLM returns content larger than 100KB
+    Then content is truncated to safe limit
+    And I see warning "Content exceeded maximum length and was truncated"
+    And I can request a shorter version
+
+  # ============================================================
+  # @negative: Clipboard Permission Denied
+  # ============================================================
+
+  @negative
+  Scenario: Handle clipboard permission denied on first attempt
+    Given an email is generated for LP "CalPERS"
+    When I click "Copy to Clipboard"
+    And browser shows permission prompt
+    And I click "Deny"
+    Then I see error message "Clipboard access denied"
+    And I see instructions "Please allow clipboard access in your browser settings"
+    And I see a text area with content pre-selected for manual copy
+    And I see button "Select All for Manual Copy"
+
+  @negative
+  Scenario: Handle clipboard permission denied after previous grant
+    Given I previously granted clipboard permission
+    And permission was revoked in browser settings
+    When I click "Copy to Clipboard"
+    Then I see error message "Clipboard permission was revoked"
+    And I see link to browser settings instructions
+    And I see fallback text area for manual copy
+
+  @negative
+  Scenario: Handle clipboard API not supported in browser
+    Given I am using an older browser without Clipboard API
+    When I click "Copy to Clipboard"
+    Then I see message "Your browser does not support automatic copy"
+    And a text area appears with all content
+    And the text is automatically selected
+    And I see instructions "Press Ctrl+C (or Cmd+C on Mac) to copy"
+
+  @negative
+  Scenario: Handle clipboard write failure due to security context
+    Given I am viewing the page in an iframe or insecure context
+    When I click "Copy to Clipboard"
+    And the browser blocks clipboard access due to security
+    Then I see error message "Copy not available in this context"
+    And I see fallback manual copy option
+    And I see suggestion to open in new window
+
+  @negative
+  Scenario: Handle clipboard already in use by another application
+    Given another application has locked the clipboard
+    When I click "Copy to Clipboard"
+    And the write operation fails
+    Then I see error message "Clipboard is busy. Please try again."
+    And I can retry after a moment
+    And manual copy fallback is available
+
+  @negative
+  Scenario: Handle partial clipboard copy failure
+    Given I have a very long email content
+    When I click "Copy to Clipboard"
+    And only part of the content is copied (browser limit)
+    Then I see warning "Content may be truncated in clipboard"
+    And I see the character count that was copied
+    And I see option to copy in sections
+
+  # ============================================================
+  # @negative: Pitch Generation with Stale LP Data
+  # ============================================================
+
+  @negative
+  Scenario: Generate pitch when LP data was updated after match creation
+    Given I have a match with LP "CalPERS" created 30 days ago
+    And CalPERS's investment focus changed from "Technology" to "Healthcare"
+    When I click "Generate Summary"
+    Then I see warning "LP data may have changed since this match was created"
+    And I see "Last updated: 30 days ago"
+    And I see option to "Refresh LP Data" before generating
+    And I can proceed with current data if desired
+
+  @negative
+  Scenario: Generate pitch when LP profile was deleted
+    Given I have a match with LP "Former Investor"
+    And the LP profile was deleted from the database
+    When I click "Generate Summary"
+    Then I see error message "LP profile no longer exists"
+    And I see option to remove this match from my list
+    And the match is flagged as orphaned
+
+  @negative
+  Scenario: Generate pitch when LP contact information is outdated
+    Given I have a match with LP "CalPERS"
+    And the LP contact email was marked as bounced
+    When I click "Generate Email"
+    Then I see warning "Contact email may be invalid (last bounce: 2 weeks ago)"
+    And I can proceed with generation
+    And I see suggestion to verify contact before sending
+
+  @negative
+  Scenario: Generate pitch when LP investment mandate expired
+    Given I have a match with LP "Seasonal Fund"
+    And the LP's current fundraising period ended
+    When I click "Generate Summary"
+    Then I see warning "LP's investment mandate may have expired"
+    And I see "Mandate end date: [past date]"
+    And I can still generate but with caution notice
+    And content includes caveat about timing
+
+  @negative
+  Scenario: Generate pitch when LP AUM data is stale
+    Given I have a match with LP "Growth Endowment"
+    And the LP's AUM data is from 2 years ago
+    When I click "Generate Summary"
+    Then I see warning "LP financial data may be outdated (2 years old)"
+    And summary includes disclaimer about data freshness
+    And I see option to update LP data
+
+  @negative
+  Scenario: Generate pitch when match score was invalidated
+    Given I have a match with LP "CalPERS" with score 92
+    And the scoring algorithm was updated
+    And the match score is now marked as "stale"
+    When I view the match and click "Generate Summary"
+    Then I see warning "Match score needs recalculation"
+    And I see option to "Recalculate Score" before generating
+    And I can proceed with potentially inaccurate score
+
+  @negative
+  Scenario: Generate pitch when multiple LP fields are stale
+    Given I have a match with LP "Old Data LP"
+    And the following data is more than 1 year old:
+      | Field | Age |
+      | Investment strategy | 18 months |
+      | Geographic focus | 14 months |
+      | Contact information | 12 months |
+      | AUM | 24 months |
+    When I click "Generate Summary"
+    Then I see warning "Multiple LP data fields are outdated"
+    And I see summary of stale fields with ages
+    And I see strong recommendation to update before generating
+    And I can proceed at my own risk
+
+  @negative
+  Scenario: Generate pitch with conflicting LP data versions
+    Given I have a match with LP "CalPERS"
+    And there are two versions of LP data (manual vs. imported)
+    And versions conflict on investment focus
+    When I click "Generate Summary"
+    Then I see warning "Conflicting LP data detected"
+    And I see comparison of conflicting values
+    And I must select which version to use
+    And selected version is used for generation
+
+  # ============================================================
+  # @negative: Email Template Injection Attempts
+  # ============================================================
+
+  @negative
+  Scenario: Handle XSS injection in LP name field
+    Given I have a match with LP named "<script>alert('xss')</script>"
+    When I click "Generate Email"
+    Then the LP name is HTML-escaped in the email
+    And no script is executed in preview
+    And copied content contains escaped characters
+    And I see sanitized LP name in the email
+
+  @negative
+  Scenario: Handle SQL injection in email personalization
+    Given I have a match with LP named "LP'; DROP TABLE users; --"
+    When I click "Generate Email"
+    Then the LP name is treated as literal text
+    And no database operations are affected
+    And email generates successfully with sanitized name
+
+  @negative
+  Scenario: Handle template variable injection in custom fields
+    Given I am editing an email template
+    And I enter "{{user.password}}" in a custom field
+    When I save the template
+    Then the template variable is escaped or rejected
+    And I see error "Invalid template syntax" if rejected
+    And no sensitive data is ever exposed
+
+  @negative
+  Scenario: Handle newline injection for email header manipulation
+    Given I have a match with LP named "LP\r\nBcc: attacker@evil.com\r\n"
+    When I click "Generate Email"
+    Then newlines and carriage returns are stripped from LP name
+    And no additional headers can be injected
+    And email content is safe for all email clients
+
+  @negative
+  Scenario: Handle HTML injection in email subject
+    Given I am editing the email subject
+    And I enter "<img src=x onerror=alert('xss')>"
+    When I save the email
+    Then HTML is stripped from the subject
+    And only plain text is saved
+    And copied subject is safe
+
+  @negative
+  Scenario: Handle Unicode homograph attack in LP name
+    Given I have a match with LP named "СаlPERS" (using Cyrillic 'С' and 'а')
+    When I click "Generate Email"
+    Then the system detects potential homograph attack
+    And I see warning "LP name contains unusual characters"
+    And I can review and confirm the name
+
+  @negative
+  Scenario: Handle CRLF injection in email body
+    Given I am editing an email body
+    And I enter content with embedded CRLF sequences
+    When I copy to clipboard
+    Then CRLF sequences are normalized
+    And email body cannot break email format
+    And content pastes safely in email clients
+
+  @negative
+  Scenario: Handle template variable escape attempts
+    Given I am generating an email
+    And the LP profile contains "{{config.api_key}}" in notes
+    When I click "Generate Email"
+    Then template variables in LP data are escaped
+    And I see literal "{{config.api_key}}" in email
+    And no system variables are exposed
+
+  @negative
+  Scenario: Handle malicious URL in LP website field
+    Given I have a match with LP with website "javascript:alert('xss')"
+    When I click "Generate Email"
+    And the email references LP website
+    Then malicious URLs are detected and removed
+    And I see warning "Invalid URL removed from LP profile"
+    And email does not contain malicious link
+
+  @negative
+  Scenario: Handle oversized injection payload
+    Given I have a match with LP named "[1MB of repeated characters]"
+    When I click "Generate Email"
+    Then the LP name is truncated to safe length
+    And I see warning "LP name was truncated"
+    And system resources are not exhausted
+
+  # ============================================================
+  # @negative: Concurrent Pitch Edits
+  # ============================================================
+
+  @negative
+  Scenario: Handle simultaneous edit in two browser tabs
+    Given I generated an email for LP "CalPERS"
+    And I have the email open in two browser tabs
+    When I edit the subject in Tab A to "Subject A"
+    And I edit the subject in Tab B to "Subject B"
+    And I save in Tab A first
+    And then I try to save in Tab B
+    Then Tab B shows warning "This email was modified in another session"
+    And I see diff showing changes made in Tab A
+    And I can choose to:
+      | Option | Result |
+      | Keep mine | Overwrites Tab A changes |
+      | Keep theirs | Discards my Tab B changes |
+      | Merge | Opens merge editor |
+
+  @negative
+  Scenario: Handle concurrent edit by same user on different devices
+    Given I generated an email for LP "CalPERS"
+    And I am editing on my laptop
+    And I open the same email on my phone
+    When I make conflicting edits on both devices
+    Then the last save wins (optimistic locking)
+    And the overwritten device shows "Content updated from another session"
+    And I can see version history
+
+  @negative
+  Scenario: Handle concurrent summary generation for same match
+    Given I have a match with LP "CalPERS"
+    When I click "Generate Summary" in one tab
+    And I click "Generate Summary" in another tab before first completes
+    Then only one generation runs
+    And second request shows "Generation already in progress"
+    And both tabs receive the same result when ready
+
+  @negative
+  Scenario: Handle edit during regeneration
+    Given I have a generated summary for LP "CalPERS"
+    And I click "Regenerate"
+    When I also try to edit the current content
+    Then editing is disabled during regeneration
+    And I see message "Please wait for regeneration to complete"
+    And I can cancel regeneration to continue editing
+
+  @negative
+  Scenario: Handle concurrent template save with same name
+    Given I am saving an email as template "Tech Outreach"
+    And another user saves a template with same name simultaneously
+    When both saves are processed
+    Then one save succeeds and one fails
+    And the failed save shows "Template name already taken"
+    And I can choose a different name
+
+  @negative
+  Scenario: Handle edit timeout due to session lock
+    Given I started editing an email 30 minutes ago
+    And the editing session has a 15-minute lock timeout
+    When another user tries to edit the same email
+    Then my lock has expired
+    And the other user can take the lock
+    And when I try to save, I see "Your editing session expired"
+    And my changes are preserved locally
+    And I can request a new lock
+
+  @negative
+  Scenario: Handle browser crash during edit
+    Given I am editing an email for LP "CalPERS"
+    And I have unsaved changes
+    When my browser crashes unexpectedly
+    And I reopen the browser and return to the page
+    Then I see "Unsaved changes recovered" (if autosave enabled)
+    And I can restore my previous edits
+    Or I see "Previous session had unsaved changes" with recovery option
+
+  @negative
+  Scenario: Handle concurrent pitch copy operations
+    Given I have a generated email for LP "CalPERS"
+    When I click "Copy to Clipboard" rapidly multiple times
+    Then only one copy operation runs at a time
+    And subsequent clicks are debounced
+    And I see single "Copied!" confirmation
+    And clipboard contains correct content
+
+  @negative
+  Scenario: Handle version conflict during collaborative edit
+    Given I am on a team with shared access to pitch content
+    And team member Alice is editing the same email
+    When we both make changes simultaneously
+    Then we see real-time presence indicators (if supported)
+    Or we see conflict resolution on save
+    And no changes are silently lost
+    And version history tracks all changes
+
+  @negative
+  Scenario: Handle delete during concurrent edit
+    Given I am editing an email for LP "CalPERS"
+    And another team member deletes the match
+    When I try to save my edits
+    Then I see error "This match no longer exists"
+    And I see option to save content as draft
+    And my work is not completely lost
+```

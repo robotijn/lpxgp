@@ -115,7 +115,7 @@
 </head>
 <body class="bg-slate-50 min-h-screen">
     
-<div class="min-h-screen bg-navy-900 flex">
+<div class="min-h-screen bg-navy-900 flex pb-12">
     <!-- Left: Brand -->
     <div class="hidden lg:flex lg:w-1/2 flex-col justify-center px-12">
         <div>
@@ -159,7 +159,7 @@
                 <p class="font-medium text-navy-900">john.partner@acmecap.com</p>
             </div>
 
-            <form class="space-y-6">
+            <form class="space-y-6" action="dashboard.html">
                 <div>
                     <label class="block text-sm font-medium text-navy-700 mb-2">Full Name</label>
                     <input type="text" class="form-input w-full" placeholder="John Partner" value="John Partner">
@@ -179,13 +179,28 @@
                         <span class="ml-2 text-sm text-navy-600">I agree to the <a href="#" class="text-accent hover:text-accent-dark">Terms of Service</a> and <a href="#" class="text-accent hover:text-accent-dark">Privacy Policy</a></span>
                     </label>
                 </div>
-                <button type="submit" class="btn-primary w-full">Accept Invitation</button>
+                <a href="dashboard.html" class="btn-primary w-full block text-center">Accept Invitation</a>
             </form>
 
             <p class="mt-8 text-center text-sm text-navy-500">
-                Already have an account? <a href="#" class="text-accent hover:text-accent-dark font-medium">Sign in</a>
+                Already have an account? <a href="login.html" class="text-accent hover:text-accent-dark font-medium">Sign in</a>
             </p>
         </div>
+    </div>
+</div>
+
+<!-- UX Context Footer -->
+<div class="fixed bottom-0 left-0 right-0 bg-slate-800 text-white text-xs py-2 px-4">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+        <span class="font-medium">UX Flow:</span>
+        <div class="flex items-center space-x-2">
+            <span class="text-slate-400">Email Invitation</span>
+            <span class="text-slate-400">-></span>
+            <span class="bg-accent text-white px-2 py-0.5 rounded">Accept Invitation</span>
+            <span class="text-slate-400">-></span>
+            <a href="dashboard.html" class="text-slate-300 hover:text-white">Dashboard</a>
+        </div>
+        <a href="index.html" class="text-slate-400 hover:text-white">&larr; All Screens</a>
     </div>
 </div>
 

@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Funds - LPxGP{% endblock %}
 {% block body %}
-<div class="min-h-screen bg-slate-50">
+<div class="min-h-screen bg-slate-50 pb-12">
     <!-- Top Navigation -->
     <header class="bg-white border-b border-slate-200">
         <div class="max-w-7xl mx-auto px-6">
@@ -9,17 +9,17 @@
                 <div class="flex items-center space-x-8">
                     <span class="text-xl font-bold text-navy-900">LPxGP</span>
                     <nav class="hidden md:flex space-x-6">
-                        <a href="#" class="text-sm font-medium text-navy-500 hover:text-navy-700">Dashboard</a>
-                        <a href="#" class="text-sm font-medium text-navy-900 border-b-2 border-navy-900 pb-4 -mb-px">Funds</a>
-                        <a href="#" class="text-sm font-medium text-navy-500 hover:text-navy-700">Search</a>
-                        <a href="#" class="text-sm font-medium text-navy-500 hover:text-navy-700">Outreach</a>
+                        <a href="dashboard.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">Dashboard</a>
+                        <a href="fund-list.html" class="text-sm font-medium text-navy-900 border-b-2 border-navy-900 pb-4 -mb-px">Funds</a>
+                        <a href="lp-search.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">Search</a>
+                        <a href="outreach-hub.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">Outreach</a>
                     </nav>
                 </div>
                 <div class="flex items-center space-x-4">
                     <span class="text-sm text-navy-600">Acme Capital</span>
-                    <div class="w-8 h-8 rounded-full bg-navy-100 flex items-center justify-center">
+                    <a href="settings-profile.html" class="w-8 h-8 rounded-full bg-navy-100 flex items-center justify-center">
                         <span class="text-sm font-medium text-navy-600">JP</span>
-                    </div>
+                    </a>
                 </div>
             </div>
         </div>
@@ -33,18 +33,18 @@
                 <h1 class="text-2xl font-semibold text-navy-900">Your Funds</h1>
                 <p class="text-sm text-navy-500 mt-1">Manage fund profiles and view LP matches</p>
             </div>
-            <button class="btn-primary flex items-center">
+            <a href="fund-create.html" class="btn-primary flex items-center">
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                 </svg>
                 New Fund
-            </button>
+            </a>
         </div>
 
         <!-- Fund Cards Grid -->
         <div class="grid grid-cols-3 gap-6">
             <!-- Fund Card 1 - Raising -->
-            <div class="card p-6 hover:shadow-lg transition-shadow">
+            <a href="fund-detail.html" class="card p-6 hover:shadow-lg transition-shadow block">
                 <div class="flex justify-between items-start mb-4">
                     <div>
                         <h3 class="font-semibold text-navy-900">Growth Fund III</h3>
@@ -67,13 +67,13 @@
                     </div>
                 </div>
                 <div class="mt-4 pt-4 border-t border-slate-100 flex justify-between">
-                    <a href="#" class="text-sm font-medium text-accent hover:text-accent-dark">View Fund →</a>
-                    <a href="#" class="text-sm font-medium text-navy-500 hover:text-navy-700">Matches</a>
+                    <span class="text-sm font-medium text-accent hover:text-accent-dark">View Fund →</span>
+                    <span class="text-sm font-medium text-navy-500 hover:text-navy-700">Matches</span>
                 </div>
-            </div>
+            </a>
 
             <!-- Fund Card 2 - Investing -->
-            <div class="card p-6 hover:shadow-lg transition-shadow">
+            <a href="fund-detail.html" class="card p-6 hover:shadow-lg transition-shadow block">
                 <div class="flex justify-between items-start mb-4">
                     <div>
                         <h3 class="font-semibold text-navy-900">Growth Fund II</h3>
@@ -96,12 +96,12 @@
                     </div>
                 </div>
                 <div class="mt-4 pt-4 border-t border-slate-100">
-                    <a href="#" class="text-sm font-medium text-accent hover:text-accent-dark">View Fund →</a>
+                    <span class="text-sm font-medium text-accent hover:text-accent-dark">View Fund →</span>
                 </div>
-            </div>
+            </a>
 
             <!-- Fund Card 3 - Harvesting -->
-            <div class="card p-6 hover:shadow-lg transition-shadow">
+            <a href="fund-detail.html" class="card p-6 hover:shadow-lg transition-shadow block">
                 <div class="flex justify-between items-start mb-4">
                     <div>
                         <h3 class="font-semibold text-navy-900">Growth Fund I</h3>
@@ -124,12 +124,12 @@
                     </div>
                 </div>
                 <div class="mt-4 pt-4 border-t border-slate-100">
-                    <a href="#" class="text-sm font-medium text-accent hover:text-accent-dark">View Fund →</a>
+                    <span class="text-sm font-medium text-accent hover:text-accent-dark">View Fund →</span>
                 </div>
-            </div>
+            </a>
 
             <!-- New Fund Card (Empty State) -->
-            <div class="card p-6 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-center hover:border-accent hover:bg-slate-50 transition-colors cursor-pointer">
+            <a href="fund-create.html" class="card p-6 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-center hover:border-accent hover:bg-slate-50 transition-colors cursor-pointer block">
                 <div class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mb-3">
                     <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
@@ -137,8 +137,24 @@
                 </div>
                 <h3 class="font-medium text-navy-900">Create New Fund</h3>
                 <p class="text-sm text-navy-500 mt-1">Set up a fund profile to find matching LPs</p>
-            </div>
+            </a>
         </div>
     </main>
+</div>
+
+<!-- UX Context Footer -->
+<div class="fixed bottom-0 left-0 right-0 bg-slate-800 text-white text-xs py-2 px-4">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+        <span class="font-medium">UX Flow: GP User</span>
+        <div class="flex items-center space-x-2">
+            <a href="dashboard.html" class="px-2 py-1 hover:bg-slate-700 rounded">Dashboard</a>
+            <span class="text-slate-500">|</span>
+            <span class="px-2 py-1 bg-slate-700 rounded">Funds</span>
+            <a href="lp-search.html" class="px-2 py-1 hover:bg-slate-700 rounded">Search</a>
+            <a href="matches.html" class="px-2 py-1 hover:bg-slate-700 rounded">Matches</a>
+            <a href="outreach-hub.html" class="px-2 py-1 hover:bg-slate-700 rounded">Outreach</a>
+        </div>
+        <a href="index.html" class="text-slate-400 hover:text-white">← All Screens</a>
+    </div>
 </div>
 {% endblock %}

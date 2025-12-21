@@ -1485,6 +1485,696 @@ Feature: Multi-Fund Management - Error Paths
 
 ---
 
+## Negative E2E Test Scenarios
+
+Complete end-to-end negative test scenarios covering critical failure paths across the platform.
+
+### Negative Journey 1: Onboarding with Expired Invitation
+
+```gherkin
+@negative @e2e
+Feature: Onboarding Flow with Expired Invitation
+  As a GP user with an expired invitation
+  I want clear feedback and recovery options
+  So that I can still join the platform
+
+  Background:
+    Given "Acme Capital" has been onboarded by Super Admin
+    And an invitation was sent to partner@acme.com 8 days ago
+    And the invitation has a 7-day expiration policy
+
+  Scenario: Complete expired invitation flow with recovery
+    # Step 1: Attempt to use expired link
+    Given I am partner@acme.com
+    When I click the invitation link from my email
+    Then I see the expired invitation page with:
+      | "This invitation has expired" |
+      | "Invitation sent: [date 8 days ago]" |
+      | "Expired: [date 1 day ago]" |
+    And I see "Request New Invitation" button
+    And I see company admin contact information
+    And I cannot proceed to account creation
+
+    # Step 2: Request new invitation
+    When I click "Request New Invitation"
+    Then I see a confirmation message:
+      | "Request sent to Acme Capital admin" |
+      | "You'll receive a new invitation within 24 hours" |
+    And the company admin receives notification of the request
+
+    # Step 3: Admin receives and handles request
+    Given I am the company admin of Acme Capital
+    When I login to the platform
+    Then I see a notification "Pending invitation request from partner@acme.com"
+    When I click on the notification
+    Then I see options:
+      | "Resend Invitation" |
+      | "Decline Request" |
+    When I click "Resend Invitation"
+    Then a new invitation is sent with fresh 7-day expiration
+    And the old invitation is marked as replaced
+
+    # Step 4: User completes onboarding with new invitation
+    Given partner@acme.com receives the new invitation email
+    When they click the new invitation link
+    Then they see "Welcome to LPxGP"
+    And they can complete account setup normally
+    And both old and new invitation tokens are now invalidated
+
+  Scenario: Expired invitation with multiple failed attempts
+    Given I clicked the expired invitation link 3 times
+    When I try a fourth time
+    Then I see the same expired message
+    And I see "You've visited this page multiple times"
+    And I see "Consider requesting a new invitation"
+    And failed attempts are logged for security
+
+  Scenario: Expired invitation after company deactivation
+    Given my invitation expired
+    And "Acme Capital" was deactivated after my invitation was sent
+    When I click the expired invitation link
+    Then I see "This invitation has expired"
+    And I see "Additionally, this company is no longer active on LPxGP"
+    And "Request New Invitation" is disabled
+    And I see "Contact LPxGP support for assistance"
+
+  Scenario: Race condition - invitation expires during form completion
+    Given my invitation expires in 30 seconds
+    When I click the invitation link (valid at this moment)
+    And I see the account creation form
+    And I spend 2 minutes filling out the form
+    And I click "Complete Setup"
+    Then I see "Your invitation expired while completing setup"
+    And I see "Your information has been saved"
+    And I see "Request a new invitation to continue"
+    When I receive a new invitation and click the link
+    Then I see the form pre-filled with my previous entries
+    And I can complete setup without re-entering data
+```
+
+---
+
+### Negative Journey 2: Fund Creation with API Failures Mid-Flow
+
+```gherkin
+@negative @e2e
+Feature: Fund Creation with API Failures Mid-Flow
+  As a GP creating a new fund
+  I want resilient handling of API failures
+  So that my fund setup is never lost or corrupted
+
+  Background:
+    Given I am logged in as partner@acme.com
+    And I am on the fund creation page
+    And I have a valid pitch deck ready to upload
+
+  Scenario: Complete fund creation with cascading API failures
+    # Step 1: Upload succeeds but extraction API fails
+    When I upload my pitch deck "fund_iii_deck.pdf"
+    Then upload completes successfully
+    And I see "Analyzing your pitch deck..."
+    When the AI extraction API (OpenRouter) returns 503 Service Unavailable
+    Then I see "AI extraction temporarily unavailable"
+    And I see extraction retry countdown: "Retrying in 30 seconds..."
+    And my uploaded file is preserved
+
+    # Step 2: First retry fails, second succeeds
+    When first retry also fails
+    Then I see "Retry 2 of 3..."
+    When second retry succeeds
+    Then I see extracted fund information
+    And extraction results are cached locally
+
+    # Step 3: Database save fails after user confirmation
+    When I review and confirm the extracted fields
+    And I add my investment thesis
+    And I click "Confirm and Publish"
+    And the Supabase database returns connection timeout
+    Then I see "Unable to save fund profile"
+    And I see all my entered data is preserved
+    And I see "Your draft is saved locally"
+    And I see "Retry Save" button
+
+    # Step 4: Retry save succeeds
+    When database connection is restored
+    And I click "Retry Save"
+    Then fund profile is saved successfully
+    And I see "Fund III created successfully"
+    And local draft is cleared
+
+  Scenario: Embedding generation fails after successful fund creation
+    Given I successfully created my fund profile
+    When the platform attempts to generate embeddings for matching
+    And Voyage AI returns 429 Too Many Requests
+    Then I see "Fund created, but matching is temporarily delayed"
+    And I see "Matches will be available within 1 hour"
+    And fund is usable but without semantic matching
+    And embedding generation is queued for retry
+
+  Scenario: Multiple API failures during extraction with fallback
+    When I upload my pitch deck
+    And OpenRouter fails all 3 retry attempts
+    Then I see "Automatic extraction failed"
+    And I see "Manual entry mode"
+    And I see form with all fund fields empty
+    And I can manually enter fund details
+    When I complete manual entry
+    Then fund is created successfully
+    And I see "Consider re-uploading deck later for AI enhancement"
+
+  Scenario: Partial extraction results due to API instability
+    When I upload my pitch deck
+    And extraction partially completes (fund name, size) before API fails
+    Then I see "Partial extraction completed"
+    And I see extracted fields populated
+    And I see empty fields marked "Extraction incomplete"
+    And I can fill in missing fields manually
+    And I can retry extraction for empty fields only
+
+  Scenario: File storage API fails during upload
+    When I start uploading my pitch deck
+    And file upload is at 80% complete
+    And Supabase Storage returns 500 Internal Server Error
+    Then I see "Upload failed at 80%"
+    And I see "Resume Upload" button
+    When I click "Resume Upload"
+    And storage is now available
+    Then upload resumes from 80% (chunked upload)
+    And upload completes successfully
+
+  Scenario: Session expires during multi-step fund creation
+    Given I uploaded my deck and received extraction results
+    And I am reviewing extracted fields
+    When my session expires (60 minutes)
+    And I try to click "Confirm and Publish"
+    Then I am redirected to login
+    And I see "Your session expired. Draft saved."
+    When I login again
+    Then I am returned to fund creation page
+    And I see my uploaded deck
+    And I see my extraction results
+    And I see any edits I made
+    And I can continue from where I left off
+
+  Scenario: Concurrent API failures across multiple services
+    When I upload my pitch deck
+    And the following services fail simultaneously:
+      | Service | Error |
+      | OpenRouter | 503 |
+      | Voyage AI | Connection Timeout |
+      | Supabase Storage | Rate Limited |
+    Then I see "Multiple services experiencing issues"
+    And I see status for each service
+    And I see "Try again in a few minutes"
+    And my local draft is preserved
+    And I see LPxGP status page link
+```
+
+---
+
+### Negative Journey 3: LP Research with Search Service Degradation
+
+```gherkin
+@negative @e2e
+Feature: LP Research with Search Service Degradation
+  As a GP researching LPs
+  I want uninterrupted research capability
+  So that service issues don't block my work
+
+  Background:
+    Given I am logged in as partner@acme.com
+    And I am on the LP Search page
+    And the LP database contains 1,000 records
+
+  Scenario: Complete research session with gradual service degradation
+    # Step 1: Normal search works
+    When I search for "pension funds in California"
+    Then I see relevant results ranked by semantic similarity
+    And search completes in under 2 seconds
+
+    # Step 2: Voyage AI becomes slow
+    When I search for "endowments interested in climate tech"
+    And Voyage AI response time increases to 15 seconds
+    Then I see "Search is taking longer than usual"
+    And I see a progress indicator
+    And I can continue viewing previous results
+    When search eventually completes
+    Then I see new results
+    And I see "Search took 15 seconds (normally <2s)"
+
+    # Step 3: Voyage AI completely fails
+    When I search for "family offices in Asia"
+    And Voyage AI returns 503 Service Unavailable
+    Then I see "Semantic search temporarily unavailable"
+    And I see "Using keyword fallback"
+    And I see keyword-based results (less relevant but functional)
+    And I see "Results may be less accurate"
+
+    # Step 4: Fallback to filters only
+    When keyword search also degrades
+    Then I see "Search service degraded"
+    And I see "Browse using filters"
+    And filter dropdowns remain functional
+    When I select filters:
+      | Type | Family Office |
+      | Region | Asia Pacific |
+    Then I see filtered results
+    And results load from database cache
+
+    # Step 5: Service recovery
+    When Voyage AI service recovers
+    And I perform a new search
+    Then semantic search works normally
+    And I see "Search service restored"
+
+  Scenario: Search results pagination with intermittent failures
+    Given I search and get 100 results
+    When I click "Load More" to see next 20
+    And the API fails mid-request
+    Then I see "Unable to load more results"
+    And my first 100 results are preserved
+    And I see "Retry" button
+    When I click "Retry"
+    Then next 20 results load successfully
+    And I see all 120 results
+
+  Scenario: Saved search references unavailable data
+    Given I have a saved search "Tech Endowments"
+    And the search relies on semantic matching
+    When I load the saved search
+    And semantic search is unavailable
+    Then I see "This saved search requires semantic matching"
+    And I see "Currently unavailable - using approximate results"
+    And I see best-effort keyword results
+    And I can save these results as a separate list
+
+  Scenario: Real-time filter updates fail
+    Given I am applying multiple filters
+    When I select "Endowment" type
+    And the count update request fails
+    Then filter selection is preserved
+    And I see stale count: "~45 results (updating...)"
+    When I click "Apply Filters"
+    Then actual filtered results are shown
+    And count is updated correctly
+
+  Scenario: Export during search service outage
+    Given I have 50 LPs in my current results
+    And I select all for export
+    When I click "Export CSV"
+    And the export service fails
+    Then I see "Export generation failed"
+    And I see "Alternative: Copy to clipboard"
+    When I click "Copy to Clipboard"
+    Then tab-separated data is copied
+    And I can paste into Excel
+
+  Scenario: Browser cache exhausted during heavy research
+    Given I have been researching for 2 hours
+    And I have viewed 200 LP profiles
+    When browser storage approaches limit
+    Then I see "Some cached data will be cleared"
+    And oldest viewed profiles are cleared
+    And my current session data is preserved
+    And I can continue researching
+    When I revisit a cleared profile
+    Then it reloads from server (slightly slower)
+```
+
+---
+
+### Negative Journey 4: Pitch Generation with Network Interruption
+
+```gherkin
+@negative @e2e
+Feature: Pitch Generation with Network Interruption
+  As a GP generating pitch materials
+  I want resilient content generation
+  So that network issues don't lose my work
+
+  Background:
+    Given I am logged in as partner@acme.com
+    And I am viewing LP "CalPERS" detail page
+    And my fund "Fund III" profile is complete
+
+  Scenario: Complete pitch generation with network interruption
+    # Step 1: Start executive summary generation
+    When I click "Generate Executive Summary"
+    Then I see "Generating personalized summary..."
+    And I see progress indicator at 20%
+
+    # Step 2: Network drops mid-generation
+    When network connection drops at 60% progress
+    Then I see "Connection lost during generation"
+    And I see "Generation will resume when connected"
+    And progress bar shows paused state
+
+    # Step 3: Network reconnects
+    When network reconnects after 30 seconds
+    Then I see "Reconnected - resuming generation"
+    And generation continues from checkpoint
+    When generation completes
+    Then I see the full executive summary
+    And quality is not degraded
+
+  Scenario: Network drops after generation but before save
+    Given I generated an executive summary
+    And I made edits to customize it
+    When network drops
+    And I click "Save Changes"
+    Then I see "Changes saved locally (offline)"
+    And I see sync indicator showing pending
+    When network reconnects
+    Then changes sync automatically
+    And I see "Changes synced"
+
+  Scenario: Email generation interrupted - streaming response cut
+    When I click "Generate Outreach Email"
+    And streaming response begins
+    And I see partial email appearing word by word
+    When network drops after receiving 40% of response
+    Then streaming stops
+    And I see partial email that was received
+    And I see "Generation interrupted"
+    And I see "Complete generation" button
+    When network reconnects
+    And I click "Complete generation"
+    Then I see options:
+      | "Resume from partial" - continues where it stopped |
+      | "Regenerate full" - starts fresh |
+    When I choose "Resume from partial"
+    Then remaining content is generated
+    And email is complete and coherent
+
+  Scenario: PDF generation fails with network issues
+    Given I have a completed executive summary
+    When I click "Download as PDF"
+    And PDF generation starts on server
+    And network drops during PDF download
+    Then I see "PDF download interrupted"
+    And I see "PDF is ready on server"
+    And I see "Retry Download" button
+    When network reconnects
+    And I click "Retry Download"
+    Then PDF downloads successfully
+    And server-side PDF was cached for 24 hours
+
+  Scenario: Multiple pitch generations with intermittent connectivity
+    Given I am generating materials for 5 LPs
+    And network is unstable (drops every 2 minutes for 10 seconds)
+    When I generate summary for LP 1
+    Then it completes between drops
+    When I generate summary for LP 2
+    And network drops mid-generation
+    Then generation pauses and resumes
+    And LP 2 summary completes
+    When I generate summaries for LPs 3-5
+    Then platform handles drops gracefully
+    And all 5 summaries are generated (with delays)
+    And I see "5 of 5 summaries complete"
+
+  Scenario: Copy to clipboard fails during network outage
+    Given I generated an outreach email
+    And network is disconnected
+    When I click "Copy to Clipboard"
+    Then copy succeeds (local operation)
+    And I see "Copied! (Note: you're offline)"
+    And I can paste into my email client
+    When network reconnects
+    Then I can mark LP as "Contacted" to track
+
+  Scenario: Regeneration after poor quality due to interruption
+    Given generation was interrupted and produced poor quality content
+    When I click "Regenerate"
+    Then I see "Previous generation had issues"
+    And I see quality improvement suggestions:
+      | "Ensure stable connection" |
+      | "Try a different tone" |
+      | "Add more context" |
+    When I regenerate with stable connection
+    Then new content is higher quality
+    And both versions are available for comparison
+```
+
+---
+
+### Negative Journey 5: Multi-User Collaboration Conflicts
+
+```gherkin
+@negative @e2e
+Feature: Multi-User Collaboration Conflicts
+  As a GP team member
+  I want conflict-free collaboration
+  So that team work doesn't cause data issues
+
+  Background:
+    Given "Acme Capital" has 3 team members:
+      | User | Role |
+      | partner@acme.com | Admin |
+      | associate@acme.com | Member |
+      | analyst@acme.com | Member |
+    And all are working on Fund III simultaneously
+    And LP "CalPERS" is a shared target
+
+  Scenario: Simultaneous LP status updates with conflict resolution
+    # Step 1: Both users view same LP
+    Given partner@acme.com opens CalPERS detail page
+    And associate@acme.com opens CalPERS detail page
+    And current status is "Matched"
+
+    # Step 2: Both try to update simultaneously
+    When partner@acme.com clicks to change status to "Contacted"
+    And associate@acme.com clicks to change status to "Interested"
+    And both submit within 1 second
+
+    # Step 3: First update succeeds, second gets conflict
+    Then partner@acme.com sees "Status updated to Contacted"
+    And associate@acme.com sees conflict dialog:
+      | "Status was just updated by partner@acme.com" |
+      | "Their update: Matched → Contacted" |
+      | "Your update: Matched → Interested" |
+    And associate@acme.com sees options:
+      | "Accept their change" |
+      | "Apply my change instead" - with warning |
+      | "Update to different status" |
+
+    # Step 4: Resolution
+    When associate@acme.com clicks "Apply my change instead"
+    Then they see confirmation "This will override partner@acme.com's change"
+    When they confirm
+    Then status becomes "Interested"
+    And partner@acme.com sees "Status was updated by associate@acme.com"
+    And activity log shows both changes with timestamps
+
+  Scenario: Concurrent note editing with merge
+    Given partner@acme.com is editing meeting notes for CalPERS
+    And associate@acme.com opens the same note to edit
+    When partner@acme.com adds "Discussed Fund III terms"
+    And associate@acme.com adds "Need to follow up on due diligence"
+    And both save
+    Then both changes are merged
+    And both users see the merged note:
+      """
+      Discussed Fund III terms
+      Need to follow up on due diligence
+      [Merged from edits by partner@acme.com and associate@acme.com]
+      """
+    And merge history is available in note details
+
+  Scenario: Conflicting shortlist modifications
+    Given team shortlist "Priority LPs" contains 10 LPs
+    When partner@acme.com removes CalPERS from shortlist
+    And simultaneously associate@acme.com adds notes to CalPERS on shortlist
+    Then partner@acme.com's removal succeeds
+    And associate@acme.com sees "CalPERS was removed from shortlist by partner@acme.com"
+    And associate@acme.com's notes are preserved (attached to LP, not shortlist)
+    And associate@acme.com can re-add CalPERS if needed
+
+  Scenario: Real-time sync failure with offline queue
+    Given partner@acme.com and associate@acme.com are both working
+    When real-time WebSocket connection fails for associate@acme.com
+    Then associate@acme.com sees "Real-time sync disconnected"
+    And associate@acme.com can continue working
+    And their changes queue locally
+    When connection restores
+    Then queued changes sync automatically
+    And any conflicts are presented for resolution
+    And sync status shows "All changes synced"
+
+  Scenario: Admin revokes access during active session
+    Given associate@acme.com is actively working on Fund III
+    When partner@acme.com (admin) revokes associate@acme.com's access
+    Then associate@acme.com completes their current action
+    And on next action they see "Your access has been revoked"
+    And they see "Contact partner@acme.com for assistance"
+    And their unsaved work is preserved locally
+    And they can export their notes/work before logging out
+
+  Scenario: Bulk operation conflicts across team
+    Given partner@acme.com selects 20 LPs for bulk status update
+    And associate@acme.com individually updates 3 of those LPs
+    When partner@acme.com applies bulk update
+    Then 17 LPs are updated successfully
+    And 3 LPs show conflict:
+      | "3 LPs were modified by others" |
+      | LP name | Modified by | Their change |
+    And partner@acme.com can choose per-LP:
+      | "Keep their change" |
+      | "Apply my change" |
+
+  Scenario: Concurrent fund profile edits
+    Given partner@acme.com is editing Fund III profile
+    And analyst@acme.com opens Fund III profile to edit
+    When partner@acme.com saves changes
+    Then analyst@acme.com sees "Fund III was just updated by partner@acme.com"
+    And they see diff of changes
+    And they can:
+      | "Reload and lose my changes" |
+      | "Merge my changes" |
+      | "Create conflicting version for review" |
+
+  Scenario: Team member deletes shared resource
+    Given team has a shared search "Top Endowments"
+    And associate@acme.com is viewing the search
+    When partner@acme.com deletes "Top Endowments"
+    Then associate@acme.com sees "This saved search was deleted"
+    And they see option to recreate it personally
+    And deletion is logged in activity feed
+    And other team members are notified
+```
+
+---
+
+### Negative Journey 6: Session Timeout During Long Operations
+
+```gherkin
+@negative @e2e
+Feature: Session Timeout During Long Operations
+  As a GP performing time-intensive tasks
+  I want session management that preserves my work
+  So that timeouts don't cause data loss
+
+  Background:
+    Given I am logged in as partner@acme.com
+    And session timeout is set to 60 minutes
+    And I have been working for 50 minutes
+
+  Scenario: Session expires during pitch deck upload and extraction
+    # Step 1: Start large file upload
+    Given I am uploading a 20MB pitch deck
+    And upload is at 40% complete
+    When session expires
+    Then upload continues in background
+    And session token refresh is attempted
+
+    # Step 2: Token refresh fails
+    When token refresh fails (truly expired)
+    Then upload pauses at current progress
+    And I see "Session expired - login to continue upload"
+    And upload progress is preserved server-side
+
+    # Step 3: Re-login and resume
+    When I login again
+    Then I see "Resume pending upload?"
+    And I see "Fund III deck - 40% uploaded"
+    When I click "Resume"
+    Then upload continues from 40%
+    And extraction proceeds after upload completes
+
+  Scenario: Session expires during AI generation
+    Given I clicked "Generate Executive Summary"
+    And generation is in progress (30 seconds elapsed)
+    When session expires
+    Then generation continues server-side
+    And I see "Session expired"
+    When I login again
+    Then I see "Generation completed while you were away"
+    And I see the generated summary
+    And it's automatically saved to my drafts
+
+  Scenario: Session expires with unsaved form data
+    Given I am editing fund profile
+    And I have modified 10 fields
+    And I have not saved
+    When session expires
+    Then I see "Session expired"
+    And I see "Your changes are preserved"
+    And browser local storage contains my edits
+    When I login again
+    Then I see "Restore unsaved changes?"
+    And I see preview of changes
+    When I click "Restore"
+    Then form is populated with my previous edits
+    And I can save successfully
+
+  Scenario: Session expires during bulk operation
+    Given I am performing bulk status update on 50 LPs
+    And 30 have been updated
+    When session expires
+    Then operation pauses
+    And I see "Session expired - 30 of 50 LPs updated"
+    When I login again
+    Then I see "Continue bulk operation?"
+    And I see "30 completed, 20 remaining"
+    When I click "Continue"
+    Then remaining 20 are processed
+    And I see "50 of 50 complete"
+
+  Scenario: Session expires during data export
+    Given I requested export of 500 LPs
+    And export is processing
+    When session expires
+    Then export continues in background
+    When I login again
+    Then I see "Your export is ready"
+    And I can download the file
+    And export was completed despite session expiry
+
+  Scenario: Multiple tabs with different session states
+    Given I have two browser tabs open
+    And Tab 1 has been active, Tab 2 idle for 55 minutes
+    When I interact with Tab 1 (extends session)
+    Then Tab 1 session continues
+    When I switch to Tab 2 and try an action
+    Then Tab 2 detects session was extended in Tab 1
+    And Tab 2 syncs session state
+    And I can continue working in Tab 2
+
+  Scenario: Session timeout with pending real-time updates
+    Given I am receiving real-time updates (colleague is working)
+    When session expires
+    Then real-time connection closes
+    And pending updates are queued server-side
+    When I login again
+    Then I see "You missed X updates"
+    And I can review what changed
+    And current state is synchronized
+
+  Scenario: Graceful session extension during active work
+    Given I am actively working (typing, clicking)
+    And session has 5 minutes remaining
+    Then I see subtle "Session expires in 5 minutes"
+    And I see "Click to extend"
+    When I continue working
+    Then session is auto-extended
+    And I see "Session extended"
+    When I stop activity for 60+ minutes
+    Then session expires normally
+
+  Scenario: Session expires on mobile with app backgrounded
+    Given I am using LPxGP on mobile browser
+    And I switch to another app for 70 minutes
+    When I return to LPxGP
+    Then I see "Session expired due to inactivity"
+    And I see what I was working on
+    When I login again
+    Then I return to the same page
+    And any local edits are restored
+    And I can continue my work
+```
+
+---
+
 ## Error Recovery Principles
 
 All error paths should follow these principles:

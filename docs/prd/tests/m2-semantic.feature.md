@@ -749,4 +749,437 @@ Feature: Semantic Search Technical Implementation
     And pagination controls appear
     And I can load more results
     And total count is displayed
+
+  # ==========================================================================
+  # @negative @api-resilience: Voyage AI API Failures
+  # ==========================================================================
+
+  @negative @api-resilience
+  Scenario: Voyage AI API connection timeout
+    Given Voyage AI API does not respond within 10 seconds
+    When I perform a semantic search
+    Then the request is aborted after timeout threshold
+    And I see "Search service timed out"
+    And the timeout is logged with request details
+    And user can retry or use keyword search
+
+  @negative @api-resilience
+  Scenario: Voyage AI API read timeout during streaming
+    Given Voyage AI API starts responding but stalls mid-response
+    When I perform a semantic search
+    Then the read timeout triggers after 30 seconds
+    And partial response is discarded
+    And I see "Search response incomplete"
+    And the connection is properly closed
+
+  @negative @api-resilience
+  Scenario: Voyage AI API rate limit with no retry-after header
+    Given Voyage AI returns 429 without Retry-After header
+    When I perform a semantic search
+    Then exponential backoff is used (1s, 2s, 4s)
+    And maximum 3 retries are attempted
+    And if all fail, user sees "Service busy, try again later"
+
+  @negative @api-resilience
+  Scenario: Voyage AI API rate limit during batch embedding
+    Given I am embedding 100 LP mandates in a batch job
+    And Voyage AI rate limits after 50 embeddings
+    When the batch job runs
+    Then successfully embedded items are saved
+    And failed items are queued for retry
+    And job status shows "Partially complete (50/100)"
+    And admin can see which items failed
+
+  @negative @api-resilience
+  Scenario: Voyage AI API temporarily unavailable (503)
+    Given Voyage AI returns 503 Service Unavailable
+    When I perform a semantic search
+    Then automatic retry with backoff occurs
+    And if service recovers, results are returned
+    And if retries exhausted, graceful degradation to keyword search
+
+  @negative @api-resilience
+  Scenario: Voyage AI API permanently moved (301/302)
+    Given Voyage AI API endpoint has moved
+    When I perform a semantic search
+    Then redirect is followed if within same domain
+    And cross-domain redirects are rejected for security
+    And admin is alerted about endpoint change
+
+  @negative @api-resilience
+  Scenario: Voyage AI API returns HTTP 402 Payment Required
+    Given Voyage AI account has insufficient credits
+    When I perform a semantic search
+    Then I see "Semantic search temporarily unavailable"
+    And admin receives urgent billing alert
+    And system logs payment failure for auditing
+
+  @negative @api-resilience
+  Scenario: Voyage AI API SSL certificate error
+    Given Voyage AI API SSL certificate is invalid or expired
+    When I perform a semantic search
+    Then connection is rejected for security
+    And I see "Secure connection failed"
+    And the SSL error is logged with certificate details
+    And admin is alerted immediately
+
+  @negative @api-resilience
+  Scenario: Voyage AI API DNS resolution failure
+    Given DNS cannot resolve Voyage AI hostname
+    When I perform a semantic search
+    Then I see "Unable to reach search service"
+    And DNS failure is logged
+    And cached embeddings are still used for LP comparisons
+    And new query embeddings cannot be generated
+
+  # ==========================================================================
+  # @negative @api-resilience: Embedding Dimension Mismatches
+  # ==========================================================================
+
+  @negative @api-resilience
+  Scenario: Query embedding dimension differs from stored LP embeddings
+    Given LP embeddings were created with 1024-dimension model
+    And query embedding returns 768 dimensions (model changed)
+    When I perform a semantic search
+    Then dimension mismatch is detected
+    And I see "Search index needs updating"
+    And admin is alerted to re-embed LP data
+    And keyword search fallback is offered
+
+  @negative @api-resilience
+  Scenario: Voyage AI model version change causes dimension change
+    Given embeddings are stored with voyage-2 model (1024 dims)
+    And Voyage AI silently upgrades to voyage-3 (1536 dims)
+    When I perform a semantic search
+    Then dimension mismatch is detected before pgvector query
+    And no database error occurs
+    And system logs model version discrepancy
+    And admin can trigger re-embedding job
+
+  @negative @api-resilience
+  Scenario: Partial dimension data in embedding response
+    Given Voyage AI returns embedding with 1020 dimensions instead of 1024
+    When I perform a semantic search
+    Then truncated embedding is rejected
+    And I see "Invalid search response"
+    And the malformed response is logged for debugging
+    And retry is attempted with fresh request
+
+  @negative @api-resilience
+  Scenario: NaN or Infinity values in embedding response
+    Given Voyage AI returns embedding containing NaN values
+    When I perform a semantic search
+    Then embedding validation fails
+    And invalid values are detected before database query
+    And I see "Search encountered an error"
+    And the invalid response is logged with full details
+
+  @negative @api-resilience
+  Scenario: Zero vector embedding returned
+    Given Voyage AI returns all-zero embedding [0, 0, ..., 0]
+    When I perform a semantic search
+    Then zero vector is detected as invalid
+    And I see "Could not process search query"
+    And retry is attempted
+    And if retry also returns zeros, fallback is offered
+
+  @negative @api-resilience
+  Scenario: Embedding magnitude out of expected range
+    Given Voyage AI returns embedding with abnormally large magnitude
+    When I perform a semantic search
+    Then magnitude check flags the embedding
+    And normalization is attempted if within bounds
+    And if normalization fails, embedding is rejected
+    And admin is alerted about potential API issue
+
+  # ==========================================================================
+  # @negative @api-resilience: Partial API Responses (Batch Failures)
+  # ==========================================================================
+
+  @negative @api-resilience
+  Scenario: Batch embedding request partially succeeds
+    Given I request embeddings for 10 LP mandates
+    And Voyage AI returns embeddings for only 7 (3 fail silently)
+    When the batch completes
+    Then system detects missing embeddings
+    And successful embeddings are saved
+    And failed items are retried individually
+    And if individual retry fails, items are marked for manual review
+
+  @negative @api-resilience
+  Scenario: Batch embedding with mixed error codes per item
+    Given I request embeddings for 5 texts
+    And Voyage AI returns:
+      | Index | Status | Error |
+      | 0 | success | - |
+      | 1 | error | "Text too long" |
+      | 2 | success | - |
+      | 3 | error | "Encoding error" |
+      | 4 | success | - |
+    When the batch completes
+    Then successful embeddings (0, 2, 4) are saved
+    And items 1 and 3 are logged with specific errors
+    And item 1 is truncated and retried
+    And item 3 is flagged for encoding cleanup
+
+  @negative @api-resilience
+  Scenario: Batch embedding response order mismatch
+    Given I request embeddings for ["A", "B", "C"]
+    And Voyage AI returns embeddings in wrong order or with missing indices
+    When the response is processed
+    Then order mismatch is detected
+    And response is rejected entirely
+    And all items are retried
+    And admin is alerted about API inconsistency
+
+  @negative @api-resilience
+  Scenario: Batch embedding request exceeds max batch size
+    Given maximum batch size is 100 items
+    And I need to embed 350 LP mandates
+    When the embedding job runs
+    Then requests are chunked into 4 batches (100, 100, 100, 50)
+    And batches are processed with rate limiting
+    And if batch 2 fails, batches 1's results are preserved
+    And failed batch is retried independently
+
+  @negative @api-resilience
+  Scenario: Batch embedding with duplicate texts
+    Given batch contains identical mandate texts for 2 different LPs
+    When embeddings are requested
+    Then duplicates are detected before API call
+    And only unique texts are sent to Voyage AI
+    And returned embeddings are mapped to all matching LPs
+    And API costs are optimized
+
+  @negative @api-resilience
+  Scenario: Batch embedding interrupted mid-stream
+    Given batch embedding is processing
+    And connection drops after receiving 50% of embeddings
+    When the stream is interrupted
+    Then received embeddings are preserved
+    And remaining items are queued for retry
+    And no duplicate API calls are made for successful items
+
+  # ==========================================================================
+  # @negative @api-resilience: Query Encoding Issues
+  # ==========================================================================
+
+  @negative @api-resilience
+  Scenario: Query contains invalid UTF-8 sequences
+    Given user input contains malformed UTF-8 bytes
+    When I perform a semantic search
+    Then invalid bytes are sanitized before API call
+    And search proceeds with cleaned text
+    And original malformed input is logged for debugging
+
+  @negative @api-resilience
+  Scenario: Query contains null bytes
+    Given search query contains null bytes (\x00)
+    When I perform a semantic search
+    Then null bytes are stripped
+    And remaining text is processed
+    And if text is empty after cleaning, validation error is shown
+
+  @negative @api-resilience
+  Scenario: Query in unsupported character encoding
+    Given request sends query as ISO-8859-1 instead of UTF-8
+    When I perform a semantic search
+    Then encoding is detected and converted
+    And if conversion fails, I see "Invalid character encoding"
+    And supported encodings are listed in error
+
+  @negative @api-resilience
+  Scenario: Query with excessive combining characters
+    Given search query has hundreds of combining diacritical marks
+    When I perform a semantic search
+    Then text is normalized (NFC/NFD normalization)
+    And excessive combiners are stripped
+    And normalized text is sent to Voyage AI
+
+  @negative @api-resilience
+  Scenario: Query with bidirectional text override characters
+    Given search query contains RLO/LRO Unicode overrides
+    When I perform a semantic search
+    Then bidirectional overrides are stripped for security
+    And text direction is handled safely
+    And no display issues occur in results
+
+  @negative @api-resilience
+  Scenario: Query with homoglyph characters
+    Given search query uses Cyrillic "а" instead of Latin "a"
+    When I perform a semantic search
+    Then homoglyphs are normalized to ASCII where possible
+    And semantic matching works correctly
+    And no security confusion from lookalike characters
+
+  @negative @api-resilience
+  Scenario: Query encoding mismatch between client and server
+    Given browser sends UTF-8 but Content-Type header says ISO-8859-1
+    When I perform a semantic search
+    Then server attempts to detect actual encoding
+    And if detection fails, UTF-8 is assumed
+    And warning is logged about header mismatch
+
+  # ==========================================================================
+  # @negative @api-resilience: Vector Space Degradation
+  # ==========================================================================
+
+  @negative @api-resilience
+  Scenario: Embedding quality degrades after model update
+    Given LP embeddings were created with previous model version
+    And new queries use updated model with different embedding space
+    When I perform a semantic search
+    Then similarity scores are unexpectedly low across all results
+    And system detects score distribution anomaly
+    And admin is alerted about potential model drift
+    And re-embedding job is recommended
+
+  @negative @api-resilience
+  Scenario: Stale embeddings cause poor search quality
+    Given LP "Tech Ventures" mandate was updated 30 days ago
+    And embedding was not regenerated after update
+    When I search for terms in the new mandate
+    Then LP may not appear in relevant results
+    And system tracks embedding age vs content update time
+    And stale embeddings are flagged for refresh
+
+  @negative @api-resilience
+  Scenario: Embedding space clustering degrades over time
+    Given 1000 new LPs were added over past month
+    And embeddings show unusual clustering patterns
+    When I perform a semantic search
+    Then search quality monitoring detects degradation
+    And relevance feedback is collected
+    And admin dashboard shows embedding quality metrics
+    And reindexing is suggested if quality drops below threshold
+
+  @negative @api-resilience
+  Scenario: Vector index fragmentation affects performance
+    Given pgvector index has high fragmentation after many updates
+    When I perform a semantic search
+    Then query takes longer than baseline
+    And performance monitoring alerts on slow queries
+    And admin can trigger index rebuild
+    And search remains functional during rebuild
+
+  @negative @api-resilience
+  Scenario: Cosine similarity returns unexpected values
+    Given embeddings are stored correctly
+    But pgvector extension has a bug causing wrong similarity
+    When I perform a semantic search
+    Then similarity scores are validated for sanity
+    And scores outside 0-1 range are flagged
+    And admin is alerted about potential database issue
+    And raw distances are logged for debugging
+
+  @negative @api-resilience
+  Scenario: Embedding drift detected across LP categories
+    Given embeddings for "Technology" LPs cluster separately from "Healthcare"
+    And new LP "HealthTech Fund" has mandate spanning both
+    When I search for "technology in healthcare"
+    Then cross-category matching works correctly
+    And hybrid scoring accounts for category boundaries
+    And diversity in results is maintained
+
+  @negative @api-resilience
+  Scenario: Seasonal concept drift in investment terminology
+    Given "AI" embeddings from 2023 reflect different usage than 2024
+    And LP mandates use mixed temporal language
+    When I search for current AI concepts
+    Then temporal drift is accounted for in scoring
+    And recently updated mandates get recency boost
+    And outdated terminology still matches semantically
+
+  # ==========================================================================
+  # @negative @api-resilience: Cache Invalidation Race Conditions
+  # ==========================================================================
+
+  @negative @api-resilience
+  Scenario: Cache invalidation during concurrent LP update and search
+    Given LP "Alpha Fund" is being updated by admin
+    And another user simultaneously searches for "Alpha Fund" terms
+    When update commits and invalidates cache
+    And search reads from cache at same moment
+    Then search returns consistent results (old or new, not mixed)
+    And cache lock prevents torn reads
+    And both operations complete without error
+
+  @negative @api-resilience
+  Scenario: Multiple cache invalidations for same LP in short window
+    Given LP "Beta Corp" mandate is updated 3 times in 1 second
+    When cache invalidation events fire rapidly
+    Then only final state is embedded
+    And intermediate states are not processed
+    And no duplicate API calls to Voyage AI
+    And cache ends in consistent state
+
+  @negative @api-resilience
+  Scenario: Cache invalidation message lost due to message queue failure
+    Given LP "Gamma LLC" mandate is updated
+    And cache invalidation message fails to deliver
+    When I search for new mandate terms
+    Then stale cached embedding is used
+    And periodic cache consistency check detects mismatch
+    And background job refreshes stale entry
+    And eventual consistency is achieved within 5 minutes
+
+  @negative @api-resilience
+  Scenario: Cache rebuild race with search queries
+    Given full cache rebuild is triggered
+    And search queries continue during rebuild
+    When rebuild processes LP "Delta Fund"
+    And search for "Delta Fund" runs simultaneously
+    Then search gets either old or new embedding (atomic read)
+    And no partial embedding is returned
+    And rebuild completes without corruption
+
+  @negative @api-resilience
+  Scenario: Distributed cache inconsistency across nodes
+    Given application runs on 3 Railway instances
+    And LP "Epsilon" is updated on instance 1
+    When instance 1 invalidates local cache
+    But instances 2 and 3 have stale cache
+    Then cache propagation syncs within 30 seconds
+    And users may see slightly different results temporarily
+    And eventual consistency is guaranteed
+    And monitoring tracks cache sync delays
+
+  @negative @api-resilience
+  Scenario: Cache TTL expiry during active search session
+    Given user has search session with cached query embedding
+    And cache TTL expires mid-session
+    When user pages through results
+    Then expired cache entry is refreshed transparently
+    And pagination remains consistent
+    And user does not see jarring result changes
+    And new embedding is used for subsequent pages
+
+  @negative @api-resilience
+  Scenario: Cache stampede after mass invalidation
+    Given bulk LP import invalidates 500 cache entries
+    And 100 concurrent users perform searches
+    When all searches miss cache simultaneously
+    Then request coalescing limits Voyage AI calls
+    And only unique queries generate API requests
+    And duplicate queries wait for first response
+    And system remains responsive under load
+
+  @negative @api-resilience
+  Scenario: Cache corruption detected during read
+    Given cache entry for LP "Zeta" has corrupted data
+    When search attempts to read this embedding
+    Then corruption is detected via checksum
+    And corrupted entry is evicted
+    And fresh embedding is fetched from Voyage AI
+    And corruption incident is logged for investigation
+
+  @negative @api-resilience
+  Scenario: Cold cache startup after deployment
+    Given new deployment starts with empty embedding cache
+    And first user performs semantic search
+    When cache miss occurs
+    Then query embedding is generated normally
+    And LP embeddings are loaded from database (not Voyage AI)
+    And search completes, populating cache
+    And subsequent searches are faster
 ```

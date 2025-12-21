@@ -359,16 +359,24 @@ def generate_pdf():
         <div class="toc-item"><span>GP Associate (Company Member)</span></div>
         <div class="toc-item"><span>Super Admin (LPxGP Team)</span></div>
 
-        <div class="toc-section">3. Screen Mockups</div>
+        <div class="toc-section">3. User Journeys</div>
+        <div class="toc-item"><span>Platform Onboarding (Super Admin)</span></div>
+        <div class="toc-item"><span>New User Onboarding (GP Admin)</span></div>
+        <div class="toc-item"><span>Fund Creation</span></div>
+        <div class="toc-item"><span>LP Research</span></div>
+        <div class="toc-item"><span>AI Matching</span></div>
+        <div class="toc-item"><span>Pitch Generation</span></div>
+
+        <div class="toc-section">4. Screen Mockups</div>
         <div class="toc-item"><span>Public Screens (4)</span></div>
         <div class="toc-item"><span>GP User Screens (13)</span></div>
         <div class="toc-item"><span>Super Admin Screens (10)</span></div>
 
-        <div class="toc-section">4. Technical Architecture</div>
+        <div class="toc-section">5. Technical Architecture</div>
         <div class="toc-item"><span>System Overview</span></div>
         <div class="toc-item"><span>Technology Stack</span></div>
 
-        <div class="toc-section">5. Milestones</div>
+        <div class="toc-section">6. Milestones</div>
         <div class="toc-item"><span>M0 - M5 Roadmap</span></div>
     </div>
 
@@ -464,10 +472,74 @@ def generate_pdf():
         <p><strong>Platform Access:</strong> Full administrative access across all companies</p>
     </div>
 
+    <!-- User Journeys -->
+    <div class="section">
+        <h1>3. User Journeys</h1>
+        <p>This section describes the key user experience flows through the LPxGP platform, connecting screens with user goals and tested behaviors.</p>
+
+        <h2>Journey 1: Platform Onboarding (Super Admin)</h2>
+        <p><strong>Actor:</strong> Sarah, LPxGP Super Admin</p>
+        <p><strong>Goal:</strong> Onboard a new GP firm to the platform</p>
+        <div class="info-box">
+            <strong>Screen Flow:</strong> Admin Dashboard → Companies → Create Company → Company Detail → Invite Admin
+        </div>
+        <p><strong>Story:</strong> Sarah receives a request from Acme Capital to join LPxGP. She reviews platform health on the Admin Dashboard, navigates to Companies, creates the new company profile, and invites John (Partner) as the company admin via email invitation.</p>
+        <p><strong>Tested Behaviors:</strong> F-AUTH-04 (Company creation, user invitation), duplicate company name rejection, invalid email format rejection.</p>
+
+        <h2>Journey 2: New User Onboarding (GP Admin)</h2>
+        <p><strong>Actor:</strong> John, Partner at Acme Capital</p>
+        <p><strong>Goal:</strong> Accept invitation and set up account</p>
+        <div class="info-box">
+            <strong>Screen Flow:</strong> Email Invitation → Accept Invitation → Login → Dashboard
+        </div>
+        <p><strong>Story:</strong> John receives an invitation email, clicks the link to accept, creates a secure password, and lands on his empty dashboard ready to create his first fund.</p>
+        <p><strong>Tested Behaviors:</strong> F-AUTH-05 (Invitation acceptance), F-AUTH-01 (Login), expired invitation rejection, weak password rejection, account lockout after 5 failed attempts.</p>
+
+        <h2>Journey 3: Fund Creation</h2>
+        <p><strong>Actor:</strong> John, Partner at Acme Capital</p>
+        <p><strong>Goal:</strong> Create fund profile for Growth Fund III</p>
+        <div class="info-box">
+            <strong>Screen Flow:</strong> Dashboard → Create Fund → Upload Deck → AI Extraction → Fund Detail
+        </div>
+        <p><strong>Story:</strong> John clicks "+ New Fund" on his dashboard, uploads a pitch deck PDF. The AI extracts fund information (strategy, size, thesis) with confidence scores. John reviews and confirms each field, especially low-confidence items, then views his completed fund profile.</p>
+        <p><strong>Tested Behaviors:</strong> F-GP-01 (Fund creation), F-GP-02 (Deck upload), F-GP-03 (AI extraction), corrupt file rejection, API timeout graceful handling, missing required fields blocked.</p>
+
+        <h2>Journey 4: LP Research</h2>
+        <p><strong>Actor:</strong> Maria, Associate at Acme Capital</p>
+        <p><strong>Goal:</strong> Find LPs matching Growth Fund III criteria</p>
+        <div class="info-box">
+            <strong>Screen Flow:</strong> Dashboard → LP Search → Apply Filters → LP Detail → Add to Shortlist
+        </div>
+        <p><strong>Story:</strong> Maria navigates to Search, applies filters (Strategy: Growth Equity, Check Size > $10M, Geography: North America), reviews 45 matching LPs with relevance scores, clicks on CalPERS to view full profile with mandate and contacts, then adds CalPERS to the shortlist.</p>
+        <p><strong>Tested Behaviors:</strong> F-LP-02 (Filters), F-LP-03 (Semantic search), F-UI-03 (HTMX updates), performance < 500ms, empty query handling, special characters handling.</p>
+
+        <h2>Journey 5: AI Matching</h2>
+        <p><strong>Actor:</strong> Maria, Associate at Acme Capital</p>
+        <p><strong>Goal:</strong> Get AI-ranked LP matches for Growth Fund III</p>
+        <div class="info-box">
+            <strong>Screen Flow:</strong> Fund Detail → Matches → Match Detail → Review Insights
+        </div>
+        <p><strong>Story:</strong> Maria clicks "View Matches" for Growth Fund III, sees 45 LPs ranked by fit score (0-100). She clicks on CalPERS (score: 87) to see the breakdown: strategy alignment, size fit, geographic overlap, and semantic similarity. The AI provides talking points and identifies potential concerns.</p>
+        <p><strong>Tested Behaviors:</strong> F-MATCH-01 (Hard filters), F-MATCH-02 (Soft scoring), F-MATCH-03 (Semantic matching), F-MATCH-04 (Explanations), no matches handling, API timeout fallback.</p>
+
+        <h2>Journey 6: Pitch Generation</h2>
+        <p><strong>Actor:</strong> Maria, Associate at Acme Capital</p>
+        <p><strong>Goal:</strong> Create personalized outreach for CalPERS</p>
+        <div class="info-box">
+            <strong>Screen Flow:</strong> Match Detail → Pitch Generator → Generate → Review & Edit → Copy to Clipboard
+        </div>
+        <p><strong>Story:</strong> Maria clicks "Generate Pitch" from the match detail page, selects "Outreach Email" as the output type. The AI generates a personalized email referencing CalPERS's recent allocations. Maria edits the subject line and call-to-action, then copies to clipboard for use in her email client.</p>
+        <p><strong>Tested Behaviors:</strong> F-PITCH-01 (Executive summary), F-PITCH-02 (Email draft), F-HITL-01 (No auto-send), API rate limiting handled, missing LP data graceful degradation, clipboard permission issues handled.</p>
+
+        <div class="highlight-box">
+            <strong>Human-in-the-Loop Design:</strong> All AI-generated content requires human review before use. There is no auto-send functionality - users must copy to clipboard and paste into their email client. This ensures quality control and compliance with professional communication standards.
+        </div>
+    </div>
+
     <!-- Screen Mockups -->
     <div class="section">
-        <h1>3. Screen Mockups</h1>
-        <p>The following pages show all 27 screens in the LPxGP platform, organized by user type.</p>
+        <h1>4. Screen Mockups</h1>
+        <p>The following pages show all 27 screens in the LPxGP platform, organized by user type. Each screen includes context about its role in the user journeys above.</p>
 """
 
     # Add screen mockups by category
@@ -506,7 +578,7 @@ def generate_pdf():
 
     <!-- Technical Architecture -->
     <div class="section">
-        <h1>4. Technical Architecture</h1>
+        <h1>5. Technical Architecture</h1>
 
         <h2>System Overview</h2>
         <p>LPxGP is built as a modern web application with the following architecture:</p>
@@ -582,7 +654,7 @@ def generate_pdf():
 
     <!-- Milestones -->
     <div class="section">
-        <h1>5. Milestones</h1>
+        <h1>6. Milestones</h1>
 
         <p>LPxGP is developed in six milestones, each delivering independently demoable functionality:</p>
 

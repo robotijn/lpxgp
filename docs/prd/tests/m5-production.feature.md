@@ -1475,3 +1475,395 @@ Feature: Error Recovery and Resilience
     And fresh data is fetched
     And user sees correct information
 ```
+
+---
+
+## Negative Production Tests
+
+```gherkin
+@negative @production
+Feature: Negative Production Scenarios
+  As a system
+  I want to handle failure conditions gracefully
+  So that production remains stable under adverse conditions
+
+  # =============================================
+  # Admin Operations on Active User Sessions
+  # =============================================
+
+  Scenario: Deactivate user while they have active session
+    Given user "john@acme.com" is actively using the platform
+    And they have unsaved work in progress
+    When admin deactivates user "john@acme.com"
+    Then user's next API request returns 401 Unauthorized
+    And user sees "Your account has been deactivated"
+    And user is redirected to login page
+    And any pending saves are rejected with clear message
+    And session is immediately invalidated (not just on next request)
+
+  Scenario: Change user role during active operation
+    Given user "jane@acme.com" is generating a pitch (long-running operation)
+    And user has role "Admin"
+    When super admin changes their role to "Member" (less permissions)
+    Then current operation completes with original permissions
+    And next operation uses new role permissions
+    And no permission escalation occurs
+    And audit log shows role change with timestamp
+
+  Scenario: Delete company while users are logged in
+    Given 10 users from "Acme Capital" are actively logged in
+    When super admin deletes "Acme Capital"
+    Then all 10 sessions are invalidated immediately
+    And users see "Your organization has been removed"
+    And in-flight requests complete or fail gracefully
+    And no orphaned data remains
+    And users cannot re-login
+
+  Scenario: Force password reset on active sessions
+    Given user has 3 active sessions (mobile, desktop, tablet)
+    When admin forces password reset for user
+    Then all 3 sessions are invalidated
+    And user must reset password on next login attempt
+    And session tokens cannot be reused after reset
+
+  Scenario: Revoke admin privileges during admin operation
+    Given company admin is in middle of adding new user
+    When super admin revokes their admin privileges
+    Then current operation is cancelled
+    And user sees "Your permissions have changed"
+    And UI updates to reflect new (reduced) role
+    And no partial user creation occurs
+
+  Scenario: Suspend account during file upload
+    Given user is uploading large CSV (5 minutes remaining)
+    When admin suspends their account
+    Then upload is cancelled
+    And partial file is cleaned up
+    And user sees suspension message
+    And storage is not leaked
+
+  # =============================================
+  # Bulk Import Rollback Failures
+  # =============================================
+
+  Scenario: Rollback when imported records have foreign key dependencies
+    Given I imported 500 LPs 1 hour ago
+    And 50 of those LPs are now referenced in match records
+    And 10 are referenced in pitch records
+    When I attempt rollback
+    Then I see detailed dependency report:
+      | Type | Count | Action Required |
+      | Matches | 50 | Will be orphaned |
+      | Pitches | 10 | Will be orphaned |
+    And I must acknowledge cascade effects
+    And rollback proceeds only with explicit confirmation
+
+  Scenario: Rollback database deadlock
+    Given I am rolling back 1000 records
+    And another process is querying the same records
+    When deadlock occurs
+    Then rollback is retried automatically (up to 3 times)
+    And if retries fail, partial state is preserved
+    And admin receives immediate alert
+    And recovery instructions are provided
+
+  Scenario: Rollback with insufficient permissions
+    Given I imported data as admin A
+    When admin B (different admin) tries to rollback
+    Then rollback is allowed (super admin can rollback any import)
+    And action is logged with both admin IDs
+    And original importer is notified
+
+  Scenario: Rollback after schema migration
+    Given I imported 500 LPs last week
+    And database schema was migrated since then
+    When I attempt rollback
+    Then I see warning "Schema has changed since import"
+    And rollback may fail if columns were removed
+    And detailed compatibility report is shown
+    And manual intervention guidance is provided
+
+  Scenario: Rollback timeout on large dataset
+    Given I imported 50,000 records
+    When rollback takes longer than 10 minutes
+    Then operation continues in background
+    And I see progress indicator
+    And I can navigate away safely
+    And notification sent when complete
+
+  Scenario: Concurrent rollback attempts
+    Given import ID 12345 is being rolled back by admin A
+    When admin B also tries to rollback import 12345
+    Then admin B sees "Rollback already in progress"
+    And no duplicate rollback occurs
+    And progress is shared between both admins
+
+  Scenario: Rollback with corrupted import metadata
+    Given import metadata was corrupted
+    When I attempt rollback
+    Then I see "Import metadata unavailable"
+    And manual record identification is offered
+    And partial rollback based on timestamps is possible
+    And data integrity is not compromised
+
+  # =============================================
+  # Database Replication Lag Issues
+  # =============================================
+
+  Scenario: Read after write during replication lag
+    Given database has read replicas with 2 second lag
+    When admin creates new company
+    And immediately tries to view company list
+    Then new company may not appear immediately
+    And UI shows "Changes may take a moment to appear"
+    And manual refresh option is available
+    And critical operations use primary database
+
+  Scenario: Stale read during user permission check
+    Given user permissions updated on primary
+    And replica has 5 second lag
+    When user makes request hitting replica
+    Then permission check uses primary for critical ops
+    And stale permissions don't grant elevated access
+    And audit logs show actual permissions used
+
+  Scenario: Inconsistent match results during lag
+    Given LP data updated on primary
+    And replica has stale LP data
+    When user searches for matches
+    Then results may be slightly stale
+    And "Last updated" timestamp is shown
+    And user can force refresh from primary
+
+  Scenario: Import completion notification during lag
+    Given import completed on primary
+    And replica hasn't caught up
+    When admin checks import status on replica
+    Then status may show "In Progress" temporarily
+    And progress polling uses primary database
+    And no false failure notifications sent
+
+  Scenario: Concurrent updates across replicas
+    Given admin A updates LP on primary (via replica 1)
+    And admin B reads LP from replica 2 (stale)
+    When admin B makes update based on stale data
+    Then conflict detection catches the issue
+    And admin B is notified of concurrent modification
+    And merge resolution UI is presented
+
+  Scenario: Replication completely stopped
+    Given replication lag exceeds 60 seconds
+    When monitoring detects replication failure
+    Then alerts are triggered
+    And read traffic may failover to primary
+    And system degrades gracefully
+    And no data corruption occurs
+
+  # =============================================
+  # Service Degradation Scenarios
+  # =============================================
+
+  Scenario: OpenRouter API degraded response times
+    Given OpenRouter responding in 10+ seconds (normally 2 seconds)
+    When user requests pitch generation
+    Then UI shows extended wait message
+    And timeout is increased dynamically
+    And user can cancel and retry later
+    And partial results are not shown
+
+  Scenario: Voyage AI embedding service down
+    Given Voyage AI is completely unreachable
+    When user creates new fund profile
+    Then fund is saved without embedding
+    And semantic search excludes this fund temporarily
+    And background job queued to add embedding later
+    And user is notified of reduced functionality
+
+  Scenario: Supabase Auth degraded
+    Given Supabase Auth is slow but operational
+    When users try to login
+    Then login timeout is extended
+    And already-logged-in users continue working
+    And new logins are queued with retry
+    And session refresh uses cached tokens if available
+
+  Scenario: Database connection pool exhausted
+    Given all 20 database connections in use
+    When new request needs database
+    Then request waits up to 5 seconds for connection
+    And if timeout, returns 503 with Retry-After
+    And connection hoarding queries are killed
+    And alerts triggered for pool exhaustion
+
+  Scenario: CDN unavailable for static assets
+    Given Tailwind CDN is unreachable
+    When user loads page
+    Then page renders (unstyled but functional)
+    And local fallback CSS provides minimal styling
+    And functionality is preserved
+    And alert sent for CDN failure
+
+  Scenario: Partial service outage
+    Given OpenRouter down, but Voyage AI and Supabase up
+    When user uses platform
+    Then search and matching works (uses Voyage)
+    And pitch generation fails gracefully
+    And UI shows "Pitch generation temporarily unavailable"
+    And feature flags auto-disable affected features
+
+  Scenario: Cascading service failure
+    Given database latency increases
+    And this causes request queue buildup
+    And buildup causes memory pressure
+    When memory approaches limit
+    Then non-critical requests are shed
+    And critical paths (auth, reads) are prioritized
+    And graceful degradation prevents complete outage
+
+  Scenario: External API rate limiting
+    Given OpenRouter returns 429 Too Many Requests
+    When user requests pitch generation
+    Then request is queued for later
+    And user sees "High demand, request queued"
+    And estimated wait time is shown
+    And no retry storms occur
+
+  # =============================================
+  # Permission Changes During Active Operations
+  # =============================================
+
+  Scenario: Team member removed during match review
+    Given user is reviewing match list (50 matches loaded)
+    When admin removes user from team
+    Then completed reviews are saved
+    And pending reviews are discarded
+    And user sees "Access revoked" on next action
+    And no partial state corruption
+
+  Scenario: Fund access revoked during pitch generation
+    Given user has access to Fund A
+    And user started pitch generation for Fund A
+    When admin revokes Fund A access mid-generation
+    Then generation may complete (started with valid access)
+    But user cannot view or copy the result
+    And pitch is marked as "access revoked"
+
+  Scenario: Role downgrade during bulk operation
+    Given admin is bulk-updating 100 LP records
+    When super admin downgrades them to member (no edit rights)
+    Then current batch completes (up to transaction boundary)
+    And remaining updates are rejected
+    And clear message shows what completed vs failed
+    And audit trail shows permission change timing
+
+  Scenario: Company plan downgrade removes features
+    Given company has "Premium" plan with semantic search
+    And user is actively using semantic search
+    When company is downgraded to "Basic" (no semantic search)
+    Then current search completes
+    And next search uses keyword-only
+    And UI updates to hide semantic search option
+    And user is informed of plan change
+
+  Scenario: Super admin demoted during admin operation
+    Given super admin is creating new company
+    When another super admin revokes their super admin status
+    Then current operation fails with permission error
+    And user is redirected to regular dashboard
+    And admin panel becomes inaccessible
+    And all admin sessions are invalidated
+
+  Scenario: Concurrent permission grant and revoke
+    Given admin A grants user X access to Fund Z
+    And admin B revokes user X access to Fund Z simultaneously
+    When both operations complete
+    Then one operation wins (last write wins with conflict detection)
+    And audit log shows both attempts
+    And final state is consistent
+    And admins are notified of conflict
+
+  # =============================================
+  # Feature Flag Corruption
+  # =============================================
+
+  Scenario: Feature flag value is null or undefined
+    Given feature flag "semantic_search_enabled" has null value
+    When system checks flag
+    Then null is treated as false (safe default)
+    And warning logged for invalid flag state
+    And feature is disabled rather than erroring
+
+  Scenario: Feature flag type mismatch
+    Given feature flag "max_matches" should be integer
+    But value is stored as string "fifty"
+    When system reads flag
+    Then parsing error is caught
+    And default value is used instead
+    And error is logged for admin review
+    And system continues operating
+
+  Scenario: Feature flag service unreachable
+    Given feature flag service (if external) is down
+    When system needs to check flags
+    Then cached flag values are used
+    And cached values have TTL (e.g., 5 minutes)
+    And alerts triggered for flag service outage
+    And fallback defaults used if cache empty
+
+  Scenario: Feature flag changed during request
+    Given request starts with flag "new_ui" = true
+    And flag is changed to false mid-request
+    When request completes
+    Then request uses consistent flag value (from start)
+    And no UI inconsistency within single request
+    And next request uses new flag value
+
+  Scenario: Circular feature flag dependency
+    Given flag A enables if flag B is true
+    And flag B enables if flag A is true
+    When system evaluates flags
+    Then circular dependency is detected
+    And both flags default to false
+    And error logged with dependency chain
+    And admin alerted to fix configuration
+
+  Scenario: Feature flag enables non-existent feature
+    Given flag "enable_magic_feature" is true
+    But code for "magic_feature" doesn't exist
+    When flag is evaluated
+    Then no error occurs (flag just has no effect)
+    And debug log notes unused flag
+    And feature gracefully degrades to nothing
+
+  Scenario: Percentage rollout flag with invalid percentage
+    Given flag "new_algo" has rollout percentage "-5%"
+    When system evaluates flag for users
+    Then invalid percentage treated as 0%
+    And feature is disabled for all users
+    And error logged for invalid configuration
+
+  Scenario: Feature flag mass corruption
+    Given all feature flags become null (database issue)
+    When system operates
+    Then all features use safe defaults
+    And platform remains functional in degraded state
+    And immediate alerts trigger
+    And recovery playbook is accessible
+
+  Scenario: Feature flag race condition on update
+    Given admin A updates flag "beta_users" to true
+    And admin B updates same flag to false simultaneously
+    When both updates commit
+    Then one value wins (consistent)
+    And audit log shows both changes with timestamps
+    And admins are notified of conflict
+    And no flip-flopping occurs
+
+  Scenario: Feature flag affects security-critical path
+    Given flag "require_2fa" is accidentally disabled
+    When security-sensitive operation is attempted
+    Then additional safeguards catch the issue
+    And security features have defense-in-depth
+    And audit log shows flag state at time of operation
+    And security team is alerted to flag change
+```
