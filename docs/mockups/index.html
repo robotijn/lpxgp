@@ -32,14 +32,19 @@
         }
     </script>
     <style>
-        html { background: #0f172a; margin: 0; padding: 0; }
-        body { margin: 0; padding: 0; }
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            min-height: 100%;
+            background: linear-gradient(to bottom, #0f172a, #0f172a, #020617);
+        }
         body { font-family: 'Inter', system-ui, sans-serif; }
         .card-hover { transition: all 0.2s ease; }
         .card-hover:hover { transform: translateY(-2px); box-shadow: 0 8px 25px -5px rgba(0,0,0,0.1); border-color: #d4a84b; }
     </style>
 </head>
-<body class="bg-gradient-to-b from-navy-900 via-navy-900 to-navy-950 min-h-screen">
+<body>
     <div class="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-16">
         <!-- Header -->
         <div class="text-center mb-12 sm:mb-16">
