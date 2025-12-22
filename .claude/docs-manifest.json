@@ -3,7 +3,27 @@
 
   "source_docs": {
     "project_root": "CLAUDE.md",
-    "prd": "docs/prd/PRD-v1.md",
+    "prd": "docs/prd/index.md",
+    "prd_modules": [
+      "docs/prd/overview.md",
+      "docs/prd/features/index.md",
+      "docs/prd/features/auth.md",
+      "docs/prd/features/gp-profile.md",
+      "docs/prd/features/lp-database.md",
+      "docs/prd/features/matching.md",
+      "docs/prd/features/pitch.md",
+      "docs/prd/features/ui.md",
+      "docs/prd/features/hitl.md",
+      "docs/prd/data-model.md",
+      "docs/prd/data-pipeline.md",
+      "docs/prd/technical.md",
+      "docs/prd/roadmap.md",
+      "docs/prd/user-stories.md",
+      "docs/prd/nfr.md",
+      "docs/prd/decisions.md",
+      "docs/prd/appendix.md"
+    ],
+    "prd_legacy": "docs/prd/PRD-v1.md",
     "milestones": "docs/milestones.md",
     "curriculum": "docs/curriculum.md"
   },
@@ -58,14 +78,14 @@
         "lp-detail.html",
         "matches.html",
         "match-detail.html",
+        "shortlist.html",
         "pitch-generator.html",
         "outreach-hub.html",
         "settings-profile.html",
-        "settings-company.html",
-        "settings-notifications.html",
-        "settings-security.html"
+        "settings-team.html"
       ],
-      "lp_user": [
+      "lp_user_planned": [
+        "_note: LP user screens planned for post-MVP bidirectional matching",
         "lp-dashboard.html",
         "lp-fund-matches.html",
         "lp-fund-match-detail.html",
@@ -77,12 +97,12 @@
         "admin-companies.html",
         "admin-company-detail.html",
         "admin-users.html",
-        "admin-lp-database.html",
+        "admin-lps.html",
         "admin-lp-detail.html",
-        "admin-lp-import.html",
+        "admin-people.html",
+        "admin-import.html",
         "admin-data-quality.html",
-        "admin-escalations.html",
-        "admin-settings.html"
+        "admin-health.html"
       ],
       "ui_states": [
         "loading-matches.html",
@@ -91,8 +111,8 @@
     },
     "navigation": {
       "gp_nav": ["dashboard.html", "fund-list.html", "lp-search.html", "matches.html", "outreach-hub.html"],
-      "settings_nav": ["settings-profile.html", "settings-company.html", "settings-notifications.html", "settings-security.html"],
-      "admin_nav": ["admin-dashboard.html", "admin-companies.html", "admin-users.html", "admin-lp-database.html", "admin-data-quality.html", "admin-escalations.html", "admin-settings.html"]
+      "settings_nav": ["settings-profile.html", "settings-team.html"],
+      "admin_nav": ["admin-dashboard.html", "admin-companies.html", "admin-users.html", "admin-lps.html", "admin-people.html", "admin-data-quality.html", "admin-import.html", "admin-health.html"]
     }
   },
 

@@ -1,7 +1,15 @@
+> **DEPRECATED:** This monolithic file has been split into modular documents.
+> **Please use [index.md](index.md) as the new entry point.**
+>
+> This file is kept for reference but is no longer maintained.
+> All updates should be made to the modular files.
+
+---
+
 # Product Requirements Document (PRD)
 # LPxGP: GP-LP Intelligence Platform
 
-**Status:** Approved for MVP Development
+**Status:** DEPRECATED - See [index.md](index.md) for modular structure
 
 ---
 
