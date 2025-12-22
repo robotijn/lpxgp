@@ -1,0 +1,136 @@
+{
+  "_comment": "LPxGP Documentation Manifest - Source of truth for sync commands",
+
+  "source_docs": {
+    "project_root": "CLAUDE.md",
+    "prd": "docs/prd/PRD-v1.md",
+    "milestones": "docs/milestones.md",
+    "curriculum": "docs/curriculum.md"
+  },
+
+  "architecture_docs": [
+    "docs/architecture/agents-implementation.md",
+    "docs/architecture/agent-prompts.md",
+    "docs/architecture/batch-processing.md",
+    "docs/architecture/monitoring-observability.md"
+  ],
+
+  "test_specs": {
+    "index": "docs/prd/test-specifications.md",
+    "by_milestone": [
+      "docs/prd/tests/m0-foundation.feature.md",
+      "docs/prd/tests/m1-auth-search.feature.md",
+      "docs/prd/tests/m2-semantic.feature.md",
+      "docs/prd/tests/m3-matching.feature.md",
+      "docs/prd/tests/m4-pitch.feature.md",
+      "docs/prd/tests/m5-production.feature.md",
+      "docs/prd/tests/e2e-journeys.feature.md"
+    ]
+  },
+
+  "migrations": {
+    "dir": "supabase/migrations",
+    "files": [
+      "001_core_schema.sql",
+      "002_funds.sql",
+      "003_relationships.sql",
+      "004_rls_policies.sql"
+    ]
+  },
+
+  "mockups": {
+    "dir": "docs/mockups",
+    "index": "docs/mockups/index.html",
+    "screens": {
+      "public": [
+        "login.html",
+        "accept-invitation.html",
+        "forgot-password.html",
+        "reset-password.html"
+      ],
+      "gp_user": [
+        "dashboard.html",
+        "dashboard-empty.html",
+        "fund-list.html",
+        "fund-create.html",
+        "fund-detail.html",
+        "lp-search.html",
+        "lp-detail.html",
+        "matches.html",
+        "match-detail.html",
+        "pitch-generator.html",
+        "outreach-hub.html",
+        "settings-profile.html",
+        "settings-company.html",
+        "settings-notifications.html",
+        "settings-security.html"
+      ],
+      "lp_user": [
+        "lp-dashboard.html",
+        "lp-fund-matches.html",
+        "lp-fund-match-detail.html",
+        "lp-preferences.html",
+        "lp-profile.html"
+      ],
+      "admin": [
+        "admin-dashboard.html",
+        "admin-companies.html",
+        "admin-company-detail.html",
+        "admin-users.html",
+        "admin-lp-database.html",
+        "admin-lp-detail.html",
+        "admin-lp-import.html",
+        "admin-data-quality.html",
+        "admin-escalations.html",
+        "admin-settings.html"
+      ],
+      "ui_states": [
+        "loading-matches.html",
+        "error-api.html"
+      ]
+    },
+    "navigation": {
+      "gp_nav": ["dashboard.html", "fund-list.html", "lp-search.html", "matches.html", "outreach-hub.html"],
+      "settings_nav": ["settings-profile.html", "settings-company.html", "settings-notifications.html", "settings-security.html"],
+      "admin_nav": ["admin-dashboard.html", "admin-companies.html", "admin-users.html", "admin-lp-database.html", "admin-data-quality.html", "admin-escalations.html", "admin-settings.html"]
+    }
+  },
+
+  "generated": {
+    "pdf": "docs/LPxGP-Product-Document.pdf",
+    "pdf_builder": "docs/product-doc/build_pdf.py"
+  },
+
+  "schema": {
+    "tables": [
+      "organizations",
+      "gp_profiles",
+      "lp_profiles",
+      "people",
+      "employment",
+      "invitations",
+      "funds",
+      "fund_team",
+      "investments",
+      "fund_lp_matches",
+      "fund_lp_status",
+      "pitches",
+      "outreach_events",
+      "match_outcomes",
+      "lp_match_preferences",
+      "relationships",
+      "mutual_connections"
+    ],
+    "deprecated_tables": [
+      "matches",
+      "lp_commitments",
+      "lp_fund_matches",
+      "lp_contacts"
+    ]
+  },
+
+  "feature_ids": [
+    "F-AUTH", "F-FUND", "F-SEARCH", "F-MATCH", "F-PITCH", "F-ADMIN",
+    "F-AGENT", "F-UI", "F-HITL", "F-DEBATE", "F-OBSERVE", "F-PROMPT-VERSION", "F-BATCH-MODE"
+  ]
+}
