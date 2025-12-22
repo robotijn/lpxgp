@@ -225,37 +225,118 @@ def generate_pdf():
             justify-content: center;
             align-items: center;
             text-align: center;
-            background: linear-gradient(135deg, #102a43 0%, #243b53 100%);
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
             color: white;
             margin: -2cm -2.5cm;
             padding: 3cm;
+            position: relative;
+        }}
+
+        .cover::before {{
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(ellipse at 30% 20%, rgba(212, 168, 75, 0.15) 0%, transparent 50%),
+                        radial-gradient(ellipse at 70% 80%, rgba(212, 168, 75, 0.1) 0%, transparent 40%);
+            pointer-events: none;
+        }}
+
+        .cover-logo {{
+            width: 180px;
+            height: auto;
+            margin-bottom: 1.5em;
+            position: relative;
+            z-index: 1;
         }}
 
         .cover h1 {{
-            font-size: 48pt;
+            font-size: 54pt;
             font-weight: 700;
-            margin-bottom: 0.5em;
+            margin-bottom: 0.3em;
             letter-spacing: -0.02em;
+            position: relative;
+            z-index: 1;
         }}
 
         .cover .subtitle {{
-            font-size: 18pt;
-            font-weight: 400;
-            opacity: 0.9;
-            margin-bottom: 1em;
+            font-size: 20pt;
+            font-weight: 500;
+            color: #d4a84b;
+            margin-bottom: 0.8em;
+            position: relative;
+            z-index: 1;
         }}
 
         .cover .tagline {{
             font-size: 14pt;
             font-weight: 400;
-            opacity: 0.7;
+            opacity: 0.8;
+            margin-bottom: 1.5em;
+            max-width: 450px;
+            line-height: 1.5;
+            position: relative;
+            z-index: 1;
+        }}
+
+        .cover .slogan {{
+            font-size: 24pt;
+            font-weight: 600;
+            color: #fbbf24;
+            margin-bottom: 1.5em;
+            letter-spacing: -0.01em;
+            position: relative;
+            z-index: 1;
+        }}
+
+        .cover .stats-row {{
+            display: flex;
+            justify-content: center;
+            gap: 3em;
             margin-bottom: 2em;
-            max-width: 400px;
+            position: relative;
+            z-index: 1;
+        }}
+
+        .cover .stat {{
+            text-align: center;
+        }}
+
+        .cover .stat-number {{
+            font-size: 28pt;
+            font-weight: 700;
+            color: #d4a84b;
+            display: block;
+        }}
+
+        .cover .stat-label {{
+            font-size: 10pt;
+            opacity: 0.7;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }}
 
         .cover .date {{
-            font-size: 12pt;
-            opacity: 0.6;
+            font-size: 11pt;
+            opacity: 0.5;
+            position: relative;
+            z-index: 1;
+        }}
+
+        .cover .badge {{
+            display: inline-block;
+            background: rgba(212, 168, 75, 0.2);
+            border: 1px solid rgba(212, 168, 75, 0.4);
+            color: #fbbf24;
+            padding: 0.5em 1em;
+            border-radius: 2em;
+            font-size: 10pt;
+            font-weight: 500;
+            margin-bottom: 1.5em;
+            position: relative;
+            z-index: 1;
         }}
 
         /* Headings */
@@ -526,10 +607,26 @@ def generate_pdf():
 <body>
     <!-- Cover Page -->
     <div class="cover">
-        <h1>LPxGP</h1>
-        <div class="subtitle">GP-LP Intelligence Platform</div>
-        <div class="tagline">AI-powered investor matching and outreach for fund managers</div>
-        <div class="date">Product Document | {datetime.now().strftime("%B %Y")}</div>
+        <img src="file://{MOCKUPS_DIR / 'logo-dark.png'}" alt="LPxGP" class="cover-logo">
+        <div class="slogan">Where AI Agents Debate So Investors Don't Have To</div>
+        <div class="subtitle">The Multi-Agent Intelligence Platform for Private Capital</div>
+        <div class="tagline">12 specialized AI agents argue, critique, and synthesize—producing verified recommendations with full explainability. No hallucinations. No black boxes. Just better matches.</div>
+        <div class="stats-row">
+            <div class="stat">
+                <span class="stat-number">12</span>
+                <span class="stat-label">AI Agents</span>
+            </div>
+            <div class="stat">
+                <span class="stat-number">4</span>
+                <span class="stat-label">Debate Types</span>
+            </div>
+            <div class="stat">
+                <span class="stat-number">$4T+</span>
+                <span class="stat-label">Market Size</span>
+            </div>
+        </div>
+        <div class="badge">Product Requirements Document</div>
+        <div class="date">{datetime.now().strftime("%B %Y")}</div>
     </div>
 
     <!-- Table of Contents -->
@@ -569,86 +666,99 @@ def generate_pdf():
         <div class="toc-item"><span>Technology Stack</span></div>
         <div class="toc-item"><span>Security Model</span></div>
 
-        <div class="toc-section">7. Non-Functional Requirements</div>
+        <div class="toc-section">7. Agentic AI Architecture</div>
+        <div class="toc-item"><span>Multi-Agent Debate System</span></div>
+        <div class="toc-item"><span>The 12 Specialized AI Agents</span></div>
+        <div class="toc-item"><span>LangGraph Orchestration</span></div>
+        <div class="toc-item"><span>Continuous Learning</span></div>
+
+        <div class="toc-section">8. Non-Functional Requirements</div>
         <div class="toc-item"><span>Performance</span></div>
         <div class="toc-item"><span>Security</span></div>
         <div class="toc-item"><span>Scalability</span></div>
 
-        <div class="toc-section">8. Success Metrics</div>
+        <div class="toc-section">9. Success Metrics</div>
 
-        <div class="toc-section">9. Glossary</div>
+        <div class="toc-section">10. Glossary</div>
     </div>
 
     <!-- Section 1: Product Overview -->
     <div class="section">
         <h1>1. Product Overview</h1>
 
-        <h2>What LPxGP Does</h2>
-        <p>LPxGP is an AI-powered intelligence platform that helps investment fund managers (General Partners, or GPs) find and engage the right institutional investors (Limited Partners, or LPs) for their funds.</p>
+        <h2>The Opportunity</h2>
+        <p>Private equity and venture capital fundraising is a $4+ trillion industry running on spreadsheets, outdated databases, and gut instinct. Fund managers spend 40% of their time on fundraising—most of it on manual research, blind outreach, and wasted meetings with misaligned investors.</p>
 
-        <div class="success-box">
-            <strong>In one sentence:</strong> LPxGP uses AI to match funds with compatible LPs and generate personalized outreach, reducing time-to-first-close for fundraising campaigns.
+        <div class="highlight-box">
+            <strong>The Technical Insight:</strong> Traditional matching systems use a single AI model that outputs a score. They're overconfident, can't explain themselves, and hallucinate data. LPxGP uses a fundamentally different architecture: <strong>12 specialized agents that debate each other</strong>, catch each other's mistakes, and only commit when they reach consensus—or escalate to humans when they don't.
         </div>
 
-        <h3>Core Capabilities</h3>
+        <h2>What LPxGP Does</h2>
+        <p>LPxGP is an AI-native intelligence platform that helps fund managers find and engage institutional investors. But unlike "AI-powered" tools that slap ChatGPT onto a database, we built a multi-agent architecture from first principles.</p>
+
+        <div class="success-box">
+            <strong>In one sentence:</strong> LPxGP's adversarial AI agents debate every match, catch hallucinations before they embarrass users, and produce verified, explainable recommendations—turning fundraising from art into science.
+        </div>
+
+        <h3>Platform Capabilities</h3>
 
         <table>
             <tr>
                 <th>Capability</th>
-                <th>What It Does</th>
-                <th>User Benefit</th>
+                <th>The AI Approach</th>
+                <th>Why It Matters</th>
             </tr>
             <tr>
                 <td><strong>LP Database</strong></td>
-                <td>Searchable database of 5,000+ institutional investors with mandates, AUM, allocation targets, and key contacts</td>
-                <td>Hours of research condensed into seconds</td>
+                <td>5,000+ institutional investors with mandates, AUM, allocation targets, and contacts—enriched by Research Agent debates that validate every data point</td>
+                <td>Hours of research in seconds, with verified data</td>
             </tr>
             <tr>
                 <td><strong>Semantic Search</strong></td>
-                <td>Natural language search that understands investment concepts, not just keywords</td>
-                <td>Find relevant LPs even with imprecise queries</td>
+                <td>Voyage AI embeddings tuned for finance + LLM re-ranking. Search "growth equity that likes founder-led companies in fintech" and get relevant results</td>
+                <td>Find LPs by concept, not just keywords</td>
             </tr>
             <tr>
-                <td><strong>AI Matching</strong></td>
-                <td>Automatically rank LPs by fit score based on strategy, size, geography, and thesis alignment</td>
-                <td>Focus on highest-probability targets first</td>
+                <td><strong>Multi-Agent Matching</strong></td>
+                <td>Bull Agent argues for, Bear Agent argues against, Synthesizer weighs evidence. Disagreements get cross-feedback loops or human escalation</td>
+                <td>Catches overconfidence and edge cases that single models miss</td>
             </tr>
             <tr>
-                <td><strong>Match Explanations</strong></td>
-                <td>AI-generated insights explaining why an LP is a good fit and what concerns to address</td>
-                <td>Walk into meetings fully prepared</td>
+                <td><strong>Explainable Scores</strong></td>
+                <td>Full debate transcripts available. See exactly why Bull thinks it's an 85 and Bear thinks it's a 62—and how they resolved it</td>
+                <td>Users trust recommendations they can understand</td>
             </tr>
             <tr>
-                <td><strong>Pitch Generation</strong></td>
-                <td>Create personalized outreach emails, executive summaries, and talking points for each LP</td>
-                <td>Personalization at scale without the time cost</td>
+                <td><strong>Verified Pitch Generation</strong></td>
+                <td>Pitch Generator creates content, Pitch Critic catches hallucinations and factual errors, Content Synthesizer approves or regenerates</td>
+                <td>Personalization at scale without embarrassing mistakes</td>
             </tr>
             <tr>
                 <td><strong>Pipeline Tracking</strong></td>
-                <td>Manage outreach status, log activities, and track commitments across the team</td>
-                <td>Coordinated fundraising with visibility</td>
+                <td>Every interaction feeds the learning loop. 12-18 month lag to commitment, but we track early signals (response rate, meeting conversion)</td>
+                <td>System gets smarter with every match</td>
             </tr>
         </table>
 
         <h2>The Problem We Solve</h2>
-        <p>Fund managers face significant challenges in the fundraising process:</p>
+        <p>Fundraising is broken. Here's why:</p>
 
         <div class="feature-grid">
             <div class="feature-card">
                 <h4>Information Overload</h4>
-                <p>Thousands of institutional investors with varying mandates, preferences, and allocation strategies. Impossible to evaluate manually.</p>
+                <p>10,000+ institutional investors globally. Mandates change quarterly. Allocation cycles vary. Manually evaluating fit is impossible at scale.</p>
             </div>
             <div class="feature-card">
-                <h4>Manual Research</h4>
-                <p>Hours spent researching LP mandates, recent commitments, and finding the right contact. Time that could be spent on relationships.</p>
-            </div>
-            <div class="feature-card">
-                <h4>Poor Targeting</h4>
-                <p>Wasted meetings with misaligned investors who don't invest in the fund's strategy, size, or geography. Opportunity cost is enormous.</p>
+                <h4>Wasted Meetings</h4>
+                <p>80% of LP meetings go nowhere—wrong strategy, wrong size, wrong timing. Each wasted meeting costs the GP $2,000+ in time and travel.</p>
             </div>
             <div class="feature-card">
                 <h4>Generic Outreach</h4>
-                <p>One-size-fits-all pitch materials that don't resonate with specific LP priorities. Low response rates and missed opportunities.</p>
+                <p>"Dear Investor, we're raising a fund..." gets deleted. Personalization requires hours of research per LP. Most GPs can't scale it.</p>
+            </div>
+            <div class="feature-card">
+                <h4>AI Hallucination Risk</h4>
+                <p>Standard AI tools make up facts about LPs, invent allocations, and fabricate contacts. One wrong claim destroys credibility permanently.</p>
             </div>
         </div>
 
@@ -1177,9 +1287,353 @@ Stage 6: LEARNING LOOP (Continuous)
         </ul>
     </div>
 
-    <!-- Section 7: Non-Functional Requirements -->
+    <!-- Section 7: Agentic AI Architecture -->
     <div class="section">
-        <h1>7. Non-Functional Requirements</h1>
+        <h1>7. Agentic AI Architecture</h1>
+
+        <div class="highlight-box">
+            <strong>Competitive Moat:</strong> LPxGP's multi-agent debate system represents a fundamentally different approach to AI-powered matching. Rather than using a single model that can hallucinate or miss nuances, we deploy 12 specialized agents that argue, critique, and synthesize—producing higher-quality results with built-in verification and explainability.
+        </div>
+
+        <h2>Multi-Agent Debate System</h2>
+        <p>Traditional AI matching systems use a single model to score compatibility. This approach is prone to overconfidence, hallucination, and missing edge cases. LPxGP takes a radically different approach: <strong>adversarial multi-agent debates</strong>.</p>
+
+        <h3>The Bull/Bear Pattern</h3>
+        <p>For every fund-LP match, we run an internal debate:</p>
+        <ul>
+            <li><strong>Bull Agent:</strong> Argues FOR the match—finds alignment, hidden opportunities, optimal timing</li>
+            <li><strong>Bear Agent:</strong> Argues AGAINST—finds risks, constraint violations, relationship barriers</li>
+            <li><strong>Synthesizer:</strong> Weighs both perspectives, resolves disagreements, produces final score</li>
+        </ul>
+
+        <div class="info-box">
+            <strong>Why This Matters:</strong> When Bull and Bear agents disagree significantly (>30 points), the system flags for human review rather than making a confident wrong decision. This catches edge cases that single-model systems miss.
+        </div>
+
+        <h3>Four Debate Types</h3>
+        <table>
+            <tr>
+                <th>Debate</th>
+                <th>Purpose</th>
+                <th>Agents</th>
+                <th>Output</th>
+            </tr>
+            <tr>
+                <td><strong>Constraint Interpretation</strong></td>
+                <td>Parse LP investment mandates</td>
+                <td>Broad Interpreter, Narrow Interpreter, Synthesizer</td>
+                <td>Actionable filter criteria</td>
+            </tr>
+            <tr>
+                <td><strong>Research Enrichment</strong></td>
+                <td>Validate external data quality</td>
+                <td>Research Generator, Research Critic, Quality Synthesizer</td>
+                <td>Verified profile updates</td>
+            </tr>
+            <tr>
+                <td><strong>Match Scoring</strong></td>
+                <td>Evaluate fund-LP fit</td>
+                <td>Bull Agent, Bear Agent, Match Synthesizer</td>
+                <td>Confidence-weighted scores</td>
+            </tr>
+            <tr>
+                <td><strong>Pitch Generation</strong></td>
+                <td>Create personalized content</td>
+                <td>Pitch Generator, Pitch Critic, Content Synthesizer</td>
+                <td>Verified, factual pitches</td>
+            </tr>
+        </table>
+
+        <h2>The 12 Specialized Agents</h2>
+        <p>Each agent has a specific role, versioned prompts, and distinct personality. This specialization produces better results than a generalist model.</p>
+
+        <h3>Constraint Interpretation Agents</h3>
+        <table>
+            <tr>
+                <th>Agent</th>
+                <th>Role</th>
+                <th>Key Behaviors</th>
+            </tr>
+            <tr>
+                <td><strong>Broad Interpreter</strong></td>
+                <td>Find flexibility in LP mandates</td>
+                <td>Identifies what's implied but not stated, finds edge cases that could qualify, surfaces hidden opportunities based on historical commitments</td>
+            </tr>
+            <tr>
+                <td><strong>Narrow Interpreter</strong></td>
+                <td>Identify constraints and exclusions</td>
+                <td>Flags hard exclusions, policy constraints, regulatory barriers. Conservative: better to flag than to miss</td>
+            </tr>
+            <tr>
+                <td><strong>Constraint Synthesizer</strong></td>
+                <td>Resolve disagreements, create filters</td>
+                <td>Classifies constraints as HARD (absolute) or SOFT (preference), escalates unresolved ambiguities for human review</td>
+            </tr>
+        </table>
+
+        <h3>Match Scoring Agents</h3>
+        <table>
+            <tr>
+                <th>Agent</th>
+                <th>Role</th>
+                <th>Key Behaviors</th>
+            </tr>
+            <tr>
+                <td><strong>Bull Agent</strong></td>
+                <td>Argue FOR the match</td>
+                <td>Finds strategy alignment, timing opportunities, warm intro paths, hidden strengths. Generates talking points for GP outreach</td>
+            </tr>
+            <tr>
+                <td><strong>Bear Agent</strong></td>
+                <td>Argue AGAINST the match</td>
+                <td>Checks hard constraint violations, identifies relationship barriers, flags track record gaps. Sets hard_exclusion=true for deal-breakers</td>
+            </tr>
+            <tr>
+                <td><strong>Match Synthesizer</strong></td>
+                <td>Combine perspectives fairly</td>
+                <td>Weights Bull/Bear based on evidence quality, resolves disagreements, escalates when confidence is low</td>
+            </tr>
+        </table>
+
+        <h3>Pitch Generation Agents</h3>
+        <table>
+            <tr>
+                <th>Agent</th>
+                <th>Role</th>
+                <th>Key Behaviors</th>
+            </tr>
+            <tr>
+                <td><strong>Pitch Generator</strong></td>
+                <td>Create personalized content</td>
+                <td>Every sentence LP-specific, references recent activity, addresses known concerns proactively. No generic phrases</td>
+            </tr>
+            <tr>
+                <td><strong>Pitch Critic</strong></td>
+                <td>Validate accuracy and tone</td>
+                <td>Catches factual errors, hallucinations, generic content, tone mismatches. Quality score 0-100</td>
+            </tr>
+            <tr>
+                <td><strong>Content Synthesizer</strong></td>
+                <td>Make publish/regenerate/reject decision</td>
+                <td>Approves if score ≥85, regenerates if 50-84, rejects if &lt;50 or unfixable errors. Max 3 iterations</td>
+            </tr>
+        </table>
+
+        <h2>Sample Agent Prompts</h2>
+        <p>Each agent operates from a carefully-crafted prompt that defines its personality, inputs, and structured output format. Here are excerpts from key agents:</p>
+
+        <h3>Bull Agent (v1.1.0) — Excerpt</h3>
+        <pre style="font-size: 8pt; line-height: 1.4;">
+You are the BULL AGENT analyzing a potential match between a fund and LP.
+
+YOUR MISSION: Argue FOR this match. Find the best reasons why it could succeed.
+Be optimistic but grounded in data.
+
+ANALYSIS DIMENSIONS:
+- strategy_alignment: How fund strategy maps to LP mandate
+- timing_opportunity: Why now is the right time to approach
+- relationship_potential: Warm intro paths and barriers
+- hidden_strengths: Non-obvious connections and opportunities
+
+OUTPUT REQUIREMENTS:
+- Score 0-100 with confidence 0.0-1.0
+- Specific talking_points for GP outreach (5 actionable points)
+- acknowledged_concerns with mitigations
+- Data-backed reasoning citing specific profile fields
+
+CRITICAL: Don't inflate scores. Truth matters more than winning the debate.
+        </pre>
+
+        <h3>Bear Agent (v1.1.0) — Excerpt</h3>
+        <pre style="font-size: 8pt; line-height: 1.4;">
+You are the BEAR AGENT analyzing a potential match between a fund and LP.
+
+YOUR MISSION: Critically examine this match. Find reasons why it might fail.
+Be skeptical but fair—not cynical.
+
+ANALYSIS DIMENSIONS:
+- hard_constraints_violated: Deal-breakers with evidence
+- soft_concerns: Issues that reduce probability of success
+- timing_issues: Allocation cycle misalignment
+- relationship_barriers: Access difficulties
+
+OUTPUT REQUIREMENTS:
+- Score 0-100 with confidence 0.0-1.0
+- hard_exclusion flag if this is a definite no
+- conditions_for_success: What would need to be true
+- acknowledged_positives: Fair credit for genuine alignment
+
+CRITICAL: If you find a hard constraint violation, set hard_exclusion=true.
+        </pre>
+
+        <h3>Match Synthesizer (v1.0.0) — Excerpt</h3>
+        <pre style="font-size: 8pt; line-height: 1.4;">
+You are the MATCH SYNTHESIZER combining Bull and Bear perspectives.
+
+YOUR MISSION: Weigh both perspectives fairly. Resolve disagreements where
+possible, escalate where not.
+
+RESOLUTION RULES:
+- When agents agree: High confidence, weight equally
+- When agents disagree &lt;20 points: Resolve based on evidence quality
+- When agents disagree >30 points: Flag for human review
+- When Bear sets hard_exclusion=true: Take seriously, escalate if unsure
+
+OUTPUT REQUIREMENTS:
+- final_score 0-100 with component breakdown
+- resolved_disagreements with reasoning
+- unresolved_disagreements escalated to human
+- talking_points that incorporate Bear's valid concerns
+- approach_strategy for GP outreach
+
+ESCALATION TRIGGERS:
+- Disagreement >30 points
+- Confidence &lt;0.5
+- Hard exclusion with Bull score >70
+        </pre>
+
+        <h2>LangGraph Orchestration</h2>
+        <p>The debate system is implemented as a LangGraph state machine—a directed graph where nodes are agent executions and edges are conditional transitions.</p>
+
+        <div class="info-box">
+            <pre style="font-family: monospace; font-size: 8pt; background: transparent; color: inherit; padding: 0;">
+┌──────────────────────────────────────────────────────────────────┐
+│                  LANGGRAPH STATE MACHINE                          │
+├──────────────────────────────────────────────────────────────────┤
+│                                                                   │
+│   ┌─────────┐     ┌─────────┐     ┌────────────┐                 │
+│   │  START  │────▶│  DEBATE │────▶│ SYNTHESIZE │                 │
+│   └─────────┘     └────┬────┘     └─────┬──────┘                 │
+│                        │                 │                        │
+│         ┌──────────────┼─────────────────┼──────────────┐        │
+│         │              │                 │              │        │
+│         ▼              ▼                 ▼              ▼        │
+│   ┌──────────┐  ┌───────────┐     ┌──────────┐   ┌─────────┐    │
+│   │ COMPLETE │  │ REGENERATE│     │ ESCALATE │   │   END   │    │
+│   └──────────┘  └─────┬─────┘     └──────────┘   └─────────┘    │
+│                       │                                          │
+│                       └──────────▶ back to DEBATE (max 3x)       │
+│                                                                   │
+└──────────────────────────────────────────────────────────────────┘
+
+TRANSITION LOGIC:
+• Disagreement ≤20 points → COMPLETE (consensus reached)
+• Disagreement >20 but ≤30 → REGENERATE with cross-feedback
+• Disagreement >30 points → ESCALATE to human review
+• Max 3 iterations → ESCALATE if still disagreeing
+            </pre>
+        </div>
+
+        <h3>Cross-Feedback Mechanism</h3>
+        <p>When agents disagree, the regeneration step provides each agent with the other's critique:</p>
+        <ul>
+            <li><strong>Bull receives:</strong> Bear's concerns, constraint violations, and risk factors</li>
+            <li><strong>Bear receives:</strong> Bull's talking points, alignment arguments, and hidden strengths</li>
+        </ul>
+        <p>This forces agents to directly address counterarguments rather than talking past each other—often resolving disagreements within 2-3 iterations.</p>
+
+        <h2>Observability with Langfuse</h2>
+        <p>Every agent execution is fully traced using Langfuse (open-source, self-hostable for data privacy):</p>
+
+        <div class="feature-grid">
+            <div class="feature-card">
+                <h4>Full Trace Inspection</h4>
+                <p>View every debate as a tree of agent calls with inputs, outputs, token counts, and latency.</p>
+            </div>
+            <div class="feature-card">
+                <h4>Prompt Versioning</h4>
+                <p>Semantic versioning (X.Y.Z) for all prompts. A/B test new versions before full rollout.</p>
+            </div>
+            <div class="feature-card">
+                <h4>Quality Metrics</h4>
+                <p>Track escalation rates, disagreement patterns, and accuracy over time.</p>
+            </div>
+            <div class="feature-card">
+                <h4>Cost Tracking</h4>
+                <p>Per-debate token usage and API costs for margin optimization.</p>
+            </div>
+        </div>
+
+        <h2>Continuous Learning Loop</h2>
+        <p>The agentic system improves over time through outcome tracking:</p>
+
+        <table>
+            <tr>
+                <th>Signal</th>
+                <th>Latency</th>
+                <th>How It's Used</th>
+            </tr>
+            <tr>
+                <td>Match shortlisted/dismissed</td>
+                <td>Immediate</td>
+                <td>Tune hard filters, adjust agent weights</td>
+            </tr>
+            <tr>
+                <td>Response received</td>
+                <td>Days-Weeks</td>
+                <td>Key early predictor—train on high/low response patterns</td>
+            </tr>
+            <tr>
+                <td>Meeting scheduled</td>
+                <td>Weeks</td>
+                <td>Strong quality signal—validate match explanations</td>
+            </tr>
+            <tr>
+                <td>Commitment made</td>
+                <td>6-18 months</td>
+                <td>Ground truth—full model retraining</td>
+            </tr>
+        </table>
+
+        <div class="success-box">
+            <strong>Defensible Moat:</strong> As more matches flow through the system, the agent prompts are refined, disagreement patterns are analyzed, and the learning loop compounds. Competitors starting from scratch face a cold-start problem—they lack the interaction data that makes our agents increasingly accurate.
+        </div>
+
+        <h2>Why Multi-Agent vs. Single Model?</h2>
+
+        <table>
+            <tr>
+                <th>Dimension</th>
+                <th>Single Model</th>
+                <th>Multi-Agent Debate</th>
+            </tr>
+            <tr>
+                <td><strong>Overconfidence</strong></td>
+                <td>Common—no internal check</td>
+                <td>Bear agent challenges optimism</td>
+            </tr>
+            <tr>
+                <td><strong>Hallucination</strong></td>
+                <td>Can go undetected</td>
+                <td>Critic agents flag unsupported claims</td>
+            </tr>
+            <tr>
+                <td><strong>Edge Cases</strong></td>
+                <td>Often missed</td>
+                <td>Broad/Narrow interpreters catch nuances</td>
+            </tr>
+            <tr>
+                <td><strong>Explainability</strong></td>
+                <td>Black box score</td>
+                <td>Full debate transcript available</td>
+            </tr>
+            <tr>
+                <td><strong>Human Review</strong></td>
+                <td>All or nothing</td>
+                <td>Targeted escalation when confidence is low</td>
+            </tr>
+            <tr>
+                <td><strong>Improvement</strong></td>
+                <td>Retrain entire model</td>
+                <td>Tune individual agent prompts</td>
+            </tr>
+        </table>
+
+    </div>
+
+    <!-- Section 8: Non-Functional Requirements -->
+    <div class="section">
+        <h1>8. Non-Functional Requirements</h1>
 
         <h2>Performance</h2>
         <table>
@@ -1240,9 +1694,9 @@ Stage 6: LEARNING LOOP (Continuous)
         </ul>
     </div>
 
-    <!-- Section 8: Success Metrics -->
+    <!-- Section 9: Success Metrics -->
     <div class="section">
-        <h1>8. Success Metrics</h1>
+        <h1>9. Success Metrics</h1>
 
         <h2>User Engagement</h2>
         <table>
@@ -1317,9 +1771,9 @@ Stage 6: LEARNING LOOP (Continuous)
         </table>
     </div>
 
-    <!-- Section 9: Glossary -->
+    <!-- Section 10: Glossary -->
     <div class="section">
-        <h1>9. Glossary</h1>
+        <h1>10. Glossary</h1>
 
         <p class="glossary-term">AUM (Assets Under Management)</p>
         <p class="glossary-def">The total market value of assets that an investment firm manages on behalf of clients. For LPs, this indicates their overall investment capacity.</p>
