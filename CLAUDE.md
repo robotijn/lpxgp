@@ -34,6 +34,18 @@ Note: Read these files on demand rather than auto-loading (to save context).
 - **Plan mode:** Use plan mode proactively for complex tasks - do NOT ask for permission
 - **Quality focus:** After completing work, proactively check for inconsistencies, missing tests, and improvements
 
+## Compact Preferences
+
+When compacting conversations, always preserve:
+- Current milestone status and what was accomplished
+- File paths modified in the session (with line numbers if relevant)
+- Key architectural decisions made
+- Error messages encountered and their solutions
+- Pending tasks and next steps from the plan files
+- Any user preferences or constraints mentioned
+
+Focus summary on: what changed, why, and what's next.
+
 ## Tech Stack
 
 | Layer | Technology |
