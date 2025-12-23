@@ -13,7 +13,7 @@
 | M0 | Setup | "Data imported, schema ready" |
 | M1 | Foundation | "Can search LPs, site is live" |
 | M2 | Semantic | "Natural language search works" |
-| M3 | Matching | "36 agents find and score LP matches" |
+| M3 | Matching | "42 agents find and score LP matches" |
 | M4 | Content | "AI generates pitches and explanations" |
 | M5 | Operations | "GPs can track outreach, admins can manage" |
 | M6 | Data Quality | "Analysts curate data, health dashboards work" |
@@ -148,15 +148,16 @@ users (id, client_id, email, role, ...)
 
 ---
 
-## M3: GP Profiles + 36-Agent Matching
-### "36 agents find and score LP matches"
+## M3: GP Profiles + 42-Agent Matching
+### "42 agents find and score LP matches"
 
 **What we build:**
 - Fund profile CRUD (GP creates fund)
 - Deck upload + LLM extraction
-- **Full 36-agent debate system:**
+- **Full 42-agent system:**
   - 11 Debate Teams (33 agents)
   - 3 Manager Agents
+  - 6 Research Agents (Data Scout automation)
 - Batch processing for top N matches
 - Match results UI with score breakdown
 
@@ -165,7 +166,7 @@ users (id, client_id, email, role, ...)
 Stage 1: Fast Filter (hard constraints + soft scores)
     |
     v
-Stage 2: Deep Analysis (36 agents on top 50)
+Stage 2: Deep Analysis (42 agents on top 50)
     |
     v
 Cached Results (ready for GP to view)
@@ -410,7 +411,7 @@ Admin
 **What we build:**
 - LP client onboarding
 - LP mandate profiles
-- LP->GP matching (same 36 agents, reversed perspective)
+- LP->GP matching (same 42 agents, reversed perspective)
 - LP dashboard (mirror of GP dashboard)
 - LP watchlist (equivalent of GP shortlist)
 - LP interest pipeline (evaluating funds)
@@ -575,7 +576,7 @@ M0 (Setup)
       |
       +-- M2 (Semantic Search)
            |
-           +-- M3 (36-Agent Matching)
+           +-- M3 (42-Agent Matching)
                 |
                 +-- M4 (Pitch Generation)
                 |    |
@@ -599,7 +600,7 @@ M0 (Setup)
 - Get live on lpxgp.com
 
 **Phase 2: Core Value** (M3 -> M4)
-- 36-agent matching
+- 42-agent matching
 - Pitch generation
 - This is the core product value
 
@@ -625,7 +626,7 @@ M0 (Setup)
 
 | Decision | Rationale |
 |----------|-----------|
-| 36 agents from M3 | Full debate quality from the start |
+| 42 agents from M3 | Full debate quality from the start |
 | Manual pipeline first | Prove value before automation complexity |
 | GP before LP | Easier to prove value, clearer user story |
 | Admin in M5 | Needed for operations, not core product |
