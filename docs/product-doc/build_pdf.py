@@ -608,9 +608,9 @@ def generate_pdf():
     <!-- Cover Page -->
     <div class="cover">
         <img src="file://{MOCKUPS_DIR / 'logo-dark.png'}" alt="LPxGP" class="cover-logo">
-        <div class="slogan">Where AI Agents Debate So Investors Don't Have To</div>
-        <div class="subtitle">The Multi-Agent Intelligence Platform for Private Capital</div>
-        <div class="tagline">Your proprietary Agentic AI team, working 24/7. Every match debated, challenged, and verified before it reaches you.</div>
+        <div class="slogan">Smarter LP Outreach. Better Fundraising.</div>
+        <div class="subtitle">The Intelligence Platform for Private Capital</div>
+        <div class="tagline">Powered by 36 AI agents working 24/7—researching, debating, and verifying every LP match before it reaches you.</div>
         <div class="stats-row">
             <div class="stat">
                 <span class="stat-number">36</span>
