@@ -610,14 +610,14 @@ def generate_pdf():
         <img src="file://{MOCKUPS_DIR / 'logo-dark.png'}" alt="LPxGP" class="cover-logo">
         <div class="slogan">Where AI Agents Debate So Investors Don't Have To</div>
         <div class="subtitle">The Multi-Agent Intelligence Platform for Private Capital</div>
-        <div class="tagline">12 specialized AI agents argue, critique, and synthesize—producing verified recommendations with full explainability. No hallucinations. No black boxes. Just better matches.</div>
+        <div class="tagline">Your proprietary Agentic AI team, working 24/7. Every match debated, challenged, and verified before it reaches you.</div>
         <div class="stats-row">
             <div class="stat">
-                <span class="stat-number">12</span>
+                <span class="stat-number">36</span>
                 <span class="stat-label">AI Agents</span>
             </div>
             <div class="stat">
-                <span class="stat-number">4</span>
+                <span class="stat-number">11</span>
                 <span class="stat-label">Debate Types</span>
             </div>
             <div class="stat">
@@ -668,7 +668,7 @@ def generate_pdf():
 
         <div class="toc-section">7. Agentic AI Architecture</div>
         <div class="toc-item"><span>Multi-Agent Debate System</span></div>
-        <div class="toc-item"><span>The 12 Specialized AI Agents</span></div>
+        <div class="toc-item"><span>The 36 Specialized AI Agents</span></div>
         <div class="toc-item"><span>LangGraph Orchestration</span></div>
         <div class="toc-item"><span>Continuous Learning</span></div>
 
@@ -690,7 +690,7 @@ def generate_pdf():
         <p>Private equity and venture capital fundraising is a $4+ trillion industry running on spreadsheets, outdated databases, and gut instinct. Fund managers spend 40% of their time on fundraising—most of it on manual research, blind outreach, and wasted meetings with misaligned investors.</p>
 
         <div class="highlight-box">
-            <strong>The Technical Insight:</strong> Traditional matching systems use a single AI model that outputs a score. They're overconfident, can't explain themselves, and hallucinate data. LPxGP uses a fundamentally different architecture: <strong>12 specialized agents that debate each other</strong>, catch each other's mistakes, and only commit when they reach consensus—or escalate to humans when they don't.
+            <strong>The Technical Insight:</strong> Traditional matching systems use a single AI model that outputs a score. They're overconfident, can't explain themselves, and hallucinate data. LPxGP uses a fundamentally different architecture: <strong>36 specialized agents that debate each other</strong>, catch each other's mistakes, and only commit when they reach consensus—or escalate to humans when they don't.
         </div>
 
         <h2>What LPxGP Does</h2>
@@ -1292,7 +1292,7 @@ Stage 6: LEARNING LOOP (Continuous)
         <h1>7. Agentic AI Architecture</h1>
 
         <div class="highlight-box">
-            <strong>Competitive Moat:</strong> LPxGP's multi-agent debate system represents a fundamentally different approach to AI-powered matching. Rather than using a single model that can hallucinate or miss nuances, we deploy 12 specialized agents that argue, critique, and synthesize—producing higher-quality results with built-in verification and explainability.
+            <strong>Competitive Moat:</strong> LPxGP's multi-agent debate system represents a fundamentally different approach to AI-powered matching. Rather than using a single model that can hallucinate or miss nuances, we deploy 36 specialized agents that argue, critique, and synthesize—producing higher-quality results with built-in verification and explainability.
         </div>
 
         <h2>Multi-Agent Debate System</h2>
@@ -1344,7 +1344,7 @@ Stage 6: LEARNING LOOP (Continuous)
             </tr>
         </table>
 
-        <h2>The 12 Specialized Agents</h2>
+        <h2>The 36 Specialized Agents</h2>
         <p>Each agent has a specific role, versioned prompts, and distinct personality. This specialization produces better results than a generalist model.</p>
 
         <h3>Constraint Interpretation Agents</h3>
