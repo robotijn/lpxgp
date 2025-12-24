@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="min-h-screen">
+    <!-- Hero Section -->
+    <section class="bg-gradient-to-br from-navy-900 to-navy-800 text-white py-20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6">
+            <div class="text-center">
+                <h1 class="text-4xl md:text-5xl font-bold mb-6">
+                    Find the Right LPs for Your Fund
+                </h1>
+                <p class="text-xl text-navy-200 mb-8 max-w-2xl mx-auto">
+                    AI-powered matching connects GPs with institutional investors
+                    who align with your strategy, size, and thesis.
+                </p>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    <a href="/login" class="btn-primary text-lg px-8 py-3">
+                        Get Started
+                    </a>
+                    <a href="#features" class="btn-secondary text-lg px-8 py-3 bg-transparent border-white text-white hover:bg-white/10">
+                        Learn More
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="py-20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6">
+            <h2 class="text-3xl font-bold text-center mb-12">How It Works</h2>
+            <div class="grid md:grid-cols-3 gap-8">
+                <!-- Feature 1 -->
+                <div class="card p-6 text-center">
+                    <div class="w-12 h-12 bg-gold-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-6 h-6 text-gold-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-semibold mb-2">Upload Your Deck</h3>
+                    <p class="text-navy-500">
+                        Upload your pitch deck and we'll extract key details about your fund automatically.
+                    </p>
+                </div>
+
+                <!-- Feature 2 -->
+                <div class="card p-6 text-center">
+                    <div class="w-12 h-12 bg-gold-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-6 h-6 text-gold-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-semibold mb-2">AI-Powered Matching</h3>
+                    <p class="text-navy-500">
+                        Our agents analyze LP mandates and match you with investors who fit your profile.
+                    </p>
+                </div>
+
+                <!-- Feature 3 -->
+                <div class="card p-6 text-center">
+                    <div class="w-12 h-12 bg-gold-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-6 h-6 text-gold-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-semibold mb-2">Personalized Outreach</h3>
+                    <p class="text-navy-500">
+                        Generate LP-specific pitches and emails tailored to each investor's interests.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="bg-navy-900 text-white py-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+                <div>
+                    <div class="text-3xl font-bold text-gold">5,000+</div>
+                    <div class="text-navy-300">LPs in Database</div>
+                </div>
+                <div>
+                    <div class="text-3xl font-bold text-gold">$50T+</div>
+                    <div class="text-navy-300">Combined AUM</div>
+                </div>
+                <div>
+                    <div class="text-3xl font-bold text-gold">85%</div>
+                    <div class="text-navy-300">Match Accuracy</div>
+                </div>
+                <div>
+                    <div class="text-3xl font-bold text-gold">10x</div>
+                    <div class="text-navy-300">Faster Research</div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}

@@ -25,10 +25,10 @@ class Settings(BaseSettings):
     # Required Settings (fail fast if missing)
     # -------------------------------------------------------------------------
 
-    # Supabase
-    supabase_url: str = Field(description="Supabase project URL")
-    supabase_anon_key: str = Field(description="Supabase anon/public key")
-    supabase_service_role_key: str = Field(description="Supabase service role key (for admin ops)")
+    # Supabase (optional in development for basic testing)
+    supabase_url: str | None = Field(default=None, description="Supabase project URL")
+    supabase_anon_key: str | None = Field(default=None, description="Supabase anon/public key")
+    supabase_service_role_key: str | None = Field(default=None, description="Supabase service role key (for admin ops)")
 
     # -------------------------------------------------------------------------
     # Optional Settings with Defaults
@@ -136,8 +136,10 @@ class Settings(BaseSettings):
 
     @field_validator("supabase_url")
     @classmethod
-    def validate_supabase_url(cls, v: str) -> str:
+    def validate_supabase_url(cls, v: str | None) -> str | None:
         """Validate Supabase URL format."""
+        if v is None:
+            return None
         if not v.startswith("https://"):
             raise ValueError("Supabase URL must start with https://")
         if ".supabase.co" not in v and "localhost" not in v:
@@ -146,11 +148,18 @@ class Settings(BaseSettings):
 
     @field_validator("supabase_anon_key", "supabase_service_role_key")
     @classmethod
-    def validate_supabase_key(cls, v: str) -> str:
+    def validate_supabase_key(cls, v: str | None) -> str | None:
         """Validate Supabase key format."""
+        if v is None:
+            return None
         if len(v) < 100:
             raise ValueError("Invalid Supabase key (too short)")
         return v
+
+    @property
+    def supabase_configured(self) -> bool:
+        """Check if Supabase is fully configured."""
+        return all([self.supabase_url, self.supabase_anon_key, self.supabase_service_role_key])
 
     @field_validator("cors_origins")
     @classmethod

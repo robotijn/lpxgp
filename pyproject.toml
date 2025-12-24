@@ -3,27 +3,27 @@ name = "lpxgp"
 version = "0.1.0"
 description = "AI-powered platform helping GPs find and engage LPs"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.11,<3.13"
 dependencies = [
     # Core (M0) - pinned for reproducible builds
     "fastapi==0.115.6",
     "uvicorn[standard]==0.32.1",
     "jinja2==3.1.4",
-    "pydantic==2.10.3",
-    "pydantic-settings==2.6.1",
-    "supabase==2.10.0",
-    "httpx==0.28.1",
+    "pydantic>=2.10.3",
+    "pydantic-settings>=2.6.1",
+    "supabase>=2.10.0",
+    # httpx version managed by supabase
     "python-multipart==0.0.17",  # File uploads
-    "orjson==3.10.12",  # Fast JSON serialization
+    "orjson>=3.10.12",  # Fast JSON serialization
     "email-validator==2.2.0",  # Email validation for Pydantic
     # Semantic search (M2)
     "voyageai==0.3.1",
     # Deck parsing (M3)
-    "pymupdf==1.25.1",
+    "pymupdf>=1.25.1",
     "pdfplumber==0.11.4",
     "python-pptx==1.0.2",
     # Pitch generation (M4)
-    "weasyprint==62.3",  # PDF export
+    "weasyprint>=62.3",  # PDF export
     # Production (M5)
     "sentry-sdk[fastapi]==2.19.2",
     "slowapi==0.1.9",  # Rate limiting
@@ -43,11 +43,12 @@ dev = [
 
 [tool.ruff]
 line-length = 100
-target-version = "py311"
+target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 testpaths = ["tests"]
