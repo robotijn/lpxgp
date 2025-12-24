@@ -2266,7 +2266,7 @@ Feature: F-PITCH-CRITIC - Pitch Quality Assurance
   Scenario: Critic catches hallucinated claim
     Given pitch draft states "We previously worked with CalPERS on Fund I"
     When Pitch Critic runs fact-check
-    And no record exists in lp_commitments
+    And no record exists in investments
     Then hallucination is flagged
     And issue_type = "factual_error"
     And issue_severity = "critical"

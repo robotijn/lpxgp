@@ -439,7 +439,7 @@ class BatchProcessor:
                     "mandate_text": lp.get("mandate_description", ""),
                     "lp_type": lp.get("lp_type", ""),
                     "current_strategies": lp.get("strategies", []),
-                    "historical_commitments": [],  # Load from lp_commitments
+                    "historical_commitments": [],  # Load from investments
                 })
 
                 # Save interpreted constraints

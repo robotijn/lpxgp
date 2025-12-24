@@ -2930,7 +2930,7 @@ Feature: LP-Side Matching (Bidirectional)
     Given LP has mandate and preferences set
     When a new fund is published
     Then matching runs from LP perspective
-    And matching funds are stored in lp_fund_matches table
+    And matching funds are stored in fund_lp_matches table
     And LP can view matched funds
 
   Scenario: Rank funds by LP perspective
