@@ -24,7 +24,29 @@
       "docs/prd/appendix.md"
     ],
     "prd_legacy": "docs/prd/PRD-v1.md",
-    "milestones": "docs/milestones.md",
+    "milestones": "docs/milestones/index.md",
+    "milestones_dir": "docs/milestones",
+    "milestones_files": [
+      "docs/milestones/m0-setup.md",
+      "docs/milestones/m1-auth-search.md",
+      "docs/milestones/m1b-ir-core.md",
+      "docs/milestones/m2-semantic.md",
+      "docs/milestones/m3-matching.md",
+      "docs/milestones/m4-pitch.md",
+      "docs/milestones/m5-operations.md",
+      "docs/milestones/m6-data-quality.md",
+      "docs/milestones/m7-bidirectional.md",
+      "docs/milestones/m8-integrations.md",
+      "docs/milestones/m9-ir-events.md"
+    ],
+    "trd": "docs/trd/index.md",
+    "trd_files": [
+      "docs/trd/architecture.md",
+      "docs/trd/agents.md",
+      "docs/trd/data-pipeline.md",
+      "docs/trd/integrations.md",
+      "docs/trd/infrastructure.md"
+    ],
     "curriculum": "docs/curriculum.md"
   },
 
@@ -40,12 +62,18 @@
     "by_milestone": [
       "docs/prd/tests/m0-foundation.feature.md",
       "docs/prd/tests/m1-auth-search.feature.md",
+      "docs/prd/tests/m1b-ir-core.feature.md",
       "docs/prd/tests/m2-semantic.feature.md",
       "docs/prd/tests/m3-matching.feature.md",
       "docs/prd/tests/m4-pitch.feature.md",
       "docs/prd/tests/m5-production.feature.md",
+      "docs/prd/tests/m9-ir-advanced.feature.md",
       "docs/prd/tests/e2e-journeys.feature.md"
     ]
+  },
+
+  "security": {
+    "findings": "docs/security/SECURITY-FINDINGS.md"
   },
 
   "migrations": {
