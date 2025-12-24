@@ -69,15 +69,30 @@
 
 ## 9.3 Post-MVP Features
 
-**Data Enrichment:**
-- Preqin API integration
-- Partner data feeds
-- Automated enrichment
+> **Note:** Full milestone roadmap is in `docs/milestones.md`. The phases below are:
+> - M6: Data Quality + Financial Analyst
+> - M7: Bidirectional LP->GP Matching
+> - M8: External Integrations
 
-**LP-Side Matching (Bidirectional):**
-- LP users can log in and see matching funds
-- LP dashboard with fund recommendations
-- LP preference settings
+**M6: Data Enrichment & Analyst Tools:**
+- Financial Analyst user role
+- AI-prioritized work queue
+- Document upload + extraction
+- Internet research agents
+- Data Health dashboard
+
+**M7: LP-Side Matching (Bidirectional):**
+- LP client onboarding
+- LP mandate profiles
+- LP->GP matching (same agents, reversed perspective)
+- LP dashboard, watchlist, pipeline
+- Meeting request generation
+- Mutual interest detection
+
+**M8: Integrations:**
+- Email sync (Gmail, Microsoft)
+- Calendar sync
+- CRM integrations (HubSpot, Salesforce)
 
 ---
 

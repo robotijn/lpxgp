@@ -118,17 +118,26 @@ SCREENS = {
         ("lp-dashboard.html", "LP Dashboard", "Fund overview for institutional investors",
          """The LP Dashboard is the command center for institutional investors using LPxGP. It provides an at-a-glance view of matching funds, allocation availability, and recent activity. LPs see statistics including new fund matches, funds reviewed, and current allocation capacity. The top matches table shows funds ranked by compatibility score with quick actions to mark interest or pass. This bidirectional matching enables LPs to proactively discover funds rather than waiting for GP outreach."""),
 
-        ("lp-fund-matches.html", "Fund Matches", "Ranked funds matching LP mandate",
-         """The Fund Matches screen shows all funds ranked by compatibility with the LP's investment mandate. LPs can filter by strategy, fund size, and geography. Each fund card displays the GP firm, strategy tags, target size, fund number, closing timeline, and match score. Quick actions allow LPs to mark interest, pass, or view detailed analysis. The scoring algorithm considers strategy alignment, size fit, track record, geographic overlap, and ESG requirements."""),
+        ("gp-search.html", "Find GPs", "Search and filter funds for investment",
+         """The Find GPs screen is the LP's primary research tool for discovering investment opportunities. LPs can search by keyword or use natural language queries like "growth equity funds focused on healthcare technology." Advanced filters narrow results by strategy, fund size range, geography, and manager track record. Results show key fund attributes with match scores. LPs can add promising funds to their watchlist or pipeline for further evaluation."""),
 
-        ("lp-fund-match-detail.html", "Fund Match Detail", "Detailed fund analysis for LPs",
-         """The Fund Match Detail screen explains why a specific fund is recommended for the LP. It provides a narrative explanation of alignment factors, a detailed score breakdown across multiple dimensions (strategy, size, track record, geography, ESG), the fund's investment thesis, historical performance data, and key considerations or concerns. LPs can mark interest, request a meeting, or request the fund deck. Private notes allow LPs to track their evaluation."""),
+        ("gp-detail.html", "GP/Fund Detail", "Fund profile with strategy and track record",
+         """The GP/Fund Detail screen provides comprehensive information about an investment fund from the LP's perspective. It displays the fund's investment thesis, strategy focus, target size, geographic coverage, and the GP firm's track record. A mandate fit score shows alignment with the LP's investment criteria. Key contacts at the GP firm are listed. Actions include adding to watchlist, moving to pipeline, or requesting more information."""),
 
-        ("lp-preferences.html", "LP Preferences", "Matching preferences and alerts",
-         """The LP Preferences screen allows institutional investors to configure their matching criteria. LPs can set strategy preferences, geographic focus, fund size range, check size range, track record requirements, and ESG requirements. Current allocation availability helps the system prioritize actively deploying LPs. Notification preferences control alerts for new high-score matches, fund updates, closing reminders, and weekly digests."""),
+        ("lp-matches.html", "Fund Matches", "AI-ranked fund opportunities",
+         """The Fund Matches screen shows AI-generated fund recommendations ranked by compatibility with the LP's investment mandates. Each match card displays the fund name, GP firm, strategy, target size, and a fit score (0-100). Bull/Bear indicators show match quality at a glance. LPs can filter by mandate, strategy, or score range, and sort by different criteria. Quick actions allow adding to pipeline or dismissing irrelevant matches."""),
 
-        ("lp-profile.html", "LP Profile", "Organization profile management",
-         """The LP Profile screen displays the LP's organization information and investment mandate. Organization details (name, type, AUM, headquarters) are managed by LPxGP administrators to ensure data quality. The investment mandate section shows the LP's strategies, geographic focus, check size, and track record requirements. User profile settings allow LPs to manage their personal information and security settings including password and two-factor authentication."""),
+        ("lp-match-detail.html", "Match Analysis", "Bull vs Bear fund analysis",
+         """The Match Analysis screen explains why a specific fund is recommended using Bull vs Bear analysis. The Bull case highlights strengths: strategy alignment, team experience, market timing. The Bear case notes concerns: competition, fund size, track record gaps. A detailed score breakdown shows each factor's contribution. Suggested due diligence questions help LPs prepare for GP meetings. LPs can add the fund to their pipeline or request more information."""),
+
+        ("lp-pipeline.html", "Pipeline", "Track funds through evaluation stages",
+         """The LP Pipeline tracks funds through the evaluation process using kanban-style columns: Initial Review, Due Diligence, IC Approval, and Committed. LPs can drag funds between stages, add notes, and track estimated commitment totals. Summary metrics show pipeline progress and conversion rates. This mirrors the GP's outreach pipeline but from the LP's perspective—enabling mutual interest detection when both parties are tracking each other."""),
+
+        ("lp-watchlist.html", "Watchlist", "Monitor funds for future consideration",
+         """The Watchlist allows LPs to track funds they're interested in but not yet ready to evaluate. LPs can add notes, set reminders for closing deadlines, and monitor fund status (raising, upcoming, closed). When ready, funds can be moved to the pipeline for active evaluation. The watchlist serves as a curated list of opportunities for future allocation cycles."""),
+
+        ("lp-settings.html", "Settings", "Profile and notification preferences",
+         """The LP Settings screen allows institutional investors to manage their profile and preferences. The Profile section shows personal information (name, email, title). The Organization section displays LP details (name, type, AUM) managed by administrators. Investment Preferences configure matching criteria: strategies, geographies, check size, and fund size ranges. Notification settings control alerts for new matches, pipeline updates, and weekly digests."""),
     ],
 }
 
@@ -655,6 +664,7 @@ def generate_pdf():
         <div class="toc-item"><span>Public Screens (4)</span></div>
         <div class="toc-item"><span>GP User Screens (13)</span></div>
         <div class="toc-item"><span>Super Admin Screens (10)</span></div>
+        <div class="toc-item"><span>LP User Screens (8)</span></div>
         <div class="toc-item"><span>UI State Screens (3)</span></div>
 
         <div class="toc-section">5. Data Model</div>
@@ -1067,7 +1077,7 @@ Stage 6: LEARNING LOOP (Continuous)
         "public": ("Public Screens", "Authentication and onboarding flows for all users", 4),
         "gp_user": ("GP User Screens", "Core platform functionality for fund managers and associates", 13),
         "admin": ("Super Admin Screens", "Platform administration and data management", 10),
-        "lp_user": ("LP User Screens", "Bidirectional matching - funds ranked for institutional investors", 5),
+        "lp_user": ("LP User Screens", "Bidirectional matching - funds ranked for institutional investors", 8),
         "states": ("UI State Screens", "Loading, empty, and error states for better user experience", 3),
     }
 

@@ -231,4 +231,80 @@ As a GP, I want to generate an outreach email so I can contact the LP.
 
 ---
 
+## 10.6 LP Matching (M7)
+
+> **Principle:** Whatever a GP can do with LPs, an LP should be able to do with GPs.
+
+### US-LP-MATCH-01: Create Mandate
+As an LP, I want to create investment mandates so the system can match me with relevant funds.
+
+**Acceptance Criteria:**
+- Create mandate with: name, strategy, geography, check size range, fund size range
+- Mandate can be active or paused
+- Multiple mandates supported
+- Mandates trigger automatic match generation
+
+**Test:** TEST-LP-MATCH-01
+
+### US-LP-MATCH-02: View Fund Matches
+As an LP, I want to see AI-ranked fund recommendations so I can identify opportunities.
+
+**Acceptance Criteria:**
+- Matches ranked by score (0-100)
+- Filter by mandate
+- See match reasons (strategy alignment, track record, size fit)
+- Matches update when new funds are added
+- Can dismiss irrelevant matches
+
+**Test:** TEST-LP-MATCH-02
+
+### US-LP-MATCH-03: View Match Analysis
+As an LP, I want to see Bull vs Bear analysis for a fund match so I can make informed decisions.
+
+**Acceptance Criteria:**
+- Bull case: strengths and opportunities
+- Bear case: risks and concerns
+- Score breakdown by factor
+- Suggested due diligence questions
+- Analysis generated in < 10 seconds
+
+**Test:** TEST-LP-MATCH-03
+
+### US-LP-MATCH-04: Manage Pipeline
+As an LP, I want to track funds through my evaluation process so I can manage my deal flow.
+
+**Acceptance Criteria:**
+- Pipeline stages: Initial Review → Due Diligence → IC Approval → Committed
+- Add funds from matches or search
+- Move funds between stages
+- Add notes per fund
+- See estimated commitment totals
+
+**Test:** TEST-LP-MATCH-04
+
+### US-LP-MATCH-05: Watchlist
+As an LP, I want to watchlist funds for future consideration so I don't lose track of them.
+
+**Acceptance Criteria:**
+- Add fund to watchlist from search or matches
+- Add notes per watched fund
+- See fund status (raising, upcoming)
+- Remove from watchlist
+- Move to pipeline when ready
+
+**Test:** TEST-LP-MATCH-05
+
+### US-LP-MATCH-06: Mutual Interest Detection
+As an LP or GP, I want to know when both parties have expressed interest so we can connect faster.
+
+**Acceptance Criteria:**
+- Mutual interest alert shown to both parties
+- GP shortlisted LP + LP has GP in pipeline = mutual
+- Notification sent to both
+- Accelerated path to meeting
+
+**Test:** TEST-LP-MATCH-06
+
+---
+
 [Next: Non-Functional Requirements →](nfr.md)

@@ -8,11 +8,37 @@ Complete UI screen definitions for LPxGP platform.
 
 | Category | Count | Description |
 |----------|-------|-------------|
+| Marketing | 1 | Public landing page |
 | Public | 4 | Unauthenticated pages (login, invites, password reset) |
 | GP User | 14 | Main application screens for GP users |
+| LP User | 8 | Main application screens for LP users (M7) |
 | Super Admin | 10 | Platform administration screens |
+| UI States | 3 | Loading, empty, and error states |
 
-**Total: 28 screens**
+**Total: 40 screens**
+
+---
+
+## Marketing
+
+### Landing Page
+**Route:** `/` (public)
+**Mockup:** `landing.html`
+
+Product marketing page with:
+- Hero: "Stop Chasing. Start Matching."
+- Problem/solution overview
+- Key features (Intelligent Matching, Deep Profiles, AI Insights, Relationship Tools)
+- Network animation showing AI capabilities
+- How it works (4 steps)
+- Trust signals (security, verified data, curated network)
+- Primary CTA: "Request Demo"
+- Secondary: "Login" link
+
+**Notes:**
+- Invite-only platform - no self-registration
+- Request Demo leads to contact form
+- Login goes to `/login`
 
 ---
 
@@ -561,6 +587,139 @@ Company settings:
 
 ---
 
+## LP User Screens (M7)
+
+> **Visual Differentiation:** LP screens use teal accent color (#0ea5e9) instead of gold, with "LP" badge next to logo.
+
+### LP Dashboard
+**Route:** `/lp/dashboard`
+**Mockup:** `lp-dashboard.html`
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  LPxGP [LP]                                         [Settings]  │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  YOUR MANDATES                                                  │
+│  ┌──────────────────────┐  ┌──────────────────────┐            │
+│  │ PE Growth            │  │ Infrastructure       │  [+ New]   │
+│  │ NA, Europe           │  │ Global               │            │
+│  │ ─────────────────    │  │ ─────────────────    │            │
+│  │ 52 matches           │  │ 32 matches           │            │
+│  │ $25M-$100M checks    │  │ $50M-$200M checks    │            │
+│  │                      │  │                      │            │
+│  │ [View Matches ->]    │  │ [View Matches ->]    │            │
+│  └──────────────────────┘  └──────────────────────┘            │
+│                                                                 │
+│  ─────────────────────────────────────────────────────────────  │
+│                                                                 │
+│  TOP FUND MATCHES                                               │
+│  ┌────────────────┬──────────┬──────────┬────────────────────┐ │
+│  │ Fund / GP      │ Strategy │ Target   │ Match   │ Action   │ │
+│  ├────────────────┼──────────┼──────────┼─────────┼──────────┤ │
+│  │ Acme Fund III  │ Growth   │ $500M    │ 94%     │ [Review] │ │
+│  │ Summit Infra   │ Infra    │ $1.2B    │ 91%     │ [Review] │ │
+│  └────────────────┴──────────┴──────────┴─────────┴──────────┘ │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Notes:**
+- Shows investment mandates (LP equivalent of funds)
+- Top fund matches across all mandates
+- Recent activity feed
+- Quick stats: mandates, matches, pipeline, meetings
+
+---
+
+### Find GPs (GP Search)
+**Route:** `/lp/search`
+**Mockup:** `gp-search.html`
+
+Search and filter funds/GPs:
+- Search by fund name, GP, strategy, keyword
+- Filter: Strategy, Fund Size, Geography, Fund Status (Raising/Final Close/Upcoming)
+- Results show: Fund name, GP, Strategy, Target Size, Status
+- Actions: View, Add to Watchlist
+
+---
+
+### GP Detail (Fund Profile for LPs)
+**Route:** `/lp/gps/[id]`
+**Mockup:** `gp-detail.html`
+
+Full fund profile view:
+- Fund overview (target size, min commitment, first close)
+- Investment strategy and thesis
+- Track record (prior funds with returns)
+- Team members with experience
+- Mandate fit score with breakdown
+- Actions: Add to Watchlist, Add to Pipeline, Request Meeting
+
+---
+
+### Fund Matches
+**Route:** `/lp/matches`
+**Mockup:** `lp-matches.html`
+
+AI-ranked fund opportunities:
+- Filter by mandate (all, or specific)
+- Match cards with score and key factors
+- Quick actions: View details, Add to Pipeline
+- Score breakdown on hover
+
+---
+
+### Match Analysis (Bull vs Bear)
+**Route:** `/lp/matches/[fund_id]`
+**Mockup:** `lp-match-detail.html`
+
+Detailed match analysis:
+- Overall match score with breakdown
+- Bull case (strengths, opportunities)
+- Bear case (risks, concerns)
+- Score breakdown by factor (strategy, track record, size fit, geography, team)
+- Suggested due diligence questions
+- Actions: Add to Pipeline, Add to Watchlist
+
+---
+
+### Pipeline
+**Route:** `/lp/pipeline`
+**Mockup:** `lp-pipeline.html`
+
+Track active fund opportunities:
+- Columns: Initial Review, Due Diligence, IC Approval, Committed
+- Stats: Total pipeline, Est. commitment, Meetings scheduled
+- Per-fund: Score, Stage, Est. commitment, Next step
+- Actions: Move stage, Add notes
+
+---
+
+### Watchlist
+**Route:** `/lp/watchlist`
+**Mockup:** `lp-watchlist.html`
+
+Funds being monitored:
+- Filter: Currently Raising, Upcoming
+- Per-fund: Score, Status, Notes
+- Actions: Add to Pipeline, Remove
+- Bulk actions
+
+---
+
+### LP Settings
+**Route:** `/lp/settings`
+**Mockup:** `lp-settings.html`
+
+LP user settings:
+- Profile (name, title, phone)
+- Organization info (read-only: LP name, type, AUM)
+- Investment preferences (strategies, geography, check size, fund size)
+- Notification preferences
+
+---
+
 ## Super Admin Screens
 
 ### Admin Dashboard
@@ -699,7 +858,7 @@ Service status dashboard:
 ## Navigation Structure
 
 ```
-GP User:
+GP User (Gold accent):
 ├── Dashboard
 ├── Funds
 │   ├── Fund List
@@ -715,6 +874,16 @@ GP User:
     ├── Profile
     ├── Team (Admin only)
     └── Company (Admin only)
+
+LP User (Teal accent - M7):
+├── Dashboard
+├── Find GPs
+│   └── GP Detail
+├── Matches
+│   └── Match Analysis
+├── Pipeline
+├── Watchlist
+└── Settings
 
 Super Admin:
 ├── Admin Dashboard
