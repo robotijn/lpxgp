@@ -184,11 +184,11 @@ Run `uv sync` to ensure all dependencies are installed.
 
 - **Documentation:** See `/docs` folder
 - **Issues:** [GitHub Issues](https://github.com/robotijn/lpxgp/issues)
-- **PRD:** [docs/prd/PRD-v1.md](prd/PRD-v1.md)
+- **PRD:** [docs/prd/index.md](prd/index.md)
 
 ## Next Steps
 
-1. Read the [PRD](prd/PRD-v1.md) to understand the product
+1. Read the [PRD](prd/index.md) to understand the product
 2. Review [milestones.md](milestones.md) for the roadmap
 3. Check [test-specifications.md](prd/test-specifications.md) for BDD tests
 4. Start implementing M0 features using TDD

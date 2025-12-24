@@ -20,6 +20,10 @@ OUTPUT_PDF = SCRIPT_DIR.parent / "LPxGP-Product-Document.pdf"
 # Screen definitions with comprehensive metadata
 # Format: (filename, title, short_desc, full_explanation)
 SCREENS = {
+    "marketing": [
+        ("landing.html", "Landing Page", "Product marketing and value proposition",
+         """The Landing Page is the public face of LPxGP, designed to communicate the platform's value proposition to potential users. It features a compelling hero section with "Stop Chasing. Start Matching." messaging, highlighting the pain of traditional LP outreach. Key features are presented: Intelligent Matching, Deep Profiles, AI Insights, and Relationship Tools. A network animation demonstrates AI capabilities. The "How it Works" section explains the 4-step process. Trust signals emphasize security, verified data, and curated network. Since LPxGP is invite-only, the primary CTA is "Request Demo" rather than signup."""),
+    ],
     "public": [
         ("login.html", "Login", "User authentication",
          """The Login screen is the entry point for all authenticated users. Users enter their email and password to access the platform. The design emphasizes security and trust with a clean, professional interface. Failed login attempts are tracked and accounts are locked after 5 consecutive failures to prevent brute-force attacks. A "Forgot Password" link provides account recovery options."""),
@@ -661,11 +665,12 @@ def generate_pdf():
         <div class="toc-item"><span>Pitch & Outreach</span></div>
 
         <div class="toc-section">4. Screen Reference ({total_screens} screens)</div>
+        <div class="toc-item"><span>Marketing (1)</span></div>
         <div class="toc-item"><span>Public Screens (4)</span></div>
         <div class="toc-item"><span>GP User Screens (13)</span></div>
         <div class="toc-item"><span>Super Admin Screens (10)</span></div>
         <div class="toc-item"><span>LP User Screens (8)</span></div>
-        <div class="toc-item"><span>UI State Screens (3)</span></div>
+        <div class="toc-item"><span>UI State Screens (2)</span></div>
 
         <div class="toc-section">5. Data Model</div>
         <div class="toc-item"><span>Entity Overview</span></div>
@@ -1074,11 +1079,12 @@ Stage 6: LEARNING LOOP (Continuous)
 
     # Add screen mockups by category with full explanations
     category_info = {
+        "marketing": ("Marketing", "Public landing page and value proposition", 1),
         "public": ("Public Screens", "Authentication and onboarding flows for all users", 4),
         "gp_user": ("GP User Screens", "Core platform functionality for fund managers and associates", 13),
         "admin": ("Super Admin Screens", "Platform administration and data management", 10),
         "lp_user": ("LP User Screens", "Bidirectional matching - funds ranked for institutional investors", 8),
-        "states": ("UI State Screens", "Loading, empty, and error states for better user experience", 3),
+        "states": ("UI State Screens", "Loading, empty, and error states for better user experience", 2),
     }
 
     for category, screens in SCREENS.items():

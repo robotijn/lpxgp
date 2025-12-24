@@ -330,7 +330,7 @@ allowed-tools: Read, Grep, Glob, Edit, Bash
 - Debugging search relevance
 
 ## Embedding Pattern
-See [embedding-examples.md](embedding-examples.md)
+See embedding-examples.md for patterns
 ```
 
 #### Exercise 6
