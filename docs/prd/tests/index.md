@@ -3,19 +3,33 @@
 **Format:** Gherkin/BDD (natural language)
 **Purpose:** Communicate requirements with product owner, generate tests later
 
-## Feature Coverage
+## Test Files by Milestone
 
-| Area | Features | Tests |
-|------|----------|-------|
-| [Authentication](auth.feature.md) | F-AUTH-01 to F-AUTH-04 | 4 features |
-| [GP Profile](gp-profile.feature.md) | F-GP-01 to F-GP-04 | 4 features |
-| [LP Database](lp-database.feature.md) | F-LP-01 to F-LP-06 | 6 features |
-| [Matching](matching.feature.md) | F-MATCH-01 to F-MATCH-07 | 7 features |
-| [Pitch Generation](pitch.feature.md) | F-PITCH-01 to F-PITCH-05 | 5 features |
-| [User Interface](ui.feature.md) | F-UI-01 to F-UI-05 | 5 features |
-| [Human-in-the-Loop](human-in-loop.feature.md) | F-HITL-01 to F-HITL-05 | 5 features |
-| [Agentic Architecture](agents.feature.md) | F-AGENT-01 to F-AGENT-04 | 4 features |
-| [E2E User Journeys](e2e-journeys.feature.md) | Complete flows | 6 journeys |
+| Milestone | File | Coverage |
+|-----------|------|----------|
+| [M0: Foundation](m0-foundation.feature.md) | Data import, cleaning, quality | LP database setup |
+| [M1: Auth + Search](m1-auth-search.feature.md) | Authentication, LP search, RLS | Core platform security |
+| [M1b: IR Core](m1b-ir-core.feature.md) | Investor Relations features | IR team workflows |
+| [M2: Semantic](m2-semantic.feature.md) | Embeddings, semantic search | AI-powered search |
+| [M3: Matching](m3-matching.feature.md) | GP profiles, agent debates, scoring | Match generation |
+| [M4: Pitch](m4-pitch.feature.md) | Pitch generation, learning agents | Content creation |
+| [M5: Production](m5-production.feature.md) | Admin, monitoring, performance | Operations |
+| [M9: IR Advanced](m9-ir-advanced.feature.md) | Events, advanced IR | IR expansion |
+| [E2E Journeys](e2e-journeys.feature.md) | Complete user flows | Integration tests |
+| [Security](security.feature.md) | Auth, RLS, input validation | Security tests |
+
+## Feature Coverage by Area
+
+| Area | Features | Milestone |
+|------|----------|-----------|
+| Authentication | F-AUTH-01 to F-AUTH-04 | M1, M5 |
+| GP Profile | F-GP-01 to F-GP-04 | M3 |
+| LP Database | F-LP-01 to F-LP-06 | M0, M1, M2 |
+| Matching | F-MATCH-01 to F-MATCH-07 | M3, M4 |
+| Pitch Generation | F-PITCH-01 to F-PITCH-05 | M4 |
+| User Interface | F-UI-01 to F-UI-05 | M1, M4, M5 |
+| Human-in-the-Loop | F-HITL-01 to F-HITL-05 | M3, M4, M5 |
+| Agentic Architecture | F-AGENT-01 to F-AGENT-04 | M3, M4 |
 
 ## Priority Coverage
 
@@ -24,17 +38,6 @@
 | P0 (MVP) | 29 | All tested |
 | P1 | 11 | All tested |
 | P2 | 1 | All tested |
-
-## Milestone Mapping
-
-| Milestone | Features Tested |
-|-----------|-----------------|
-| M0: Foundation | F-LP-01, F-LP-04, F-LP-05 |
-| M1: Auth + Search | F-AUTH-01 to 04, F-LP-02, F-UI-01, F-UI-03 |
-| M2: Semantic Search | F-LP-03, F-LP-06 |
-| M3: Matching + Agents | F-GP-01 to 04, F-MATCH-01 to 06, F-HITL-02, F-HITL-03, F-AGENT-01 to 03 |
-| M4: Pitch + Learning | F-PITCH-01 to 05, F-UI-04, F-HITL-01, F-AGENT-04, F-MATCH-07 |
-| M5: Production | F-AUTH-04, F-UI-05, F-HITL-04, F-HITL-05 |
 
 ## How to Read These Specs
 

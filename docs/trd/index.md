@@ -214,7 +214,8 @@ USING (auth.jwt() ->> 'role' = 'admin');
 - [PRD - Product Requirements](../prd/index.md) - What we build
 - [Milestones](../milestones.md) - Development roadmap
 - [Test Specifications](../prd/test-specifications.md) - BDD test cases
-- [IR Team Integration](../../.claude/plans/ir-team-integration.md) - Entity Resolution details
+- [M1b: IR Core](../milestones/m1b-ir-core.md) - IR team integration features
+- [M9: IR Advanced](../milestones/m9-ir-events.md) - Events and advanced IR
 
 ---
 

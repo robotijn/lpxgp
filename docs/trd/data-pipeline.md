@@ -575,6 +575,7 @@ pandas = ">=2.0.0"
 
 ## Related Documents
 
-- [IR Team Integration](../../.claude/plans/ir-team-integration.md) - Detailed ER research
+- [M1b: IR Core](../milestones/m1b-ir-core.md) - IR team integration features
+- [M9: IR Advanced](../milestones/m9-ir-events.md) - Events and advanced IR
 - [Architecture](architecture.md) - Database schema
 - [Agents](agents.md) - LLM tiebreaker integration

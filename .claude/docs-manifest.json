@@ -204,7 +204,8 @@
   },
 
   "feature_ids": [
-    "F-AUTH", "F-FUND", "F-SEARCH", "F-MATCH", "F-PITCH", "F-ADMIN",
-    "F-AGENT", "F-UI", "F-HITL", "F-DEBATE", "F-OBSERVE", "F-PROMPT-VERSION", "F-BATCH-MODE"
+    "F-AA", "F-AGENT", "F-AUTH", "F-BATCH", "F-BB", "F-DEBATE",
+    "F-ER", "F-GP", "F-HITL", "F-IR", "F-LP", "F-MATCH",
+    "F-OBSERVE", "F-PITCH", "F-PROMPT", "F-RI", "F-UI"
   ]
 }
