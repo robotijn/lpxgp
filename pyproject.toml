@@ -5,35 +5,40 @@ description = "AI-powered platform helping GPs find and engage LPs"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    # Core (M0)
-    "fastapi>=0.115.0",
-    "uvicorn[standard]>=0.32.0",
-    "jinja2>=3.1.0",
-    "pydantic>=2.0.0",
-    "pydantic-settings>=2.0.0",
-    "supabase>=2.0.0",
-    "httpx>=0.27.0",
-    "python-multipart>=0.0.9",  # File uploads
-    "orjson>=3.10.0",  # Fast JSON serialization
+    # Core (M0) - pinned for reproducible builds
+    "fastapi==0.115.6",
+    "uvicorn[standard]==0.32.1",
+    "jinja2==3.1.4",
+    "pydantic==2.10.3",
+    "pydantic-settings==2.6.1",
+    "supabase==2.10.0",
+    "httpx==0.28.1",
+    "python-multipart==0.0.17",  # File uploads
+    "orjson==3.10.12",  # Fast JSON serialization
+    "email-validator==2.2.0",  # Email validation for Pydantic
     # Semantic search (M2)
-    "voyageai>=0.3.0",
+    "voyageai==0.3.1",
     # Deck parsing (M3)
-    "pymupdf>=1.24.0",
-    "pdfplumber>=0.11.0",
-    "python-pptx>=1.0.0",
+    "pymupdf==1.25.1",
+    "pdfplumber==0.11.4",
+    "python-pptx==1.0.2",
     # Pitch generation (M4)
-    "weasyprint>=62.0",  # PDF export
+    "weasyprint==62.3",  # PDF export
     # Production (M5)
-    "sentry-sdk[fastapi]>=2.0.0",
-    "slowapi>=0.1.9",  # Rate limiting
+    "sentry-sdk[fastapi]==2.19.2",
+    "slowapi==0.1.9",  # Rate limiting
+    "structlog==24.4.0",  # Structured logging with field redaction
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=8.0.0",
-    "pytest-asyncio>=0.24.0",
-    "pytest-playwright>=0.5.0",  # E2E browser tests
-    "ruff>=0.8.0",
+    "pytest==8.3.4",
+    "pytest-asyncio==0.24.0",
+    "pytest-playwright==0.5.2",  # E2E browser tests
+    "ruff==0.8.4",
+    # Security scanning
+    "bandit==1.8.0",  # Python security linter
+    "pip-audit==2.7.3",  # Dependency vulnerability scanner
 ]
 
 [tool.ruff]

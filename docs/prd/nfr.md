@@ -20,15 +20,58 @@
 
 ## 12.2 Security
 
+### Encryption & Transport
 - All data encrypted at rest (Supabase default)
-- All traffic over HTTPS
+- All traffic over HTTPS (TLS 1.3)
 - JWT tokens with 1 hour expiry
 - Refresh tokens with 7 day expiry
-- Row-level security enforced
-- Input validation on all endpoints
-- Rate limiting: 100 req/min per user
-- Audit logging for sensitive actions
-- No sensitive data in logs
+
+### Access Control
+- Row-level security enforced with 5-tier role model:
+  - **Viewer**: Read-only access to own org data
+  - **Member**: Read/write access to own org data
+  - **Admin**: Full access to own org, user management
+  - **Fund Admin (FA)**: Cross-org read access, privileged operations
+  - **Super Admin**: Full system access
+- Single current employment enforced (no multi-org users)
+- Invitation-only registration (no public signups)
+
+### Input Validation
+- Pydantic models for all API endpoints
+- Email validation with `email-validator`
+- Financial amounts: Decimal, >= 0, max 1,000,000 MM
+- Percentages: 0-100 range with bounds checking
+- Text fields: Max length enforcement
+- File uploads: Max 50MB, PDF/PPTX only
+
+### Rate Limiting
+
+| Endpoint | Limit | Scope | Purpose |
+|----------|-------|-------|---------|
+| `POST /auth/login` | 5/min | per IP | Brute force prevention |
+| `POST /matches/generate` | 10/min | per org | AI cost control |
+| `POST /pitches` | 20/hour | per user | AI cost control |
+| `GET /lp-search` | 100/min | per user | Data scraping prevention |
+| `POST /data-imports` | 5/hour | per org | Resource protection |
+| Default | 100/min | per user | General protection |
+
+### Account Lockout
+- **Threshold**: 5 failed login attempts
+- **Duration**: 30 minute lockout
+- **Scope**: Per email address
+- **Tracking**: Stored in `login_attempts` table with 90-day retention
+
+### CSRF Protection
+- Double-submit cookie pattern
+- `X-CSRF-Token` header required for state-changing requests
+- SameSite=Strict cookies
+- HTMX integration via `hx-headers`
+
+### Logging & Audit
+- Structured logging with sensitive field redaction
+- Audit log for sensitive table access (LP profiles, matches)
+- Request ID tracking for debugging
+- No passwords, tokens, or API keys in logs
 
 ---
 

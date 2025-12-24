@@ -500,9 +500,63 @@ async def auth_middleware(request: Request, call_next):
 
 ## Multi-Tenancy with Row-Level Security
 
+### RLS Philosophy
+
+LPxGP uses a **restrictive RLS model** - by default, users see only their own organization's data. Cross-org visibility is explicitly granted to privileged roles only.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         ROLE HIERARCHY                                       │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  SUPER ADMIN ──────────────────────────────────────────────────────────────▶│ Full access
+│       │                                                                      │
+│       ▼                                                                      │
+│  FUND ADMIN (FA) ──────────────────────────────────────────────────────────▶│ Cross-org read, privileged ops
+│       │                                                                      │
+│       ▼                                                                      │
+│  ADMIN ────────────────────────────────────────────────────────────────────▶│ Own org admin + user mgmt
+│       │                                                                      │
+│       ▼                                                                      │
+│  MEMBER ───────────────────────────────────────────────────────────────────▶│ Own org read/write
+│       │                                                                      │
+│       ▼                                                                      │
+│  VIEWER ───────────────────────────────────────────────────────────────────▶│ Own org read-only
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+| Data Type | Viewer | Member | Admin | FA | Super |
+|-----------|--------|--------|-------|----|-------|
+| LP profiles (market) | Read | Read | Read | Full | Full |
+| Own org data | Read | R/W | Full | Full | Full |
+| Other org data | - | - | - | Read | Full |
+| Audit logs | - | - | - | Read | Full |
+| System config | - | - | - | - | Full |
+
+### Key Design Decisions
+
+1. **Single Employment**: Users can only belong to one organization at a time (`is_current=TRUE` enforced by trigger)
+2. **Org-Scoped Access**: Helper function `current_user_org_id()` returns user's current org, used in all RLS policies
+3. **Privileged Bypass**: `is_privileged_user()` returns TRUE for FA/Super Admin roles for cross-org operations
+4. **Audit Logging**: `audit_logs` table tracks access to sensitive data (LP profiles, matches)
+
 ### RLS Policy Design
 
 ```sql
+-- Helper functions for RLS policies
+CREATE FUNCTION current_user_org_id() RETURNS UUID AS $$
+    SELECT e.org_id FROM employment e
+    WHERE e.person_id = auth.uid()
+    AND e.is_current = TRUE
+    ORDER BY e.started_at DESC
+    LIMIT 1;
+$$ LANGUAGE SQL SECURITY DEFINER STABLE;
+
+CREATE FUNCTION is_privileged_user() RETURNS BOOLEAN AS $$
+    SELECT get_user_org_role() IN ('fund_admin', 'super_admin');
+$$ LANGUAGE SQL SECURITY DEFINER STABLE;
+
 -- Enable RLS on tenant tables
 ALTER TABLE companies ENABLE ROW LEVEL SECURITY;
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
@@ -511,22 +565,14 @@ ALTER TABLE pitches ENABLE ROW LEVEL SECURITY;
 ALTER TABLE touchpoints ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
 
--- Users can only see their own company
-CREATE POLICY "users_own_company"
-ON users FOR ALL
-USING (company_id = (auth.jwt() ->> 'company_id')::UUID);
-
--- Matches are scoped to company
-CREATE POLICY "matches_company_scope"
-ON matches FOR ALL
-USING (company_id = (auth.jwt() ->> 'company_id')::UUID);
+-- Standard pattern: org-scoped access with privileged bypass
+CREATE POLICY "matches_org_scoped" ON matches FOR ALL
+USING (
+    org_id = current_user_org_id()
+    OR is_privileged_user()
+);
 
 -- Similar policies for all tenant tables...
-
--- Super admin can see everything
-CREATE POLICY "super_admin_all_access"
-ON users FOR ALL
-USING (auth.jwt() ->> 'role' = 'super_admin');
 ```
 
 ### Service Role Access
