@@ -13,9 +13,9 @@ Complete UI screen definitions for LPxGP platform.
 | GP User | 14 | Main application screens for GP users |
 | LP User | 8 | Main application screens for LP users (M7) |
 | Super Admin | 10 | Platform administration screens |
-| UI States | 3 | Loading, empty, and error states |
+| UI States | 2 | Loading and error states |
 
-**Total: 40 screens**
+**Total: 39 screens**
 
 ---
 

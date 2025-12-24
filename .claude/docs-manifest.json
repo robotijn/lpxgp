@@ -82,7 +82,12 @@
       "001_core_schema.sql",
       "002_funds.sql",
       "003_relationships.sql",
-      "004_rls_policies.sql"
+      "004_rls_policies.sql",
+      "005_rls_v2.sql",
+      "006_business_rules.sql",
+      "007_ir_core_schema.sql",
+      "009_security_features.sql",
+      "010_agent_schema.sql"
     ]
   },
 
@@ -90,6 +95,9 @@
     "dir": "docs/mockups",
     "index": "docs/mockups/index.html",
     "screens": {
+      "marketing": [
+        "landing.html"
+      ],
       "public": [
         "login.html",
         "accept-invitation.html",
@@ -112,13 +120,15 @@
         "settings-profile.html",
         "settings-team.html"
       ],
-      "lp_user_planned": [
-        "_note: LP user screens planned for post-MVP bidirectional matching",
+      "lp_user": [
         "lp-dashboard.html",
-        "lp-fund-matches.html",
-        "lp-fund-match-detail.html",
-        "lp-preferences.html",
-        "lp-profile.html"
+        "gp-search.html",
+        "gp-detail.html",
+        "lp-matches.html",
+        "lp-match-detail.html",
+        "lp-pipeline.html",
+        "lp-watchlist.html",
+        "lp-settings.html"
       ],
       "admin": [
         "admin-dashboard.html",
@@ -139,6 +149,7 @@
     },
     "navigation": {
       "gp_nav": ["dashboard.html", "fund-list.html", "lp-search.html", "matches.html", "outreach-hub.html"],
+      "lp_nav": ["lp-dashboard.html", "gp-search.html", "lp-matches.html", "lp-pipeline.html", "lp-watchlist.html"],
       "settings_nav": ["settings-profile.html", "settings-team.html"],
       "admin_nav": ["admin-dashboard.html", "admin-companies.html", "admin-users.html", "admin-lps.html", "admin-people.html", "admin-data-quality.html", "admin-import.html", "admin-health.html"]
     }
@@ -167,7 +178,22 @@
       "match_outcomes",
       "lp_match_preferences",
       "relationships",
-      "mutual_connections"
+      "mutual_connections",
+      "agent_debates",
+      "agent_disagreements",
+      "agent_escalations",
+      "agent_outputs",
+      "audit_logs",
+      "batch_jobs",
+      "entity_cache",
+      "event_attendance",
+      "events",
+      "ir_notes",
+      "login_attempts",
+      "rate_limit_events",
+      "tasks",
+      "touchpoints",
+      "user_sessions"
     ],
     "deprecated_tables": [
       "matches",
