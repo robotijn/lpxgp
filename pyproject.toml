@@ -3,47 +3,47 @@ name = "lpxgp"
 version = "0.1.0"
 description = "AI-powered platform helping GPs find and engage LPs"
 readme = "README.md"
-requires-python = ">=3.11,<3.13"
+requires-python = ">=3.12,<3.15"
 dependencies = [
-    # Core (M0) - pinned for reproducible builds
-    "fastapi==0.115.6",
-    "uvicorn[standard]==0.32.1",
-    "jinja2==3.1.4",
-    "pydantic>=2.10.3",
+    # Core - flexible versions for Python 3.14 compatibility
+    "fastapi>=0.115.6",
+    "uvicorn[standard]>=0.32.1",
+    "jinja2>=3.1.4",
+    "pydantic>=2.12.0",  # 2.12+ has Python 3.14 support via pydantic-core
     "pydantic-settings>=2.6.1",
     "supabase>=2.10.0",
     # httpx version managed by supabase
-    "python-multipart==0.0.17",  # File uploads
-    "orjson>=3.10.12",  # Fast JSON serialization
-    "email-validator==2.2.0",  # Email validation for Pydantic
+    "python-multipart>=0.0.17",  # File uploads
+    "orjson>=3.11.0",  # Fast JSON serialization (3.11+ has Python 3.14 wheels)
+    "email-validator>=2.2.0",  # Email validation for Pydantic
     # Semantic search (M2)
-    "voyageai==0.3.1",
+    "voyageai>=0.3.1",
     # Deck parsing (M3)
     "pymupdf>=1.25.1",
-    "pdfplumber==0.11.4",
-    "python-pptx==1.0.2",
+    "pdfplumber>=0.11.4",
+    "python-pptx>=1.0.2",
     # Pitch generation (M4)
     "weasyprint>=62.3",  # PDF export
     # Production (M5)
-    "sentry-sdk[fastapi]==2.19.2",
-    "slowapi==0.1.9",  # Rate limiting
-    "structlog==24.4.0",  # Structured logging with field redaction
+    "sentry-sdk[fastapi]>=2.19.2",
+    "slowapi>=0.1.9",  # Rate limiting
+    "structlog>=24.4.0",  # Structured logging with field redaction
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest==8.3.4",
-    "pytest-asyncio==0.24.0",
-    "pytest-playwright==0.5.2",  # E2E browser tests
-    "ruff==0.8.4",
+    "pytest>=8.3.4",
+    "pytest-asyncio>=0.24.0",
+    "pytest-playwright>=0.5.2",  # E2E browser tests
+    "ruff>=0.8.4",
     # Security scanning
-    "bandit==1.8.0",  # Python security linter
-    "pip-audit==2.7.3",  # Dependency vulnerability scanner
+    "bandit>=1.8.0",  # Python security linter
+    "pip-audit>=2.7.3",  # Dependency vulnerability scanner
 ]
 
 [tool.ruff]
 line-length = 100
-target-version = "py312"
+target-version = "py314"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP"]

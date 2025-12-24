@@ -50,7 +50,7 @@ Focus summary on: what changed, why, and what's next.
 
 | Layer | Technology |
 |-------|------------|
-| **Backend** | Python 3.11+ (uv), FastAPI |
+| **Backend** | Python 3.14 (uv), FastAPI |
 | **Frontend** | Jinja2 templates + HTMX + Tailwind CSS (CDN, no npm build) |
 | **Database** | Supabase Cloud (PostgreSQL + pgvector + Auth) |
 | **AI/LLM** | OpenRouter (Claude, free models, etc.) |
