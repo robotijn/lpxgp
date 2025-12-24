@@ -5,11 +5,15 @@
 
 ## F-GP-01: Fund Profile Creation [P0]
 
+> **Note:** These scenarios also cover F-UI-02 (Fund Profile Form) UI requirements.
+
 ```gherkin
 Feature: Fund Profile Creation
   As a GP
   I want to create detailed fund profiles
   So that the system can find matching LPs
+
+  # Covers: F-GP-01 (business logic), F-UI-02 (form UI)
 
   # Sub-feature: Basic Information
   Scenario: Enter fund basics

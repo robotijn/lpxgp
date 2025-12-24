@@ -72,13 +72,14 @@ Priority G: Human-in-the-Loop (Section 5.9)
 
 | Feature Area | File | Key Features |
 |--------------|------|--------------|
-| Authentication | [auth.md](auth.md) | F-AUTH-01 through F-AUTH-05 |
+| Authentication | [auth.md](auth.md) | F-AUTH-01 through F-AUTH-12 |
 | GP Profiles | [gp-profile.md](gp-profile.md) | F-GP-01 through F-GP-04 |
 | LP Database | [lp-database.md](lp-database.md) | F-LP-01 through F-LP-06 |
 | Matching Engine | [matching.md](matching.md) | F-MATCH-*, F-AGENT-*, F-DEBATE-* |
 | Pitch Generation | [pitch.md](pitch.md) | F-PITCH-01 through F-PITCH-05 |
 | User Interface | [ui.md](ui.md) | F-UI-01 through F-UI-05 |
 | Human-in-the-Loop | [hitl.md](hitl.md) | F-HITL-01 through F-HITL-05 |
+| IR & Analytics | [ir-analytics.md](ir-analytics.md) | F-IR-*, F-ER-*, F-BB-*, F-RI-*, F-AA-* |
 
 ---
 

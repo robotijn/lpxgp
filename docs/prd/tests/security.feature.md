@@ -370,9 +370,9 @@ Feature: Secure session handling
 
 ---
 
-## 9. Impersonation Security
+## 9. Impersonation Security (F-AUTH-06)
 
-### Feature: Admin Impersonation Controls
+### Feature: Admin Impersonation Controls [F-AUTH-06]
 
 ```gherkin
 Feature: Impersonation access control and audit
@@ -446,9 +446,9 @@ Feature: Impersonation access control and audit
 
 ---
 
-## 10. Role Management Security
+## 10. Role Management Security (F-AUTH-07)
 
-### Feature: Role Assignment Controls
+### Feature: Role Assignment Controls [F-AUTH-07]
 
 ```gherkin
 Feature: Role management security controls
@@ -503,9 +503,9 @@ Feature: Role management security controls
 
 ---
 
-## 11. Fund Admin Onboarding
+## 11. Fund Admin Onboarding (F-AUTH-08, F-AUTH-09)
 
-### Feature: GP Onboarding Security
+### Feature: GP Onboarding Security [F-AUTH-08]
 
 ```gherkin
 Feature: FA GP onboarding security controls
@@ -541,7 +541,7 @@ Feature: FA GP onboarding security controls
     And no partial data should exist
 ```
 
-### Feature: LP Onboarding Security
+### Feature: LP Onboarding Security [F-AUTH-09]
 
 ```gherkin
 Feature: FA LP onboarding security controls
@@ -570,9 +570,9 @@ Feature: FA LP onboarding security controls
 
 ---
 
-## 12. Fund Admin Dashboard
+## 12. Fund Admin Dashboard (F-AUTH-10)
 
-### Feature: FA Dashboard Access Control
+### Feature: FA Dashboard Access Control [F-AUTH-10]
 
 ```gherkin
 Feature: FA Dashboard security
@@ -611,9 +611,9 @@ Feature: FA Dashboard security
 
 ---
 
-## 13. Fund Admin Entity Management
+## 13. Fund Admin Entity Management (F-AUTH-11)
 
-### Feature: FA Entity CRUD Audit
+### Feature: FA Entity CRUD Audit [F-AUTH-11]
 
 ```gherkin
 Feature: FA entity management is audited
@@ -653,6 +653,65 @@ Feature: FA entity management is audited
     When I try to edit their role
     Then the role dropdown should show "admin" as disabled
     And a tooltip should say "Contact Super Admin to modify"
+```
+
+---
+
+## 14. Billing Management (F-AUTH-12)
+
+### Feature: Billing Access Control [F-AUTH-12]
+
+```gherkin
+Feature: Billing access control and security
+  As a security measure
+  Billing data should be properly scoped and payment info secured
+
+  Background:
+    Given organizations with billing configured
+    And payment methods stored securely
+
+  Scenario: GP can view own billing
+    Given I am logged in as admin for "Acme Capital"
+    When I navigate to settings/billing
+    Then I should see Acme Capital's subscription
+    And I should see Acme Capital's invoice history
+    And I should NOT see other org's billing
+
+  Scenario: LP can view own billing
+    Given I am logged in as admin for LP "CalPERS"
+    When I navigate to lp-settings billing tab
+    Then I should see CalPERS subscription
+    And I should see CalPERS invoice history
+
+  Scenario: Fund Admin can view all billing
+    Given I am logged in as a Fund Admin
+    When I navigate to /fa/billing
+    Then I should see billing for all organizations
+    And I can filter by org type
+
+  Scenario: Fund Admin can set up new billing
+    Given I am logged in as a Fund Admin
+    When I set up billing for a new organization
+    Then a subscription record should be created
+    And the setup should be logged
+
+  Scenario: Payment method last4 only exposed
+    Given org has payment method on file
+    When I view payment methods
+    Then I should only see last 4 digits
+    And I should NOT see full card number
+    And stripe_payment_method_id should NOT be exposed to frontend
+
+  Scenario: Invoice PDF download is scoped
+    Given invoice "INV-2025-0001" belongs to "Acme Capital"
+    When user from "Beta Ventures" tries to download it
+    Then they should get 403 Forbidden
+
+  Scenario: Member cannot access billing
+    Given I am logged in as a Member (not admin)
+    When I navigate to settings/billing
+    Then I should get 403 Forbidden
+    Or the billing tab should not be visible
 ```
 
 ---
