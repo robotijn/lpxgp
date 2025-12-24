@@ -44,6 +44,6 @@ This PRD is split into modular files for easier processing and maintenance.
 
 Located in `docs/architecture/`:
 - `agents-implementation.md` - LangGraph state machines, base classes
-- `agent-prompts.md` - Versioned prompts for all 12 agents
+- `agent-prompts.md` - Versioned prompts for all 42 agents (14 teams)
 - `batch-processing.md` - Scheduler, processor, cache
 - `monitoring-observability.md` - Langfuse integration

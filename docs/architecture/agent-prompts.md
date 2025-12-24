@@ -1,6 +1,6 @@
 # Agent Prompts (Versioned)
 
-Complete prompt templates for all 12 agents in the LPxGP debate system.
+Complete prompt templates for all 42 agents (14 debate teams) in the LPxGP debate system.
 Each prompt is versioned for tracking improvements over time.
 
 ---

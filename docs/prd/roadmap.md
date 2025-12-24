@@ -43,7 +43,7 @@
 
 ### M3: GP Profiles + Matching + Agent Architecture
 - Fund profile CRUD with deck upload
-- **Multi-agent debate system** (4 debate types, 12 agents)
+- **Multi-agent debate system** (14 debate teams, 42 agents)
 - LangGraph state machines + Langfuse monitoring
 - **Matching Architecture (Quality First):**
   - Initial match: async job queue (5 min to 24 hours)

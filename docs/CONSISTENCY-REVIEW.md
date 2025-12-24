@@ -43,7 +43,7 @@ What we build:
 ```
 
 **Reality per PRD Section 5.6.3:** M3 includes:
-- 4 multi-agent debate systems (12 agents total)
+- 14 debate teams with 42 agents total (Bull/Bear/Synthesizer pattern)
 - Constraint Interpretation (2 agents)
 - Research Enrichment (2 agents)
 - Match Scoring Bull/Bear (3 agents)
@@ -130,7 +130,7 @@ Browser → FastAPI → Supabase → OpenRouter (simple prompts)
 ```
 Browser → FastAPI → Supabase
                  ↓
-         LangGraph (12 agents, 4 debate types)
+         LangGraph (42 agents, 14 debate teams)
                  ↓
          OpenRouter (via LangChain)
                  ↓

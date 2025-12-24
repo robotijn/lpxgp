@@ -27,9 +27,8 @@ After M3, GPs have actionable intelligence on which LPs to pursue - the core pro
 - Fund profile CRUD (GP creates fund)
 - Deck upload + LLM extraction
 - **Full 42-agent system:**
-  - 11 Debate Teams (33 agents)
-  - 3 Manager Agents
-  - 6 Research Agents (Data Scout automation)
+  - 14 Debate Teams × 3 agents each (Bull/Bear/Synthesizer pattern)
+  - Categories: Constraint Interpretation (3), Research (3), Match Scoring (4), Content Generation (4)
 - Batch processing for top N matches
 - Match results UI with score breakdown
 
@@ -49,27 +48,29 @@ Cached Results (ready for GP to view)
 
 ---
 
-## 11 Debate Teams
+## 14 Debate Teams (42 Agents)
 
-1. Constraint Interpretation (Broad + Narrow + Synthesizer)
-2. Research Enrichment (Generator + Critic + Synthesizer)
-3. Match Scoring (Bull + Bear + Synthesizer)
-4. Pitch Generation (Generator + Critic + Synthesizer)
-5. Relationship Intelligence (Mapper + Critic + Synthesizer)
-6. Timing Analysis (Optimist + Skeptic + Synthesizer)
-7. Competitive Intelligence (Scout + Critic + Synthesizer)
-8. Objection Handling (Anticipator + Stress-Tester + Synthesizer)
-9. LP Persona (Builder + Validator + Synthesizer)
-10. Market Context (Analyst + Skeptic + Synthesizer)
-11. Prioritization (Ranker + Challenger + Synthesizer)
+**Constraint Interpretation (3 teams = 9 agents):**
+1. LP Mandate Interpretation (Broad Interpreter + Narrow Interpreter + Synthesizer)
+2. GP Strategy Interpretation (Thesis Expander + Thesis Refiner + Synthesizer)
+3. Regulatory Compliance (Permissive Interpreter + Conservative Interpreter + Synthesizer)
 
----
+**Research & Enrichment (3 teams = 9 agents):**
+4. LP Research (Research Generator + Research Critic + Quality Synthesizer)
+5. GP Research (Track Record Researcher + Validator + Synthesizer)
+6. Market Intelligence (Trend Analyzer + Trend Skeptic + Market Synthesizer)
 
-## 3 Manager Agents
+**Match Scoring (4 teams = 12 agents):**
+7. Strategy Alignment (Strategy Bull + Strategy Bear + Synthesizer)
+8. Timing Analysis (Timing Optimist + Timing Skeptic + Synthesizer)
+9. Relationship Potential (Relationship Builder + Barrier Finder + Synthesizer)
+10. Overall Match (Match Bull + Match Bear + Match Synthesizer)
 
-- Strategic Advisor - Synthesizes all 11 debate outputs
-- Outreach Orchestrator - Sequences approach strategy
-- Brief Compiler - Packages GP-ready deliverable
+**Content Generation (4 teams = 12 agents):**
+11. Email Pitch (Email Generator + Email Critic + Synthesizer)
+12. Executive Summary (Summary Generator + Summary Critic + Synthesizer)
+13. Meeting Prep (Prep Generator + Prep Critic + Synthesizer)
+14. Follow-up Content (Followup Generator + Followup Critic + Synthesizer)
 
 ---
 
@@ -95,7 +96,7 @@ Cached Results (ready for GP to view)
 - [ ] API: CRUD /api/v1/funds
 - [ ] API: Deck upload + LLM extraction
 - [ ] Fund onboarding wizard (deck -> confirm -> questionnaire)
-- [ ] LangGraph state machines for all 11 debates
+- [ ] LangGraph state machines for all 14 debate teams
 - [ ] Manager layer synthesis
 - [ ] Langfuse monitoring setup
 - [ ] Batch job queue for match generation

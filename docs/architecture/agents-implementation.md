@@ -6,7 +6,7 @@ This document specifies the implementation details for the LPxGP multi-agent deb
 
 | Document | Purpose |
 |----------|---------|
-| [agent-prompts.md](agent-prompts.md) | Complete versioned prompts for all 12 agents |
+| [agent-prompts.md](agent-prompts.md) | Complete versioned prompts for all 42 agents (14 teams) |
 | [batch-processing.md](batch-processing.md) | Scheduler, processor, and cache management |
 | [monitoring-observability.md](monitoring-observability.md) | Langfuse integration, evaluation, A/B testing |
 
@@ -1094,6 +1094,6 @@ OPENROUTER_API_KEY=<your-openrouter-key>
 
 ## Next Documents
 
-1. **`agent-prompts.md`** - Complete versioned prompts for all 12 agents
+1. **`agent-prompts.md`** - Complete versioned prompts for all 42 agents (14 teams)
 2. **`batch-processing.md`** - Scheduler, caching, invalidation
 3. **`evaluation.md`** - Testing agents, creating datasets, feedback loops

@@ -75,7 +75,7 @@ The multi-agent debate architecture is implemented using LangGraph for orchestra
 | Document | Location | Contents |
 |----------|----------|----------|
 | **Agent Implementation** | `docs/architecture/agents-implementation.md` | LangGraph state machines, base agent classes, project structure |
-| **Agent Prompts** | `docs/architecture/agent-prompts.md` | Complete versioned prompts for all 12 agents |
+| **Agent Prompts** | `docs/architecture/agent-prompts.md` | Complete versioned prompts for all 42 agents (14 teams) |
 | **Batch Processing** | `docs/architecture/batch-processing.md` | Scheduler, processor, cache management |
 | **Monitoring & Observability** | `docs/architecture/monitoring-observability.md` | Langfuse integration, evaluation, A/B testing |
 
