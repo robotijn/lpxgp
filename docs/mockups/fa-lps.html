@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>FA LPs - LPxGP</title> <script src="tailwind.js"></script> <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"> <script> tailwind.config = { theme: { extend: { colors: { navy: { 50: '#f8fafc', 100: '#f1f5f9', 200: '#e2e8f0', 300: '#cbd5e1', 400: '#94a3b8', 500: '#64748b', 600: '#475569', 700: '#334155', 800: '#1e293b', 900: '#0f172a' }, purple: { 50: '#faf5ff', 100: '#f3e8ff', 500: '#a855f7', 600: '#9333ea', 700: '#7c3aed' } }, fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] } } } } </script> <style>
+        html, body { margin: 0; padding: 0; width: 100%; min-height: 100%; background: #f8fafc; }
+        body { font-family: 'Inter', system-ui, sans-serif; }
+        .card { background: white; border: 1px solid #e2e8f0; border-radius: 0.75rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .btn-primary { background: linear-gradient(135deg, #7c3aed 0%, #9333ea 100%); color: white; padding: 0.625rem 1.25rem; border-radius: 0.5rem; font-weight: 500; font-size: 0.875rem; }
+        .btn-secondary { background: white; color: #334155; border: 1px solid #e2e8f0; padding: 0.625rem 1.25rem; border-radius: 0.5rem; }
+        .nav-active { color: #0f172a !important; border-bottom: 2px solid #7c3aed; }
+        .data-table { border-collapse: separate; border-spacing: 0; width: 100%; }
+        .data-table th { background: #f8fafc; font-weight: 600; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.05em; color: #64748b; padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid #e2e8f0; }
+        .data-table td { padding: 0.75rem 1rem; border-bottom: 1px solid #f1f5f9; }
+        .form-input { border: 1px solid #e2e8f0; border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; }
+    </style>
+</head>
+<body>
+<header class="bg-white border-b border-navy-200 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6">
+        <div class="flex justify-between items-center h-16">
+            <div class="flex items-center">
+                <a href="index.html" class="flex items-center mr-8">
+                    <img src="logo-primary.png" alt="LPxGP" class="h-8 w-auto">
+                    <span class="ml-2 px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 rounded">FA</span>
+                </a>
+                <nav class="hidden lg:flex items-center space-x-6">
+                    <a href="fa-dashboard.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">Dashboard</a>
+                    <a href="fa-gps.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">GPs</a>
+                    <a href="fa-lps.html" class="text-sm font-medium text-navy-900 nav-active pb-5 -mb-px">LPs</a>
+                    <a href="fa-people.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">People</a>
+                    <a href="fa-users.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">Users</a>
+                    <a href="fa-billing.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">Billing</a>
+                </nav>
+            </div>
+            <div class="flex items-center space-x-4">
+                <span class="hidden sm:block text-sm text-navy-600">Fund Admin</span>
+                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-purple-100 to-purple-200 flex items-center justify-center">
+                    <span class="text-sm font-semibold text-purple-700">FA</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+
+<main style="padding-bottom: 3rem;" class="max-w-7xl mx-auto px-4 lg:px-6 py-6 lg:py-8">
+    <div class="flex justify-between items-start mb-6">
+        <div>
+            <h1 class="text-xl lg:text-2xl font-semibold text-navy-900">LP Organizations</h1>
+            <p class="text-sm text-navy-500 mt-1">Manage all LP organizations in the database</p>
+        </div>
+        <a href="fa-onboard-lp.html" class="btn-primary flex items-center">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+            </svg>
+            Onboard LP
+        </a>
+    </div>
+
+    <div class="card p-4 mb-6">
+        <div class="flex flex-wrap gap-4">
+            <div class="flex-1 min-w-[200px]">
+                <input type="text" placeholder="Search LPs..." class="form-input w-full">
+            </div>
+            <select class="form-input">
+                <option value="">All Types</option>
+                <option>Pension</option>
+                <option>Endowment</option>
+                <option>Foundation</option>
+                <option>Family Office</option>
+            </select>
+            <select class="form-input">
+                <option value="">All Quality</option>
+                <option>90%+</option>
+                <option>70-90%</option>
+                <option>Below 70%</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="overflow-x-auto">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Type</th>
+                        <th>AUM</th>
+                        <th>Quality</th>
+                        <th>Contacts</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="text-sm font-medium text-navy-900">CalPERS</td>
+                        <td><span class="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">Pension</span></td>
+                        <td class="text-sm text-navy-600">$450B</td>
+                        <td>
+                            <div class="flex items-center">
+                                <div class="w-16 h-2 bg-gray-200 rounded-full mr-2">
+                                    <div class="w-[95%] h-2 bg-green-500 rounded-full"></div>
+                                </div>
+                                <span class="text-sm text-navy-600">95%</span>
+                            </div>
+                        </td>
+                        <td class="text-sm text-navy-600">12</td>
+                        <td class="text-sm">
+                            <button class="text-purple-600 hover:text-purple-800 mr-2">View</button>
+                            <button class="text-purple-600 hover:text-purple-800 mr-2">Edit</button>
+                            <button class="text-purple-600 hover:text-purple-800 mr-2">Impersonate</button>
+                            <button class="text-red-600 hover:text-red-800">Delete</button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="text-sm font-medium text-navy-900">Yale Endowment</td>
+                        <td><span class="px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 rounded-full">Endowment</span></td>
+                        <td class="text-sm text-navy-600">$41B</td>
+                        <td>
+                            <div class="flex items-center">
+                                <div class="w-16 h-2 bg-gray-200 rounded-full mr-2">
+                                    <div class="w-[88%] h-2 bg-green-500 rounded-full"></div>
+                                </div>
+                                <span class="text-sm text-navy-600">88%</span>
+                            </div>
+                        </td>
+                        <td class="text-sm text-navy-600">8</td>
+                        <td class="text-sm">
+                            <button class="text-purple-600 hover:text-purple-800 mr-2">View</button>
+                            <button class="text-purple-600 hover:text-purple-800 mr-2">Edit</button>
+                            <span class="text-navy-300" title="No users">Impersonate</span>
+                            <button class="text-red-600 hover:text-red-800 ml-2">Delete</button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="text-sm font-medium text-navy-900">Ford Foundation</td>
+                        <td><span class="px-2 py-1 text-xs font-medium bg-amber-100 text-amber-800 rounded-full">Foundation</span></td>
+                        <td class="text-sm text-navy-600">$16B</td>
+                        <td>
+                            <div class="flex items-center">
+                                <div class="w-16 h-2 bg-gray-200 rounded-full mr-2">
+                                    <div class="w-[72%] h-2 bg-yellow-500 rounded-full"></div>
+                                </div>
+                                <span class="text-sm text-navy-600">72%</span>
+                            </div>
+                        </td>
+                        <td class="text-sm text-navy-600">3</td>
+                        <td class="text-sm">
+                            <button class="text-purple-600 hover:text-purple-800 mr-2">View</button>
+                            <button class="text-purple-600 hover:text-purple-800 mr-2">Edit</button>
+                            <span class="text-navy-300" title="No users">Impersonate</span>
+                            <button class="text-red-600 hover:text-red-800 ml-2">Delete</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="px-6 py-4 border-t border-slate-100 flex justify-between items-center">
+            <span class="text-sm text-navy-500">Showing 1-3 of 5,200 LPs</span>
+            <div class="flex space-x-2">
+                <button class="btn-secondary py-2 px-3 text-sm">Previous</button>
+                <button class="btn-secondary py-2 px-3 text-sm">Next</button>
+            </div>
+        </div>
+    </div>
+</main>
+</body>
+</html>

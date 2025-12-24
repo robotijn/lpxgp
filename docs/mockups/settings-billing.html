@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>Billing Settings - LPxGP</title> <script src="tailwind.js"></script> <link rel="preconnect" href="https://fonts.googleapis.com"> <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin> <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"> <script> tailwind.config = { theme: { extend: { colors: { navy: { 50: '#f8fafc', 100: '#f1f5f9', 200: '#e2e8f0', 300: '#cbd5e1', 400: '#94a3b8', 500: '#64748b', 600: '#475569', 700: '#334155', 800: '#1e293b', 900: '#0f172a', 950: '#020617', }, gold: { 50: '#fffbeb', 100: '#fef3c7', 200: '#fde68a', 300: '#fcd34d', 400: '#fbbf24', 500: '#d4a84b', 600: '#b8860b', 700: '#92400e', DEFAULT: '#d4a84b', }, purple: { 50: '#faf5ff', 100: '#f3e8ff', 500: '#a855f7', 600: '#9333ea', 700: '#7c3aed', } }, fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }, } } } </script> <style>
+        html, body { margin: 0; padding: 0; width: 100%; min-height: 100%; background: #f8fafc; }
+        body { font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+        .card { background: white; border: 1px solid #e2e8f0; border-radius: 0.75rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .btn-primary { background: linear-gradient(135deg, #7c3aed 0%, #9333ea 100%); color: white; padding: 0.625rem 1.25rem; border-radius: 0.5rem; font-weight: 500; font-size: 0.875rem; }
+        .btn-secondary { background: white; color: #334155; border: 1px solid #e2e8f0; padding: 0.625rem 1.25rem; border-radius: 0.5rem; }
+        .nav-active { color: #0f172a !important; border-bottom: 2px solid #7c3aed; }
+        .data-table { border-collapse: separate; border-spacing: 0; width: 100%; }
+        .data-table th { background: #f8fafc; font-weight: 600; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.05em; color: #64748b; padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid #e2e8f0; }
+        .data-table td { padding: 0.75rem 1rem; border-bottom: 1px solid #f1f5f9; }
+        .form-input { border: 1px solid #e2e8f0; border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; }
+        .form-input:focus { outline: none; border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15); }
+        .settings-nav a { display: block; padding: 0.625rem 1rem; border-radius: 0.5rem; font-size: 0.875rem; color: #475569; }
+        .settings-nav a:hover { background: #f1f5f9; }
+        .settings-nav a.active { background: #f3e8ff; color: #7c3aed; font-weight: 500; }
+    </style>
+</head>
+<body>
+<!-- Header with Logo -->
+<header class="bg-white border-b border-navy-200 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6">
+        <div class="flex justify-between items-center h-16">
+            <div class="flex items-center">
+                <a href="index.html" class="flex items-center mr-8">
+                    <img src="logo-primary.png" alt="LPxGP" class="h-8 w-auto">
+                </a>
+                <nav class="hidden lg:flex items-center space-x-6">
+                    <a href="gp-dashboard.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">Dashboard</a>
+                    <a href="gp-funds.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">Funds</a>
+                    <a href="gp-lps.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">LP Database</a>
+                    <a href="gp-campaigns.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">Campaigns</a>
+                    <a href="gp-analytics.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">Analytics</a>
+                </nav>
+            </div>
+            <div class="flex items-center space-x-4">
+                <span class="hidden sm:block text-sm text-navy-600">Acme Capital</span>
+                <a href="settings-profile.html" class="w-8 h-8 rounded-full bg-gradient-to-br from-gold-100 to-gold-200 flex items-center justify-center">
+                    <span class="text-sm font-semibold text-gold-700">AC</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- Main Content -->
+<main style="padding-bottom: 3rem;" class="max-w-7xl mx-auto px-4 lg:px-6 py-6 lg:py-8">
+    <div class="flex flex-col lg:flex-row gap-8">
+        <!-- Sidebar Navigation -->
+        <div class="lg:w-56 flex-shrink-0">
+            <nav class="settings-nav space-y-1">
+                <a href="settings-profile.html">Profile</a>
+                <a href="settings-team.html">Team</a>
+                <a href="settings-billing.html" class="active">Billing</a>
+                <a href="#">Notifications</a>
+                <a href="#">Integrations</a>
+                <a href="#">Security</a>
+            </nav>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1">
+            <div class="mb-6">
+                <h1 class="text-xl lg:text-2xl font-semibold text-navy-900">Billing & Subscription</h1>
+                <p class="text-sm text-navy-500 mt-1">Manage your subscription, payment methods, and invoices</p>
+            </div>
+
+            <!-- Current Plan -->
+            <div class="card p-6 mb-6">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <h2 class="text-lg font-semibold text-navy-900">Current Plan</h2>
+                        <div class="mt-4 flex items-baseline">
+                            <span class="text-3xl font-bold text-navy-900">Professional</span>
+                            <span class="ml-3 text-lg text-navy-500">$299/month</span>
+                        </div>
+                        <p class="mt-2 text-sm text-navy-500">Includes unlimited funds, LP database access, and AI-powered matching</p>
+                        <div class="mt-4 flex items-center text-sm text-navy-500">
+                            <svg class="w-4 h-4 mr-1.5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            Renews automatically on January 15, 2025
+                        </div>
+                    </div>
+                    <div class="flex flex-col space-y-2">
+                        <button class="btn-primary text-sm">Upgrade Plan</button>
+                        <button class="btn-secondary text-sm">Compare Plans</button>
+                    </div>
+                </div>
+
+                <!-- Usage Summary -->
+                <div class="mt-6 pt-6 border-t border-navy-100">
+                    <h3 class="text-sm font-medium text-navy-700 mb-4">Usage This Month</h3>
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div>
+                            <div class="text-sm text-navy-500">Active Funds</div>
+                            <div class="text-xl font-semibold text-navy-900">3 <span class="text-sm font-normal text-navy-400">/ unlimited</span></div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-navy-500">Team Members</div>
+                            <div class="text-xl font-semibold text-navy-900">5 <span class="text-sm font-normal text-navy-400">/ 10</span></div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-navy-500">AI Credits Used</div>
+                            <div class="text-xl font-semibold text-navy-900">847 <span class="text-sm font-normal text-navy-400">/ 2,000</span></div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-navy-500">LP Exports</div>
+                            <div class="text-xl font-semibold text-navy-900">12 <span class="text-sm font-normal text-navy-400">/ 100</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment Method -->
+            <div class="card p-6 mb-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-semibold text-navy-900">Payment Method</h2>
+                    <button class="text-purple-600 hover:text-purple-800 text-sm font-medium">Update</button>
+                </div>
+                <div class="flex items-center">
+                    <div class="w-12 h-8 bg-navy-800 rounded flex items-center justify-center mr-4">
+                        <span class="text-white text-xs font-bold">VISA</span>
+                    </div>
+                    <div>
+                        <div class="text-sm font-medium text-navy-900">Visa ending in 4242</div>
+                        <div class="text-sm text-navy-500">Expires 12/2026</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Billing Contact -->
+            <div class="card p-6 mb-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-semibold text-navy-900">Billing Contact</h2>
+                    <button class="text-purple-600 hover:text-purple-800 text-sm font-medium">Edit</button>
+                </div>
+                <div class="text-sm">
+                    <div class="font-medium text-navy-900">Jane Doe</div>
+                    <div class="text-navy-500">billing@acme.vc</div>
+                </div>
+            </div>
+
+            <!-- Invoice History -->
+            <div class="card">
+                <div class="px-6 py-4 border-b border-navy-100">
+                    <h2 class="text-lg font-semibold text-navy-900">Invoice History</h2>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Invoice</th>
+                                <th>Date</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="text-sm font-medium text-navy-900">INV-2024-0012</td>
+                                <td class="text-sm text-navy-600">Dec 15, 2024</td>
+                                <td class="text-sm text-navy-900 font-medium">$299.00</td>
+                                <td><span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">Paid</span></td>
+                                <td>
+                                    <button class="text-purple-600 hover:text-purple-800 text-sm font-medium flex items-center">
+                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                        </svg>
+                                        Download PDF
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="text-sm font-medium text-navy-900">INV-2024-0011</td>
+                                <td class="text-sm text-navy-600">Nov 15, 2024</td>
+                                <td class="text-sm text-navy-900 font-medium">$299.00</td>
+                                <td><span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">Paid</span></td>
+                                <td>
+                                    <button class="text-purple-600 hover:text-purple-800 text-sm font-medium flex items-center">
+                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                        </svg>
+                                        Download PDF
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="text-sm font-medium text-navy-900">INV-2024-0010</td>
+                                <td class="text-sm text-navy-600">Oct 15, 2024</td>
+                                <td class="text-sm text-navy-900 font-medium">$299.00</td>
+                                <td><span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">Paid</span></td>
+                                <td>
+                                    <button class="text-purple-600 hover:text-purple-800 text-sm font-medium flex items-center">
+                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                        </svg>
+                                        Download PDF
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="px-6 py-4 border-t border-navy-100 text-center">
+                    <button class="text-purple-600 hover:text-purple-800 text-sm font-medium">View All Invoices</button>
+                </div>
+            </div>
+
+            <!-- Cancel Subscription -->
+            <div class="mt-6 p-4 border border-red-200 rounded-lg bg-red-50">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-sm font-medium text-red-800">Cancel Subscription</h3>
+                        <p class="text-sm text-red-600 mt-1">Your access will continue until the end of your billing period.</p>
+                    </div>
+                    <button class="text-red-600 hover:text-red-800 text-sm font-medium border border-red-300 px-3 py-1.5 rounded-md hover:bg-red-100">
+                        Cancel Plan
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+</body>
+</html>

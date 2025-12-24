@@ -681,6 +681,266 @@ async def generate_pitch():
 
 ---
 
+## Impersonation Architecture
+
+Fund Admins and Super Admins can impersonate other users for support and debugging purposes.
+
+### Impersonation Flow
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         IMPERSONATION FLOW                                   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  1. START IMPERSONATION                                                      │
+│                                                                              │
+│  ┌──────────────┐     ┌──────────────┐     ┌──────────────┐                │
+│  │ FA/SA clicks │────▶│ Validate     │────▶│ Create       │                │
+│  │ "Impersonate"│     │ permissions  │     │ session log  │                │
+│  └──────────────┘     └──────┬───────┘     └──────┬───────┘                │
+│                              │                     │                         │
+│                    ┌─────────┴─────────┐          │                         │
+│                    │ FA: target is GP/LP│          │                         │
+│                    │ SA: any non-SA user│          │                         │
+│                    └───────────────────┘          │                         │
+│                                                   ▼                         │
+│                                           ┌──────────────┐                  │
+│                                           │ Set session  │                  │
+│                                           │ cookies:     │                  │
+│                                           │ - admin_id   │                  │
+│                                           │ - target_id  │                  │
+│                                           │ - read_only  │                  │
+│                                           └──────────────┘                  │
+│                                                                              │
+│  2. DURING IMPERSONATION                                                     │
+│                                                                              │
+│  ┌──────────────┐     ┌──────────────┐     ┌──────────────┐                │
+│  │ Request with │────▶│ Check        │────▶│ Apply        │                │
+│  │ impersonation│     │ read_only    │     │ target's RLS │                │
+│  │ cookies      │     │ flag         │     │ context      │                │
+│  └──────────────┘     └──────┬───────┘     └──────────────┘                │
+│                              │                                               │
+│                    ┌─────────┴─────────┐                                    │
+│                    │ FA: always block  │                                    │
+│                    │     write ops     │                                    │
+│                    │ SA: check flag    │                                    │
+│                    └───────────────────┘                                    │
+│                                                                              │
+│  3. END IMPERSONATION                                                        │
+│                                                                              │
+│  ┌──────────────┐     ┌──────────────┐     ┌──────────────┐                │
+│  │ Click "End   │────▶│ Log session  │────▶│ Clear        │                │
+│  │ Session"     │     │ end time     │     │ cookies      │                │
+│  └──────────────┘     └──────────────┘     └──────────────┘                │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Impersonation Session State
+
+```python
+# Impersonation context stored in session
+{
+    "admin_user_id": "admin-uuid",     # Who is impersonating
+    "target_user_id": "target-uuid",   # Who is being viewed as
+    "started_at": "2025-01-15T10:00:00Z",
+    "read_only": True,                  # FA always True, SA configurable
+    "reason": "Support ticket #12345"   # Optional
+}
+```
+
+### Middleware Implementation
+
+```python
+async def impersonation_middleware(request: Request, call_next):
+    # Check for impersonation cookies
+    admin_id = request.cookies.get("impersonate_admin_id")
+    target_id = request.cookies.get("impersonate_target_id")
+
+    if admin_id and target_id:
+        # Validate admin still has permission
+        admin = get_user(admin_id)
+        if not admin.role in ("fund_admin", "super_admin"):
+            clear_impersonation_cookies(response)
+            raise HTTPException(403, "Impersonation session invalid")
+
+        # Set context for RLS
+        request.state.effective_user_id = target_id
+        request.state.actual_user_id = admin_id
+        request.state.is_impersonating = True
+        request.state.read_only = request.cookies.get("impersonate_read_only") == "true"
+
+        # Block writes for FA or read-only mode
+        if request.method in ("POST", "PUT", "PATCH", "DELETE"):
+            if admin.role == "fund_admin" or request.state.read_only:
+                raise HTTPException(403, "Write operations not permitted during impersonation")
+
+    return await call_next(request)
+```
+
+---
+
+## Billing Integration
+
+LPxGP integrates with Stripe for subscription management and payment processing.
+
+### Billing Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         BILLING ARCHITECTURE                                 │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │                          LPxGP Application                            │  │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  │  │
+│  │  │ FA Billing  │  │ GP Billing  │  │ LP Billing  │  │ Webhook     │  │  │
+│  │  │ (all orgs)  │  │ (self-serv) │  │ (self-serv) │  │ Handler     │  │  │
+│  │  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘  │  │
+│  │         │                │                │                │         │  │
+│  │         └────────────────┴────────────────┴────────────────┘         │  │
+│  │                                  │                                    │  │
+│  └──────────────────────────────────┼────────────────────────────────────┘  │
+│                                     │                                        │
+│                                     ▼                                        │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │                         Supabase Database                             │  │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐                   │  │
+│  │  │subscriptions│  │ invoices    │  │ payment_    │                   │  │
+│  │  │             │  │             │  │ methods     │                   │  │
+│  │  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘                   │  │
+│  │         │                │                │                           │  │
+│  └─────────┴────────────────┴────────────────┴───────────────────────────┘  │
+│                                     │                                        │
+│                                     ▼                                        │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │                         Stripe                                        │  │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  │  │
+│  │  │ Customers   │  │Subscriptions│  │ Invoices    │  │ Payment     │  │  │
+│  │  │             │  │             │  │             │  │ Methods     │  │  │
+│  │  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘  │  │
+│  │                                                                       │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Subscription Plans
+
+| Plan | Price | Features |
+|------|-------|----------|
+| Free | $0 | Limited LP search, no matches |
+| Starter | $99/mo | 1 fund, 50 matches, basic pitch |
+| Professional | $299/mo | 3 funds, unlimited matches, full pitch |
+| Enterprise | $499/mo | Unlimited funds, priority support, API access |
+
+### Webhook Events
+
+```python
+# Stripe webhook handler
+@app.post("/webhooks/stripe")
+async def stripe_webhook(request: Request):
+    payload = await request.body()
+    sig = request.headers.get("stripe-signature")
+
+    event = stripe.Webhook.construct_event(payload, sig, WEBHOOK_SECRET)
+
+    if event.type == "invoice.paid":
+        # Update invoice status in DB
+        await mark_invoice_paid(event.data.object.id)
+
+    elif event.type == "invoice.payment_failed":
+        # Mark subscription as past_due
+        await mark_subscription_past_due(event.data.object.subscription)
+
+    elif event.type == "customer.subscription.updated":
+        # Sync subscription changes
+        await sync_subscription(event.data.object)
+
+    elif event.type == "customer.subscription.deleted":
+        # Handle cancellation
+        await handle_cancellation(event.data.object.id)
+
+    return {"status": "ok"}
+```
+
+### Invoice PDF Generation
+
+```python
+# Generate invoice PDF for download
+@app.get("/api/v1/invoices/{invoice_id}/pdf")
+async def download_invoice_pdf(invoice_id: str, user: User = Depends(get_current_user)):
+    # Verify user has access to this invoice
+    invoice = await get_invoice(invoice_id)
+    if invoice.org_id != user.org_id and not is_privileged_user(user):
+        raise HTTPException(403, "Access denied")
+
+    # Fetch from Stripe or return cached
+    if invoice.pdf_url:
+        return RedirectResponse(invoice.pdf_url)
+
+    # Generate PDF from Stripe
+    stripe_invoice = stripe.Invoice.retrieve(invoice.stripe_invoice_id)
+    return RedirectResponse(stripe_invoice.invoice_pdf)
+```
+
+---
+
+## FA API Endpoints
+
+```
+/api/v1/fa (Fund Admin only)
+├── /dashboard
+│   └── GET    /stats              # Platform overview stats
+│
+├── /gps
+│   ├── GET    /                   # List all GP organizations
+│   ├── POST   /                   # Create GP (onboard)
+│   ├── GET    /{id}               # Get GP details
+│   ├── PATCH  /{id}               # Update GP
+│   └── DELETE /{id}               # Delete GP
+│
+├── /lps
+│   ├── GET    /                   # List all LP organizations
+│   ├── POST   /                   # Create LP (onboard)
+│   ├── GET    /{id}               # Get LP details
+│   ├── PATCH  /{id}               # Update LP
+│   └── DELETE /{id}               # Delete LP
+│
+├── /people
+│   ├── GET    /                   # List all people
+│   ├── POST   /                   # Create person
+│   ├── GET    /{id}               # Get person details
+│   ├── PATCH  /{id}               # Update person
+│   ├── DELETE /{id}               # Delete person
+│   └── POST   /merge              # Merge duplicate people
+│
+├── /users
+│   ├── GET    /                   # List all users
+│   ├── POST   /                   # Create user directly
+│   ├── GET    /{id}               # Get user details
+│   ├── PATCH  /{id}               # Update user (role: viewer/member only)
+│   └── POST   /{id}/deactivate    # Deactivate user
+│
+├── /billing
+│   ├── GET    /                   # List all org subscriptions
+│   ├── GET    /{org_id}           # Get org billing details
+│   ├── PATCH  /{org_id}           # Update org plan
+│   └── GET    /{org_id}/invoices  # List org invoices
+│
+├── /recommendations
+│   ├── GET    /                   # List all recommendations
+│   ├── POST   /                   # Add manual recommendation
+│   ├── PATCH  /{id}               # Update recommendation
+│   └── DELETE /{id}               # Remove recommendation
+│
+└── /impersonate
+    ├── POST   /start              # Start impersonation session
+    └── POST   /end                # End impersonation session
+```
+
+---
+
 ## Related Documents
 
 - [Agents Architecture](agents.md) - Multi-agent debate system

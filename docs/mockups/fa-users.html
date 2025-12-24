@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>FA Users - LPxGP</title> <script src="tailwind.js"></script> <link rel="preconnect" href="https://fonts.googleapis.com"> <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin> <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"> <script> tailwind.config = { theme: { extend: { colors: { navy: { 50: '#f8fafc', 100: '#f1f5f9', 200: '#e2e8f0', 300: '#cbd5e1', 400: '#94a3b8', 500: '#64748b', 600: '#475569', 700: '#334155', 800: '#1e293b', 900: '#0f172a', 950: '#020617', }, gold: { 50: '#fffbeb', 100: '#fef3c7', 200: '#fde68a', 300: '#fcd34d', 400: '#fbbf24', 500: '#d4a84b', 600: '#b8860b', 700: '#92400e', DEFAULT: '#d4a84b', }, purple: { 50: '#faf5ff', 100: '#f3e8ff', 500: '#a855f7', 600: '#9333ea', 700: '#7c3aed', } }, fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }, } } } </script> <style>
+        html, body { margin: 0; padding: 0; width: 100%; min-height: 100%; background: #f8fafc; }
+        body { font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+        .card { background: white; border: 1px solid #e2e8f0; border-radius: 0.75rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .btn-primary { background: linear-gradient(135deg, #7c3aed 0%, #9333ea 100%); color: white; padding: 0.625rem 1.25rem; border-radius: 0.5rem; font-weight: 500; font-size: 0.875rem; }
+        .btn-secondary { background: white; color: #334155; border: 1px solid #e2e8f0; padding: 0.625rem 1.25rem; border-radius: 0.5rem; }
+        .nav-active { color: #0f172a !important; border-bottom: 2px solid #7c3aed; }
+        .data-table { border-collapse: separate; border-spacing: 0; width: 100%; }
+        .data-table th { background: #f8fafc; font-weight: 600; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.05em; color: #64748b; padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid #e2e8f0; }
+        .data-table td { padding: 0.75rem 1rem; border-bottom: 1px solid #f1f5f9; }
+        .form-input { border: 1px solid #e2e8f0; border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; }
+        .form-input:focus { outline: none; border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15); }
+        .dropdown-disabled { background: #f1f5f9; color: #94a3b8; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+<!-- Header with Logo -->
+<header class="bg-white border-b border-navy-200 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6">
+        <div class="flex justify-between items-center h-16">
+            <div class="flex items-center">
+                <a href="index.html" class="flex items-center mr-8">
+                    <img src="logo-primary.png" alt="LPxGP" class="h-8 w-auto">
+                    <span class="ml-2 px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 rounded">FA</span>
+                </a>
+                <nav class="hidden lg:flex items-center space-x-6">
+                    <a href="fa-dashboard.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">Dashboard</a>
+                    <a href="fa-gps.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">GPs</a>
+                    <a href="fa-lps.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">LPs</a>
+                    <a href="fa-people.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">People</a>
+                    <a href="fa-users.html" class="text-sm font-medium text-navy-900 nav-active pb-5 -mb-px">Users</a>
+                    <a href="fa-billing.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">Billing</a>
+                </nav>
+            </div>
+            <div class="flex items-center space-x-4">
+                <span class="hidden sm:block text-sm text-navy-600">Fund Admin</span>
+                <a href="settings-profile.html" class="w-8 h-8 rounded-full bg-gradient-to-br from-purple-100 to-purple-200 flex items-center justify-center">
+                    <span class="text-sm font-semibold text-purple-700">FA</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- Main Content -->
+<main style="padding-bottom: 3rem;" class="max-w-7xl mx-auto px-4 lg:px-6 py-6 lg:py-8">
+    <!-- Page Header -->
+    <div class="flex justify-between items-start mb-6">
+        <div>
+            <h1 class="text-xl lg:text-2xl font-semibold text-navy-900">Users</h1>
+            <p class="text-sm text-navy-500 mt-1">Manage all platform users</p>
+        </div>
+        <button class="btn-primary flex items-center">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+            </svg>
+            Add User
+        </button>
+    </div>
+
+    <!-- Filters -->
+    <div class="card p-4 mb-6">
+        <div class="flex flex-wrap gap-4">
+            <div class="flex-1 min-w-[200px]">
+                <input type="text" placeholder="Search by name or email..." class="form-input w-full">
+            </div>
+            <select class="form-input">
+                <option value="">All Organizations</option>
+                <option>Acme Capital</option>
+                <option>Beta Ventures</option>
+                <option>Summit Partners</option>
+            </select>
+            <select class="form-input">
+                <option value="">All Roles</option>
+                <option>Viewer</option>
+                <option>Member</option>
+                <option>Admin</option>
+                <option>Fund Admin</option>
+            </select>
+            <select class="form-input">
+                <option value="">All Status</option>
+                <option>Active</option>
+                <option>Pending</option>
+                <option>Deactivated</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- FA Role Restriction Notice -->
+    <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+        <div class="flex items-start">
+            <svg class="w-5 h-5 text-amber-600 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+            </svg>
+            <div>
+                <p class="text-sm font-medium text-amber-800">Role Assignment Restrictions</p>
+                <p class="text-sm text-amber-700 mt-1">As Fund Admin, you can only assign <strong>Viewer</strong> or <strong>Member</strong> roles. To assign Admin or Fund Admin roles, contact a Super Admin.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Users Table -->
+    <div class="card">
+        <div class="overflow-x-auto">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Organization</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th>Last Active</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <div class="flex items-center">
+                                <div class="w-8 h-8 rounded-full bg-navy-100 flex items-center justify-center mr-3">
+                                    <span class="text-xs font-medium text-navy-600">JP</span>
+                                </div>
+                                <span class="text-sm font-medium text-navy-900">John Partner</span>
+                            </div>
+                        </td>
+                        <td class="text-sm text-navy-600">john@acme.vc</td>
+                        <td class="text-sm text-navy-600">Acme Capital</td>
+                        <td>
+                            <span class="px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full flex items-center w-fit">
+                                <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path>
+                                </svg>
+                                Admin
+                            </span>
+                        </td>
+                        <td><span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">Active</span></td>
+                        <td class="text-sm text-navy-400">2 hours ago</td>
+                        <td class="text-sm">
+                            <button class="text-purple-600 hover:text-purple-800 mr-3">View</button>
+                            <button class="text-purple-600 hover:text-purple-800 mr-3" title="Contact Super Admin to modify Admin roles">Impersonate</button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div class="flex items-center">
+                                <div class="w-8 h-8 rounded-full bg-navy-100 flex items-center justify-center mr-3">
+                                    <span class="text-xs font-medium text-navy-600">JA</span>
+                                </div>
+                                <span class="text-sm font-medium text-navy-900">Jane Analyst</span>
+                            </div>
+                        </td>
+                        <td class="text-sm text-navy-600">jane@acme.vc</td>
+                        <td class="text-sm text-navy-600">Acme Capital</td>
+                        <td>
+                            <select class="form-input py-1 text-xs">
+                                <option>Viewer</option>
+                                <option selected>Member</option>
+                                <option disabled class="text-navy-300">Admin (Super Admin only)</option>
+                                <option disabled class="text-navy-300">Fund Admin (Super Admin only)</option>
+                            </select>
+                        </td>
+                        <td><span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">Active</span></td>
+                        <td class="text-sm text-navy-400">Yesterday</td>
+                        <td class="text-sm">
+                            <button class="text-purple-600 hover:text-purple-800 mr-3">View</button>
+                            <button class="text-purple-600 hover:text-purple-800 mr-3">Impersonate</button>
+                            <button class="text-red-600 hover:text-red-800">Deactivate</button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div class="flex items-center">
+                                <div class="w-8 h-8 rounded-full bg-navy-100 flex items-center justify-center mr-3">
+                                    <span class="text-xs font-medium text-navy-600">BV</span>
+                                </div>
+                                <span class="text-sm font-medium text-navy-900">Bob Viewer</span>
+                            </div>
+                        </td>
+                        <td class="text-sm text-navy-600">bob@beta.com</td>
+                        <td class="text-sm text-navy-600">Beta Ventures</td>
+                        <td>
+                            <select class="form-input py-1 text-xs">
+                                <option selected>Viewer</option>
+                                <option>Member</option>
+                                <option disabled class="text-navy-300">Admin (Super Admin only)</option>
+                                <option disabled class="text-navy-300">Fund Admin (Super Admin only)</option>
+                            </select>
+                        </td>
+                        <td><span class="px-2 py-1 text-xs font-medium bg-amber-100 text-amber-800 rounded-full">Pending</span></td>
+                        <td class="text-sm text-navy-400">Never</td>
+                        <td class="text-sm">
+                            <button class="text-purple-600 hover:text-purple-800 mr-3">View</button>
+                            <button class="text-red-600 hover:text-red-800">Deactivate</button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div class="flex items-center">
+                                <div class="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center mr-3">
+                                    <span class="text-xs font-medium text-purple-600">MF</span>
+                                </div>
+                                <span class="text-sm font-medium text-navy-900">Mary FundAdmin</span>
+                            </div>
+                        </td>
+                        <td class="text-sm text-navy-600">mary@lpxgp.com</td>
+                        <td class="text-sm text-navy-600">LPxGP</td>
+                        <td>
+                            <span class="px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 rounded-full flex items-center w-fit">
+                                <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path>
+                                </svg>
+                                Fund Admin
+                            </span>
+                        </td>
+                        <td><span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">Active</span></td>
+                        <td class="text-sm text-navy-400">5 mins ago</td>
+                        <td class="text-sm">
+                            <button class="text-purple-600 hover:text-purple-800 mr-3">View</button>
+                            <span class="text-navy-300 cursor-not-allowed" title="Cannot impersonate Fund Admin">Impersonate</span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="px-6 py-4 border-t border-slate-100 flex justify-between items-center">
+            <span class="text-sm text-navy-500">Showing 1-4 of 180 users</span>
+            <div class="flex space-x-2">
+                <button class="btn-secondary py-2 px-3 text-sm">Previous</button>
+                <button class="btn-secondary py-2 px-3 text-sm">Next</button>
+            </div>
+        </div>
+    </div>
+</main>
+</body>
+</html>

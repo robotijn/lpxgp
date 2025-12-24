@@ -370,6 +370,293 @@ Feature: Secure session handling
 
 ---
 
+## 9. Impersonation Security
+
+### Feature: Admin Impersonation Controls
+
+```gherkin
+Feature: Impersonation access control and audit
+  As a security measure
+  Impersonation should be restricted and logged
+  To prevent unauthorized access and enable audit
+
+  Background:
+    Given a Super Admin "super@lpxgp.com"
+    And a Fund Admin "fa@lpxgp.com"
+    And GP user "gp@acme.vc"
+    And LP user "lp@calpers.gov"
+    And Super Admin "other-super@lpxgp.com"
+
+  Scenario: Fund Admin can impersonate GP user (view-only)
+    Given I am logged in as "fa@lpxgp.com"
+    When I click "Impersonate" on user "gp@acme.vc"
+    Then I should see their dashboard as they see it
+    And I should see an impersonation banner
+    And write operations should be blocked
+
+  Scenario: Fund Admin can impersonate LP user (view-only)
+    Given I am logged in as "fa@lpxgp.com"
+    When I click "Impersonate" on user "lp@calpers.gov"
+    Then I should see their dashboard as they see it
+    And write operations should be blocked
+
+  Scenario: Fund Admin cannot impersonate Super Admin
+    Given I am logged in as "fa@lpxgp.com"
+    When I try to impersonate "super@lpxgp.com"
+    Then the operation should be blocked
+    With error "Cannot impersonate Super Admin"
+
+  Scenario: Fund Admin cannot impersonate other Fund Admin
+    Given I am logged in as "fa@lpxgp.com"
+    And user "other-fa@lpxgp.com" is a Fund Admin
+    When I try to impersonate "other-fa@lpxgp.com"
+    Then the operation should be blocked
+
+  Scenario: Super Admin can impersonate any non-SA user
+    Given I am logged in as "super@lpxgp.com"
+    When I click "Impersonate" on user "fa@lpxgp.com"
+    Then I should see their dashboard
+
+  Scenario: Super Admin cannot impersonate other Super Admin
+    Given I am logged in as "super@lpxgp.com"
+    When I try to impersonate "other-super@lpxgp.com"
+    Then the operation should be blocked
+
+  Scenario: Impersonation session is logged
+    Given I am logged in as "fa@lpxgp.com"
+    When I impersonate "gp@acme.vc"
+    Then an impersonation_logs entry should be created
+    With my user ID as admin_user_id
+    And the target user ID as target_user_id
+    And started_at set to now
+
+  Scenario: End impersonation updates log
+    Given I am impersonating "gp@acme.vc"
+    When I click "End Session"
+    Then the impersonation_logs entry should have ended_at set
+    And I should return to my admin view
+
+  Scenario: Actions during impersonation are tagged
+    Given I am impersonating "gp@acme.vc" with write mode (SA only)
+    When I create a touchpoint
+    Then the audit log should show both user IDs
+    With actual_user_id = my Super Admin ID
+    And effective_user_id = the GP user ID
+```
+
+---
+
+## 10. Role Management Security
+
+### Feature: Role Assignment Controls
+
+```gherkin
+Feature: Role management security controls
+  As a security measure
+  Role changes should be restricted and audited
+  To prevent privilege escalation
+
+  Background:
+    Given a Super Admin "super@lpxgp.com"
+    And a Fund Admin "fa@lpxgp.com"
+    And an Org Admin "admin@acme.vc"
+
+  Scenario: Super Admin can assign any role
+    Given I am logged in as "super@lpxgp.com"
+    When I change user "member@acme.vc" role to "admin"
+    Then the role should be updated
+    And a role_change_audit entry should be created
+
+  Scenario: Super Admin can promote to Fund Admin
+    Given I am logged in as "super@lpxgp.com"
+    When I change user "admin@acme.vc" role to "fund_admin"
+    Then the role should be updated
+
+  Scenario: Fund Admin can only assign Viewer or Member
+    Given I am logged in as "fa@lpxgp.com"
+    When I try to change user role to "admin"
+    Then the operation should be blocked
+    With error "FA cannot assign Admin role"
+
+  Scenario: Fund Admin cannot assign Fund Admin role
+    Given I am logged in as "fa@lpxgp.com"
+    When I try to change user role to "fund_admin"
+    Then the operation should be blocked
+
+  Scenario: Fund Admin cannot demote existing Admin
+    Given I am logged in as "fa@lpxgp.com"
+    And user "admin@acme.vc" has role "admin"
+    When I try to change their role to "member"
+    Then the operation should be blocked
+
+  Scenario: Cannot remove last admin from org
+    Given org "acme" has only one admin "admin@acme.vc"
+    When Super Admin tries to change their role to "member"
+    Then the operation should be blocked
+    With error "Cannot remove last admin from organization"
+
+  Scenario: Role change is audited
+    Given any role change occurs
+    Then a role_change_audit entry should exist
+    With changed_by, old_role, new_role, timestamp
+```
+
+---
+
+## 11. Fund Admin Onboarding
+
+### Feature: GP Onboarding Security
+
+```gherkin
+Feature: FA GP onboarding security controls
+  As a security measure
+  GP onboarding should validate inputs and prevent duplicates
+
+  Background:
+    Given I am logged in as a Fund Admin
+
+  Scenario: Duplicate GP name + location is rejected
+    Given GP "Acme Capital" in "New York" already exists
+    When I try to onboard GP "Acme Capital" in "New York"
+    Then I should see a duplicate warning
+    And be offered to link to existing instead
+
+  Scenario: GP onboarding via invite method
+    When I onboard GP with "Invite Admin" method
+    And enter email "admin@newgp.com"
+    Then an organization should be created
+    And an invitation should be sent
+    And the org should have onboarded_by = my user ID
+
+  Scenario: GP onboarding via direct creation
+    When I onboard GP with "Create User Directly" method
+    And set temporary password
+    Then the user must change password on first login
+    And the user should be marked as "needs_password_change"
+
+  Scenario: Onboarding is atomic
+    Given I am onboarding a GP with direct user creation
+    When the user creation fails
+    Then the organization should also be rolled back
+    And no partial data should exist
+```
+
+### Feature: LP Onboarding Security
+
+```gherkin
+Feature: FA LP onboarding security controls
+  As a security measure
+  LP onboarding should validate inputs and track provenance
+
+  Background:
+    Given I am logged in as a Fund Admin
+
+  Scenario: LP database-only onboarding
+    When I onboard LP with "Database Only" method
+    Then the LP should be visible in GP searches
+    And no user account should be created
+
+  Scenario: LP onboarding with portal access
+    When I onboard LP with "Invite Admin" method
+    Then the LP should get portal access
+    And they can manage their own profile
+
+  Scenario: Duplicate LP detection
+    Given LP "CalPERS" with type "Pension" exists
+    When I try to onboard LP "California PERS"
+    Then I should see fuzzy match warning
+    With existing LP suggestions
+```
+
+---
+
+## 12. Fund Admin Dashboard
+
+### Feature: FA Dashboard Access Control
+
+```gherkin
+Feature: FA Dashboard security
+  As a security measure
+  FA Dashboard should only be accessible to FA and SA
+
+  Background:
+    Given FA Dashboard at /fa/dashboard
+
+  Scenario: Fund Admin can access FA Dashboard
+    Given I am logged in as a Fund Admin
+    When I navigate to /fa/dashboard
+    Then I should see the dashboard
+
+  Scenario: Super Admin can access FA Dashboard
+    Given I am logged in as a Super Admin
+    When I navigate to /fa/dashboard
+    Then I should see the dashboard
+
+  Scenario: Regular Admin cannot access FA Dashboard
+    Given I am logged in as an org Admin
+    When I navigate to /fa/dashboard
+    Then I should get 403 Forbidden
+
+  Scenario: Member cannot access FA Dashboard
+    Given I am logged in as a Member
+    When I navigate to /fa/dashboard
+    Then I should get 403 Forbidden
+
+  Scenario: Manual recommendations are logged
+    Given I am on the FA Dashboard
+    When I add a manual recommendation
+    Then it should be recorded with my user ID
+    And it should appear in the recommendations list
+```
+
+---
+
+## 13. Fund Admin Entity Management
+
+### Feature: FA Entity CRUD Audit
+
+```gherkin
+Feature: FA entity management is audited
+  As a security measure
+  All FA entity changes should be logged
+
+  Background:
+    Given I am logged in as a Fund Admin
+
+  Scenario: GP creation is logged
+    When I create a new GP organization
+    Then an entity_change_audit entry should exist
+    With entity_type = "gp"
+    And operation = "create"
+    And changed_by = my user ID
+
+  Scenario: LP update is logged
+    When I update LP "CalPERS" profile
+    Then an entity_change_audit entry should exist
+    With operation = "update"
+    And the old and new values captured
+
+  Scenario: Person deletion is logged
+    When I delete person "John Smith"
+    Then an entity_change_audit entry should exist
+    With operation = "delete"
+    And the deleted data preserved
+
+  Scenario: Person merge is logged
+    When I merge "J. Smith" into "John Smith"
+    Then an entity_change_audit entry should exist
+    With operation = "merge"
+    And source_id and target_id captured
+
+  Scenario: User role change restrictions
+    Given user "admin@acme.vc" has role "admin"
+    When I try to edit their role
+    Then the role dropdown should show "admin" as disabled
+    And a tooltip should say "Contact Super Admin to modify"
+```
+
+---
+
 ## Test Execution
 
 ### Unit Tests

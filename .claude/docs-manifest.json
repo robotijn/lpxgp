@@ -87,7 +87,9 @@
       "006_business_rules.sql",
       "007_ir_core_schema.sql",
       "009_security_features.sql",
-      "010_agent_schema.sql"
+      "010_agent_schema.sql",
+      "011_access_control.sql",
+      "012_billing.sql"
     ]
   },
 
@@ -118,7 +120,8 @@
         "pitch-generator.html",
         "outreach-hub.html",
         "settings-profile.html",
-        "settings-team.html"
+        "settings-team.html",
+        "settings-billing.html"
       ],
       "lp_user": [
         "lp-dashboard.html",
@@ -142,6 +145,16 @@
         "admin-data-quality.html",
         "admin-health.html"
       ],
+      "fund_admin": [
+        "fa-dashboard.html",
+        "fa-gps.html",
+        "fa-lps.html",
+        "fa-people.html",
+        "fa-users.html",
+        "fa-billing.html",
+        "fa-onboard-gp.html",
+        "fa-onboard-lp.html"
+      ],
       "ui_states": [
         "loading-matches.html",
         "error-api.html"
@@ -150,8 +163,9 @@
     "navigation": {
       "gp_nav": ["dashboard.html", "fund-list.html", "lp-search.html", "matches.html", "outreach-hub.html"],
       "lp_nav": ["lp-dashboard.html", "gp-search.html", "lp-matches.html", "lp-pipeline.html", "lp-watchlist.html"],
-      "settings_nav": ["settings-profile.html", "settings-team.html"],
-      "admin_nav": ["admin-dashboard.html", "admin-companies.html", "admin-users.html", "admin-lps.html", "admin-people.html", "admin-data-quality.html", "admin-import.html", "admin-health.html"]
+      "settings_nav": ["settings-profile.html", "settings-team.html", "settings-billing.html"],
+      "admin_nav": ["admin-dashboard.html", "admin-companies.html", "admin-users.html", "admin-lps.html", "admin-people.html", "admin-data-quality.html", "admin-import.html", "admin-health.html"],
+      "fa_nav": ["fa-dashboard.html", "fa-gps.html", "fa-lps.html", "fa-people.html", "fa-users.html", "fa-billing.html"]
     }
   },
 
@@ -193,7 +207,13 @@
       "rate_limit_events",
       "tasks",
       "touchpoints",
-      "user_sessions"
+      "user_sessions",
+      "impersonation_logs",
+      "role_change_audit",
+      "entity_change_audit",
+      "subscriptions",
+      "invoices",
+      "payment_methods"
     ],
     "deprecated_tables": [
       "matches",

@@ -117,6 +117,11 @@ Base table for all organizations. Can be GP, LP, or BOTH.
 - `is_gp`, `is_lp` - Role flags (at least one must be TRUE)
 - `created_at`, `updated_at` - Timestamps
 
+**Onboarding tracking (FA):**
+- `onboarded_by` FK → people - Who onboarded this org
+- `onboarded_at` - When onboarding completed
+- `onboarding_method` - database_only, invite_admin, create_directly
+
 ### GP Profiles (1:1 Extension)
 GP-specific fields. Only exists for organizations where `is_gp = TRUE`.
 
@@ -146,9 +151,17 @@ All professionals in the industry. Platform users have `auth_user_id` set.
 - `full_name`, `email`, `phone`, `linkedin_url`
 - `bio`, `notes`, `is_decision_maker`
 - `auth_user_id` FK → auth.users (NULL = cannot login)
-- `role` - admin, member, viewer
+- `role` - viewer, member, admin, fund_admin
 - `is_super_admin` - Platform-level admin
 - `employment_status` - employed, unknown, unemployed, retired
+
+**Role hierarchy:**
+| Role | Description |
+|------|-------------|
+| viewer | Read-only access to own org data |
+| member | Read/write access to own org data |
+| admin | Full access to own org, user management |
+| fund_admin | Cross-org read, privileged operations (see NFR) |
 
 > **Note:** Current employer derived from `employment WHERE is_current = TRUE`
 
@@ -288,27 +301,125 @@ Precomputed results cache.
 
 ---
 
-## 6.3 Row-Level Security (Multi-tenancy)
+## 6.3 Access Control Tables
+
+### Impersonation Logs
+Audit trail for admin/FA impersonation sessions.
+
+**Key fields:**
+- `id` - UUID primary key
+- `admin_user_id` FK → people - Who is impersonating
+- `target_user_id` FK → people - Who is being impersonated
+- `started_at`, `ended_at` - Session duration
+- `reason` - Optional justification (support, debugging)
+- `actions_count` - Number of actions taken during session
+- `write_mode_enabled` - TRUE only for Super Admin (FA always FALSE)
+
+**Retention:** 2 years minimum for compliance.
+
+### Login Attempts
+Failed login tracking for account lockout.
+
+**Key fields:**
+- `id` - UUID primary key
+- `email` - Attempted email
+- `ip_address`, `user_agent`
+- `attempted_at`
+- `success` - TRUE/FALSE
+
+**Retention:** 90 days.
+
+### Role Change Audit
+Tracks all user role modifications.
+
+**Key fields:**
+- `id` - UUID primary key
+- `user_id` FK → people - User whose role changed
+- `changed_by` FK → people - Admin who made the change
+- `old_role`, `new_role`
+- `changed_at`
+- `reason` - Optional justification
+
+---
+
+## 6.4 Billing Tables
+
+### Subscriptions
+Org-level subscription tracking.
+
+**Key fields:**
+- `id` - UUID primary key
+- `org_id` FK → organizations
+- `plan_id` - free, starter, professional, enterprise
+- `status` - active, past_due, cancelled, trialing
+- `billing_cycle` - monthly, annual
+- `amount_per_period` - Decimal
+- `current_period_start`, `current_period_end`
+- `cancel_at_period_end` - Auto-renewal control
+- `stripe_subscription_id` - External payment reference
+
+### Invoices
+Billing history for organizations.
+
+**Key fields:**
+- `id` - UUID primary key
+- `subscription_id` FK → subscriptions
+- `org_id` FK → organizations
+- `invoice_number` - Sequential (e.g., INV-2025-0001)
+- `amount`, `currency`
+- `status` - draft, open, paid, void, uncollectible
+- `due_date`, `paid_at`
+- `pdf_url` - Downloadable invoice PDF
+- `stripe_invoice_id` - External payment reference
+
+### Payment Methods
+Cards on file for organizations.
+
+**Key fields:**
+- `id` - UUID primary key
+- `org_id` FK → organizations
+- `type` - card, bank_account
+- `brand` - visa, mastercard, amex (for cards)
+- `last_four` - Last 4 digits
+- `exp_month`, `exp_year` - Card expiry
+- `is_default` - Primary payment method
+- `stripe_payment_method_id` - External reference
+
+---
+
+## 6.5 Row-Level Security (Multi-tenancy)
 
 RLS is enabled on all tables. Key policies:
 
 | Table | Read Access | Write Access |
 |-------|-------------|--------------|
-| organizations | Own GP org + all LPs | Super admin only |
-| gp_profiles | Own org | Org admins |
-| lp_profiles | All authenticated | Super admin only |
-| people | All authenticated | Own profile or super admin |
-| employment | All authenticated | Super admin only |
-| funds | Own org | Own org |
-| investments | All authenticated | Super admin only |
-| fund_lp_matches | Own fund matches | Super admin only |
-| fund_lp_status | Own fund status | Own org |
+| organizations | Own org + all LPs (or all for FA/SA) | FA/SA |
+| gp_profiles | Own org (or all for FA/SA) | Org admins, FA, SA |
+| lp_profiles | All authenticated | FA, SA |
+| people | All authenticated | Own profile, FA, SA |
+| employment | All authenticated | FA, SA |
+| funds | Own org (or all for FA/SA) | Own org, FA, SA |
+| investments | All authenticated | FA, SA |
+| fund_lp_matches | Own fund matches (or all for FA/SA) | FA, SA |
+| fund_lp_status | Own fund status (or all for FA/SA) | Own org, FA (view), SA |
 | pitches | Own matches | Own org |
+| impersonation_logs | SA only | SA only |
+| subscriptions | Own org (or all for FA/SA) | Own org admin, FA, SA |
+| invoices | Own org (or all for FA/SA) | FA, SA |
+| payment_methods | Own org | Own org admin |
 
 **Helper functions:**
 - `current_user_org_id()` - Get user's org from employment
 - `is_super_admin()` - Check if user is platform admin
+- `is_fund_admin()` - Check if user has fund_admin role
+- `is_privileged_user()` - Returns TRUE if fund_admin OR super_admin
 - `user_works_at_gp()` - Check if user works at a GP org
+- `user_works_at_lp()` - Check if user works at an LP org
+
+**Impersonation context:**
+- `current_impersonated_user_id()` - Returns target user ID during impersonation
+- `is_impersonating()` - TRUE if admin is in impersonation mode
+- `impersonation_is_read_only()` - TRUE for FA, configurable for SA
 
 ---
 

@@ -125,6 +125,9 @@ This document describes **HOW** we build LPxGP. For **WHAT** we build, see the [
 | **Entity Resolution** | Ensemble ML + LLM | Avoid pure Bayesian priors, ground in data |
 | **Agent architecture** | LangGraph | Better state management than CrewAI |
 | **Observability** | Langfuse | Open source, self-hostable, full tracing |
+| **5-tier role model** | Viewer→Member→Admin→FA→SA | Granular access with FA privileged ops |
+| **Billing integration** | Stripe | Industry standard, invoice PDF generation |
+| **Impersonation** | Session-based | FA view-only, SA configurable write mode |
 
 ---
 

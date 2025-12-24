@@ -72,6 +72,134 @@ As a super admin, I want to create companies and invite their first admin.
 
 **Test:** TEST-AUTH-05
 
+### US-AUTH-06: Impersonate User
+As a Super Admin, I want to view the platform as any user so I can provide support and verify their experience.
+
+**Acceptance Criteria:**
+- Impersonate button on admin users list triggers view-as mode
+- Clear visual banner shows impersonation is active: "[Admin] viewing as [User]"
+- I see exactly what the target user sees
+- Write operations are blocked unless explicitly enabled (Super Admin only)
+- End Session returns me to admin view
+- All my actions during impersonation are logged
+
+**Test:** TEST-AUTH-06
+
+### US-AUTH-07: Manage User Roles
+As a Super Admin, I want to change user roles so I can grant or revoke access.
+
+**Acceptance Criteria:**
+- I can change any user's role from the admin panel
+- Role options: Viewer, Member, Admin, Fund Admin
+- Changes require confirmation for admin/FA roles
+- Cannot remove last admin from an org
+- Role change is logged with my ID and timestamp
+
+**Test:** TEST-AUTH-07
+
+### US-AUTH-08: FA Onboard GP (Invite Method)
+As a Fund Admin, I want to onboard a new GP by inviting their admin so they can start using the platform.
+
+**Acceptance Criteria:**
+- Multi-step wizard collects company info and GP profile
+- Select "Invite Admin" method
+- Enter admin email address
+- Organization created with is_gp=TRUE
+- Invitation sent to admin email
+- GP admin can accept and set up their account
+- I can see onboarding status in my FA dashboard
+
+**Test:** TEST-AUTH-08a
+
+### US-AUTH-09: FA Onboard GP (Direct Creation)
+As a Fund Admin, I want to create a GP account directly so I can expedite their onboarding.
+
+**Acceptance Criteria:**
+- Multi-step wizard collects company info and user details
+- Select "Create User Directly" method
+- I set a temporary password for the user
+- User receives account creation email
+- User must change password on first login
+- Organization and employment records created atomically
+
+**Test:** TEST-AUTH-08b
+
+### US-AUTH-10: FA Add LP to Database
+As a Fund Admin, I want to add LP organizations to the database so GPs can find them in searches.
+
+**Acceptance Criteria:**
+- Multi-step wizard collects LP org and profile info
+- Optional: add key contacts (people records)
+- LP appears in search results immediately
+- Duplicate detection warns if similar LP exists
+- I can edit the LP profile after creation
+
+**Test:** TEST-AUTH-09a
+
+### US-AUTH-11: FA Onboard LP with Portal Access
+As a Fund Admin, I want to create an LP organization with user access so they can use the LP portal.
+
+**Acceptance Criteria:**
+- Multi-step wizard collects LP info plus admin email
+- Select "Invite Admin" or "Create User Directly" method
+- Organization created with is_lp=TRUE
+- LP profile created with provided details
+- Invitation sent or user created directly
+- LP admin gains access to LP dashboard features
+
+**Test:** TEST-AUTH-09b
+
+### US-AUTH-12: FA Dashboard
+As a Fund Admin, I want a dedicated dashboard so I can manage platform entities and recommendations.
+
+**Acceptance Criteria:**
+- Cross-org overview of all GPs and LPs
+- View all fund-LP matches across platform
+- Add manual recommendations (suggest LP for a fund)
+- Override or adjust match scores with notes
+- Quick links to impersonate any GP/LP for support
+- Recent activity feed (onboardings, recommendations)
+
+**Test:** TEST-AUTH-10
+
+### US-AUTH-13: FA Entity Management
+As a Fund Admin, I want to manage all platform entities so I can maintain data quality.
+
+**Acceptance Criteria:**
+- Full CRUD on GP organizations and profiles
+- Full CRUD on LP organizations and profiles
+- Full CRUD on people records with merge capability
+- Full CRUD on users with role assignment (Viewer/Member only)
+- Cannot assign Admin or Fund Admin roles (Super Admin only)
+- All changes logged for audit
+
+**Test:** TEST-AUTH-11
+
+### US-AUTH-14: FA Billing Management
+As a Fund Admin, I want to manage billing for all organizations so I can track subscriptions.
+
+**Acceptance Criteria:**
+- View/manage billing for all orgs
+- Set up billing plans for new orgs
+- View all invoices across platform
+- Summary of revenue, subscriptions, past due accounts
+
+**Test:** TEST-AUTH-12a
+
+### US-AUTH-15: Self-Service Billing
+As a GP or LP admin, I want to manage my organization's billing so I can control our subscription.
+
+**Acceptance Criteria:**
+- View current plan and usage metrics
+- Update payment method (credit card)
+- View invoice history with date, amount, status
+- Download invoices as PDF
+- Upgrade/downgrade plan
+- Manage auto-renewal
+- Cancel subscription with confirmation
+
+**Test:** TEST-AUTH-12b
+
 ---
 
 ## 10.2 LP Search (Priority A)

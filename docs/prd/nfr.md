@@ -36,6 +36,41 @@
 - Single current employment enforced (no multi-org users)
 - Invitation-only registration (no public signups)
 
+#### Fund Admin (FA) Role Specification
+
+| Capability | FA | Super Admin |
+|------------|:--:|:-----------:|
+| Cross-org READ (all dashboards) | ✓ | ✓ |
+| Impersonate GP/LP users (view-only) | ✓ | ✓ |
+| Impersonate with write mode | ✗ | ✓ |
+| Own FA Dashboard | ✓ | ✓ |
+| Add manual recommendations | ✓ | ✓ |
+| Onboard GP/LP | ✓ | ✓ |
+| Full CRUD: GPs | ✓ | ✓ |
+| Full CRUD: LPs | ✓ | ✓ |
+| Full CRUD: People | ✓ | ✓ |
+| Full CRUD: Users | ✓ | ✓ |
+| Assign Viewer/Member roles | ✓ | ✓ |
+| Assign Admin/FA roles | ✗ | ✓ |
+| Set up org billing | ✓ | ✓ |
+| System-wide settings | ✗ | ✓ |
+
+**FA Role Restrictions:**
+- FA CANNOT add, remove, or modify Admin or Fund Admin roles
+- FA CAN only assign Viewer or Member roles to users
+- Only Super Admin can promote users to Admin or Fund Admin
+- FA impersonation is always view-only (cannot make changes)
+
+#### Dashboard Access Model
+
+**Shared-with-Ownership Model:**
+- GP organizations: One dashboard per fund, shared by all org users
+- LP organizations: One unified dashboard, shared by all org users
+- All items show `created_by` attribution
+- Activity feeds show team-wide activity with user attribution
+- Can filter "my items" vs "all items"
+- No private/personal item scoping within an org
+
 ### Input Validation
 - Pydantic models for all API endpoints
 - Email validation with `email-validator`
@@ -72,6 +107,21 @@
 - Audit log for sensitive table access (LP profiles, matches)
 - Request ID tracking for debugging
 - No passwords, tokens, or API keys in logs
+
+#### Impersonation Audit Requirements
+- All impersonation sessions logged to `impersonation_logs` table
+- Required fields: admin_user_id, target_user_id, started_at, ended_at, reason (optional)
+- Actions during impersonation tagged with both user IDs in audit_logs
+- Retention: 2 years minimum for compliance
+- Access to logs: Super Admin only
+
+#### Role Change Audit
+- All role changes logged with: changed_by, old_role, new_role, timestamp
+- Logged regardless of who makes the change (FA or Super Admin)
+
+#### Entity Change Audit
+- All GP/LP/People/User changes logged by FA
+- Captures: entity_type, entity_id, operation, changed_by, timestamp
 
 ---
 

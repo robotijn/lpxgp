@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>FA Billing - LPxGP</title> <script src="tailwind.js"></script> <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"> <script> tailwind.config = { theme: { extend: { colors: { navy: { 50: '#f8fafc', 100: '#f1f5f9', 200: '#e2e8f0', 300: '#cbd5e1', 400: '#94a3b8', 500: '#64748b', 600: '#475569', 700: '#334155', 800: '#1e293b', 900: '#0f172a' }, purple: { 50: '#faf5ff', 100: '#f3e8ff', 500: '#a855f7', 600: '#9333ea', 700: '#7c3aed' } }, fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] } } } } </script> <style>
+        html, body { margin: 0; padding: 0; width: 100%; min-height: 100%; background: #f8fafc; }
+        body { font-family: 'Inter', system-ui, sans-serif; }
+        .card { background: white; border: 1px solid #e2e8f0; border-radius: 0.75rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .btn-primary { background: linear-gradient(135deg, #7c3aed 0%, #9333ea 100%); color: white; padding: 0.625rem 1.25rem; border-radius: 0.5rem; font-weight: 500; font-size: 0.875rem; }
+        .btn-secondary { background: white; color: #334155; border: 1px solid #e2e8f0; padding: 0.625rem 1.25rem; border-radius: 0.5rem; }
+        .nav-active { color: #0f172a !important; border-bottom: 2px solid #7c3aed; }
+        .data-table { border-collapse: separate; border-spacing: 0; width: 100%; }
+        .data-table th { background: #f8fafc; font-weight: 600; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.05em; color: #64748b; padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid #e2e8f0; }
+        .data-table td { padding: 0.75rem 1rem; border-bottom: 1px solid #f1f5f9; }
+        .form-input { border: 1px solid #e2e8f0; border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; }
+    </style>
+</head>
+<body>
+<header class="bg-white border-b border-navy-200 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6">
+        <div class="flex justify-between items-center h-16">
+            <div class="flex items-center">
+                <a href="index.html" class="flex items-center mr-8">
+                    <img src="logo-primary.png" alt="LPxGP" class="h-8 w-auto">
+                    <span class="ml-2 px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 rounded">FA</span>
+                </a>
+                <nav class="hidden lg:flex items-center space-x-6">
+                    <a href="fa-dashboard.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">Dashboard</a>
+                    <a href="fa-gps.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">GPs</a>
+                    <a href="fa-lps.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">LPs</a>
+                    <a href="fa-people.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">People</a>
+                    <a href="fa-users.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">Users</a>
+                    <a href="fa-billing.html" class="text-sm font-medium text-navy-900 nav-active pb-5 -mb-px">Billing</a>
+                </nav>
+            </div>
+            <div class="flex items-center space-x-4">
+                <span class="hidden sm:block text-sm text-navy-600">Fund Admin</span>
+                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-purple-100 to-purple-200 flex items-center justify-center">
+                    <span class="text-sm font-semibold text-purple-700">FA</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+
+<main style="padding-bottom: 3rem;" class="max-w-7xl mx-auto px-4 lg:px-6 py-6 lg:py-8">
+    <div class="mb-6">
+        <h1 class="text-xl lg:text-2xl font-semibold text-navy-900">Billing Management</h1>
+        <p class="text-sm text-navy-500 mt-1">Manage subscriptions and billing for all organizations</p>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8">
+        <div class="card p-4 lg:p-6">
+            <div class="text-sm font-medium text-navy-500 uppercase tracking-wide">Monthly Revenue</div>
+            <div class="mt-2 text-2xl font-semibold text-navy-900">$12,500</div>
+        </div>
+        <div class="card p-4 lg:p-6">
+            <div class="text-sm font-medium text-navy-500 uppercase tracking-wide">Active Subs</div>
+            <div class="mt-2 text-2xl font-semibold text-navy-900">42</div>
+        </div>
+        <div class="card p-4 lg:p-6">
+            <div class="text-sm font-medium text-navy-500 uppercase tracking-wide">Past Due</div>
+            <div class="mt-2 text-2xl font-semibold text-red-600">2</div>
+        </div>
+        <div class="card p-4 lg:p-6">
+            <div class="text-sm font-medium text-navy-500 uppercase tracking-wide">Renewals (7d)</div>
+            <div class="mt-2 text-2xl font-semibold text-navy-900">5</div>
+        </div>
+    </div>
+
+    <div class="card p-4 mb-6">
+        <div class="flex flex-wrap gap-4">
+            <select class="form-input">
+                <option value="">All Types</option>
+                <option>GP</option>
+                <option>LP</option>
+            </select>
+            <select class="form-input">
+                <option value="">All Plans</option>
+                <option>Free</option>
+                <option>Starter</option>
+                <option>Professional</option>
+                <option>Enterprise</option>
+            </select>
+            <select class="form-input">
+                <option value="">All Status</option>
+                <option>Active</option>
+                <option>Past Due</option>
+                <option>Cancelled</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="overflow-x-auto">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Organization</th>
+                        <th>Type</th>
+                        <th>Plan</th>
+                        <th>Monthly</th>
+                        <th>Status</th>
+                        <th>Next Invoice</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="text-sm font-medium text-navy-900">Acme Capital</td>
+                        <td><span class="px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 rounded-full">GP</span></td>
+                        <td class="text-sm text-navy-600">Professional</td>
+                        <td class="text-sm text-navy-900 font-medium">$299</td>
+                        <td><span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">Active</span></td>
+                        <td class="text-sm text-navy-600">Jan 15, 2025</td>
+                        <td class="text-sm">
+                            <button class="text-purple-600 hover:text-purple-800 mr-2">Details</button>
+                            <button class="text-purple-600 hover:text-purple-800 mr-2">Edit Plan</button>
+                            <button class="text-purple-600 hover:text-purple-800">Invoices</button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="text-sm font-medium text-navy-900">CalPERS</td>
+                        <td><span class="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">LP</span></td>
+                        <td class="text-sm text-navy-600">Enterprise</td>
+                        <td class="text-sm text-navy-900 font-medium">$499</td>
+                        <td><span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">Active</span></td>
+                        <td class="text-sm text-navy-600">Jan 20, 2025</td>
+                        <td class="text-sm">
+                            <button class="text-purple-600 hover:text-purple-800 mr-2">Details</button>
+                            <button class="text-purple-600 hover:text-purple-800 mr-2">Edit Plan</button>
+                            <button class="text-purple-600 hover:text-purple-800">Invoices</button>
+                        </td>
+                    </tr>
+                    <tr class="bg-red-50">
+                        <td class="text-sm font-medium text-navy-900">Beta Ventures</td>
+                        <td><span class="px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 rounded-full">GP</span></td>
+                        <td class="text-sm text-navy-600">Starter</td>
+                        <td class="text-sm text-navy-900 font-medium">$99</td>
+                        <td><span class="px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full">Past Due</span></td>
+                        <td class="text-sm text-red-600">Dec 15, 2024 (overdue)</td>
+                        <td class="text-sm">
+                            <button class="text-purple-600 hover:text-purple-800 mr-2">Details</button>
+                            <button class="text-purple-600 hover:text-purple-800 mr-2">Edit Plan</button>
+                            <button class="text-purple-600 hover:text-purple-800">Invoices</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="px-6 py-4 border-t border-slate-100 flex justify-between items-center">
+            <span class="text-sm text-navy-500">Showing 1-3 of 42 subscriptions</span>
+            <div class="flex space-x-2">
+                <button class="btn-secondary py-2 px-3 text-sm">Previous</button>
+                <button class="btn-secondary py-2 px-3 text-sm">Next</button>
+            </div>
+        </div>
+    </div>
+</main>
+</body>
+</html>
