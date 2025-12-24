@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - LPxGP</title>
+    <script src="tailwind.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        navy: { 50: '#f8fafc', 100: '#f1f5f9', 200: '#e2e8f0', 300: '#cbd5e1', 400: '#94a3b8', 500: '#64748b', 600: '#475569', 700: '#334155', 800: '#1e293b', 900: '#0f172a', 950: '#020617' },
+                        gold: { 50: '#fffbeb', 100: '#fef3c7', 200: '#fde68a', 300: '#fcd34d', 400: '#fbbf24', 500: '#d4a84b', 600: '#b8860b', 700: '#92400e', DEFAULT: '#d4a84b' },
+                        teal: { 50: '#f0fdfa', 100: '#ccfbf1', 500: '#0ea5e9', 600: '#0284c7' }
+                    },
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        html, body { margin: 0; padding: 0; width: 100%; min-height: 100%; background: #f8fafc; }
+        body { font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+        .card { background: white; border: 1px solid #e2e8f0; border-radius: 0.75rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .btn-primary { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: white; padding: 0.625rem 1.25rem; border-radius: 0.5rem; font-weight: 500; font-size: 0.875rem; transition: all 0.2s; }
+        .btn-primary:hover { box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.3); }
+        .btn-teal { background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); color: white; padding: 0.625rem 1.25rem; border-radius: 0.5rem; font-weight: 600; }
+        .btn-secondary { background: white; color: #334155; border: 1px solid #e2e8f0; padding: 0.625rem 1.25rem; border-radius: 0.5rem; }
+        .form-input { border: 1px solid #e2e8f0; border-radius: 0.5rem; padding: 0.625rem 0.875rem; font-size: 0.875rem; width: 100%; }
+        .form-input:focus { outline: none; border-color: #0ea5e9; box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15); }
+        .nav-active { color: #0f172a !important; border-bottom: 2px solid #0ea5e9; }
+    </style>
+</head>
+<body>
+    <!-- Header with LP Navigation -->
+    <header class="bg-white border-b border-navy-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <a href="index.html" class="flex items-center mr-8">
+                        <img src="logo-primary.png" alt="LPxGP" class="h-8 w-auto">
+                        <span class="ml-2 text-xs font-medium text-teal-500 bg-teal-50 px-2 py-0.5 rounded">LP</span>
+                    </a>
+                    <nav class="hidden lg:flex items-center space-x-6">
+                        <a href="lp-dashboard.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">Dashboard</a>
+                        <a href="gp-search.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">Find GPs</a>
+                        <a href="lp-matches.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">Matches</a>
+                        <a href="lp-pipeline.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">Pipeline</a>
+                        <a href="lp-watchlist.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">Watchlist</a>
+                    </nav>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="hidden sm:block text-sm text-navy-600">CalPERS</span>
+                    <a href="lp-settings.html" class="w-8 h-8 rounded-full bg-gradient-to-br from-teal-100 to-teal-200 flex items-center justify-center ring-2 ring-teal-500">
+                        <span class="text-sm font-semibold text-teal-700">MJ</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-4xl mx-auto px-4 lg:px-6 py-6 lg:py-8" style="padding-bottom: 3rem;">
+        <!-- Page Header -->
+        <div class="mb-8">
+            <h1 class="text-xl lg:text-2xl font-semibold text-navy-900">Settings</h1>
+            <p class="text-sm text-navy-500 mt-1">Manage your account and preferences</p>
+        </div>
+
+        <!-- Settings Navigation -->
+        <div class="flex space-x-1 mb-6 bg-slate-100 p-1 rounded-lg w-fit">
+            <button class="px-4 py-2 text-sm font-medium bg-white text-navy-900 rounded shadow-sm">Profile</button>
+            <button class="px-4 py-2 text-sm font-medium text-navy-500 hover:text-navy-700">Organization</button>
+            <button class="px-4 py-2 text-sm font-medium text-navy-500 hover:text-navy-700">Team</button>
+            <button class="px-4 py-2 text-sm font-medium text-navy-500 hover:text-navy-700">Notifications</button>
+        </div>
+
+        <div class="space-y-6">
+            <!-- Profile Section -->
+            <div class="card p-6">
+                <h2 class="font-semibold text-navy-900 mb-6">Your Profile</h2>
+                <div class="flex items-start space-x-6 mb-6">
+                    <div class="w-20 h-20 rounded-full bg-gradient-to-br from-teal-100 to-teal-200 flex items-center justify-center">
+                        <span class="text-2xl font-semibold text-teal-700">MJ</span>
+                    </div>
+                    <div>
+                        <button class="btn-secondary text-sm mb-2">Upload Photo</button>
+                        <p class="text-xs text-navy-400">JPG, PNG or GIF. Max 2MB.</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-navy-700 mb-1">First Name</label>
+                        <input type="text" class="form-input" value="Michael">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-navy-700 mb-1">Last Name</label>
+                        <input type="text" class="form-input" value="Johnson">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-navy-700 mb-1">Email</label>
+                        <input type="email" class="form-input" value="mjohnson@calpers.ca.gov">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-navy-700 mb-1">Title</label>
+                        <input type="text" class="form-input" value="Managing Investment Director">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-navy-700 mb-1">Phone</label>
+                        <input type="tel" class="form-input" value="+1 (916) 555-0123">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Organization Section -->
+            <div class="card p-6">
+                <h2 class="font-semibold text-navy-900 mb-6">Organization</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-navy-700 mb-1">Organization Name</label>
+                        <input type="text" class="form-input bg-slate-50" value="CalPERS" readonly>
+                        <p class="text-xs text-navy-400 mt-1">Contact support to change</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-navy-700 mb-1">LP Type</label>
+                        <input type="text" class="form-input bg-slate-50" value="Public Pension" readonly>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-navy-700 mb-1">Total AUM</label>
+                        <input type="text" class="form-input bg-slate-50" value="$450B" readonly>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-navy-700 mb-1">Location</label>
+                        <input type="text" class="form-input" value="Sacramento, CA">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Investment Preferences -->
+            <div class="card p-6">
+                <h2 class="font-semibold text-navy-900 mb-6">Investment Preferences</h2>
+                <p class="text-sm text-navy-500 mb-4">These preferences help us find better matches for you.</p>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-navy-700 mb-2">Preferred Strategies</label>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="px-3 py-1 text-sm bg-teal-50 text-teal-700 rounded-full flex items-center">
+                                Private Equity
+                                <button class="ml-2 text-teal-500 hover:text-teal-700">&times;</button>
+                            </span>
+                            <span class="px-3 py-1 text-sm bg-teal-50 text-teal-700 rounded-full flex items-center">
+                                Infrastructure
+                                <button class="ml-2 text-teal-500 hover:text-teal-700">&times;</button>
+                            </span>
+                            <span class="px-3 py-1 text-sm bg-teal-50 text-teal-700 rounded-full flex items-center">
+                                Real Assets
+                                <button class="ml-2 text-teal-500 hover:text-teal-700">&times;</button>
+                            </span>
+                            <button class="px-3 py-1 text-sm text-navy-500 border border-dashed border-navy-300 rounded-full hover:bg-navy-50">+ Add</button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-navy-700 mb-2">Geography Focus</label>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="px-3 py-1 text-sm bg-teal-50 text-teal-700 rounded-full flex items-center">
+                                North America
+                                <button class="ml-2 text-teal-500 hover:text-teal-700">&times;</button>
+                            </span>
+                            <span class="px-3 py-1 text-sm bg-teal-50 text-teal-700 rounded-full flex items-center">
+                                Europe
+                                <button class="ml-2 text-teal-500 hover:text-teal-700">&times;</button>
+                            </span>
+                            <button class="px-3 py-1 text-sm text-navy-500 border border-dashed border-navy-300 rounded-full hover:bg-navy-50">+ Add</button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Preferred Check Size</label>
+                            <select class="form-input">
+                                <option>$25M - $100M</option>
+                                <option selected>$50M - $200M</option>
+                                <option>$100M - $500M</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Preferred Fund Size</label>
+                            <select class="form-input">
+                                <option>$100M - $500M</option>
+                                <option selected>$300M - $1B</option>
+                                <option>$500M - $2B</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notification Preferences -->
+            <div class="card p-6">
+                <h2 class="font-semibold text-navy-900 mb-6">Notifications</h2>
+                <div class="space-y-4">
+                    <label class="flex items-center justify-between">
+                        <div>
+                            <span class="text-sm font-medium text-navy-900">New Match Alerts</span>
+                            <p class="text-xs text-navy-500">Get notified when new funds match your mandates</p>
+                        </div>
+                        <input type="checkbox" checked class="rounded text-teal-500 focus:ring-teal-500">
+                    </label>
+                    <label class="flex items-center justify-between">
+                        <div>
+                            <span class="text-sm font-medium text-navy-900">Pipeline Updates</span>
+                            <p class="text-xs text-navy-500">Updates on funds in your pipeline</p>
+                        </div>
+                        <input type="checkbox" checked class="rounded text-teal-500 focus:ring-teal-500">
+                    </label>
+                    <label class="flex items-center justify-between">
+                        <div>
+                            <span class="text-sm font-medium text-navy-900">Weekly Digest</span>
+                            <p class="text-xs text-navy-500">Summary of new opportunities and updates</p>
+                        </div>
+                        <input type="checkbox" checked class="rounded text-teal-500 focus:ring-teal-500">
+                    </label>
+                    <label class="flex items-center justify-between">
+                        <div>
+                            <span class="text-sm font-medium text-navy-900">Marketing Communications</span>
+                            <p class="text-xs text-navy-500">News and updates from LPxGP</p>
+                        </div>
+                        <input type="checkbox" class="rounded text-teal-500 focus:ring-teal-500">
+                    </label>
+                </div>
+            </div>
+
+            <!-- Save Button -->
+            <div class="flex justify-end space-x-3">
+                <button class="btn-secondary">Cancel</button>
+                <button class="btn-teal">Save Changes</button>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

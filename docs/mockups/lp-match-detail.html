@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Match Analysis - Acme Growth Fund III - LPxGP</title>
+    <script src="tailwind.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        navy: { 50: '#f8fafc', 100: '#f1f5f9', 200: '#e2e8f0', 300: '#cbd5e1', 400: '#94a3b8', 500: '#64748b', 600: '#475569', 700: '#334155', 800: '#1e293b', 900: '#0f172a', 950: '#020617' },
+                        gold: { 50: '#fffbeb', 100: '#fef3c7', 200: '#fde68a', 300: '#fcd34d', 400: '#fbbf24', 500: '#d4a84b', 600: '#b8860b', 700: '#92400e', DEFAULT: '#d4a84b' },
+                        teal: { 50: '#f0fdfa', 100: '#ccfbf1', 500: '#0ea5e9', 600: '#0284c7' }
+                    },
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        html, body { margin: 0; padding: 0; width: 100%; min-height: 100%; background: #f8fafc; }
+        body { font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+        .card { background: white; border: 1px solid #e2e8f0; border-radius: 0.75rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: all 0.2s; }
+        .card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); border-color: #0ea5e9; }
+        .btn-primary { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: white; padding: 0.625rem 1.25rem; border-radius: 0.5rem; font-weight: 500; font-size: 0.875rem; transition: all 0.2s; }
+        .btn-primary:hover { box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.3); }
+        .btn-teal { background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); color: white; padding: 0.625rem 1.25rem; border-radius: 0.5rem; font-weight: 600; }
+        .btn-secondary { background: white; color: #334155; border: 1px solid #e2e8f0; padding: 0.625rem 1.25rem; border-radius: 0.5rem; }
+        .nav-active { color: #0f172a !important; border-bottom: 2px solid #0ea5e9; }
+    </style>
+</head>
+<body>
+    <!-- Header with LP Navigation -->
+    <header class="bg-white border-b border-navy-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <a href="index.html" class="flex items-center mr-8">
+                        <img src="logo-primary.png" alt="LPxGP" class="h-8 w-auto">
+                        <span class="ml-2 text-xs font-medium text-teal-500 bg-teal-50 px-2 py-0.5 rounded">LP</span>
+                    </a>
+                    <nav class="hidden lg:flex items-center space-x-6">
+                        <a href="lp-dashboard.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">Dashboard</a>
+                        <a href="gp-search.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">Find GPs</a>
+                        <a href="lp-matches.html" class="text-sm font-medium text-navy-900 nav-active pb-5 -mb-px">Matches</a>
+                        <a href="lp-pipeline.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">Pipeline</a>
+                        <a href="lp-watchlist.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">Watchlist</a>
+                    </nav>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="hidden sm:block text-sm text-navy-600">CalPERS</span>
+                    <a href="lp-settings.html" class="w-8 h-8 rounded-full bg-gradient-to-br from-teal-100 to-teal-200 flex items-center justify-center">
+                        <span class="text-sm font-semibold text-teal-700">MJ</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 lg:px-6 py-6 lg:py-8" style="padding-bottom: 3rem;">
+        <!-- Breadcrumb -->
+        <div class="flex items-center text-sm mb-6">
+            <a href="lp-matches.html" class="text-navy-500 hover:text-navy-700">Matches</a>
+            <span class="mx-2 text-navy-300">/</span>
+            <span class="text-navy-900">Acme Growth Fund III</span>
+        </div>
+
+        <!-- Page Header -->
+        <div class="flex justify-between items-start mb-6">
+            <div class="flex items-start space-x-4">
+                <div class="w-16 h-16 bg-navy-100 rounded-lg flex items-center justify-center">
+                    <span class="text-xl font-bold text-navy-600">AC</span>
+                </div>
+                <div>
+                    <h1 class="text-xl lg:text-2xl font-semibold text-navy-900">Match Analysis</h1>
+                    <p class="text-navy-500">Acme Growth Fund III vs PE Growth Mandate</p>
+                </div>
+            </div>
+            <div class="flex space-x-3">
+                <a href="gp-detail.html" class="btn-secondary">View Fund Profile</a>
+                <button class="btn-teal">Add to Pipeline</button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6">
+            <!-- Main Content -->
+            <div class="col-span-2 space-y-6">
+                <!-- Overall Score -->
+                <div class="card p-4 lg:p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="font-semibold text-navy-900">Overall Match Score</h2>
+                        <div class="flex items-center">
+                            <div class="w-16 h-16 rounded-full bg-green-50 flex items-center justify-center">
+                                <span class="text-2xl font-bold text-green-700">94</span>
+                            </div>
+                            <span class="ml-3 text-green-600 font-medium">Excellent Fit</span>
+                        </div>
+                    </div>
+                    <p class="text-navy-600 leading-relaxed">
+                        Based on our AI analysis, Acme Growth Fund III is an excellent match for your PE Growth mandate.
+                        The fund's strategy, target size, and geographic focus align well with your investment criteria.
+                        The GP has a strong track record with consistent top-quartile returns.
+                    </p>
+                </div>
+
+                <!-- AI Analysis - Bull vs Bear -->
+                <div class="card p-4 lg:p-6">
+                    <h2 class="font-semibold text-navy-900 mb-4">AI Analysis</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Bull Case -->
+                        <div class="bg-green-50 rounded-lg p-4">
+                            <div class="flex items-center mb-3">
+                                <svg class="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
+                                </svg>
+                                <h3 class="font-semibold text-green-800">Bull Case</h3>
+                            </div>
+                            <ul class="space-y-2 text-sm text-green-800">
+                                <li class="flex items-start">
+                                    <svg class="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    <span>Fund II delivered 32% net IRR, top decile performance</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <svg class="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    <span>Stable team with 15+ year average tenure</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <svg class="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    <span>Strong sector expertise in fintech & enterprise SaaS</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <svg class="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    <span>Target fund size aligns with your check size range</span>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <!-- Bear Case -->
+                        <div class="bg-red-50 rounded-lg p-4">
+                            <div class="flex items-center mb-3">
+                                <svg class="w-5 h-5 text-red-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+                                </svg>
+                                <h3 class="font-semibold text-red-800">Bear Case</h3>
+                            </div>
+                            <ul class="space-y-2 text-sm text-red-800">
+                                <li class="flex items-start">
+                                    <svg class="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                    </svg>
+                                    <span>43% step-up from Fund II may indicate valuation pressure</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <svg class="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                    </svg>
+                                    <span>Concentrated sector focus increases correlation risk</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <svg class="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                    </svg>
+                                    <span>Fund II still 60% unrealized, returns may compress</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Score Breakdown -->
+                <div class="card p-4 lg:p-6">
+                    <h2 class="font-semibold text-navy-900 mb-4">Score Breakdown</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-sm font-medium text-navy-700">Strategy Alignment</span>
+                                <span class="text-sm font-semibold text-green-600">98/100</span>
+                            </div>
+                            <div class="w-full bg-navy-100 rounded-full h-2">
+                                <div class="bg-green-500 h-2 rounded-full" style="width: 98%"></div>
+                            </div>
+                            <p class="text-xs text-navy-500 mt-1">Growth equity focus matches your mandate exactly</p>
+                        </div>
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-sm font-medium text-navy-700">Track Record</span>
+                                <span class="text-sm font-semibold text-green-600">95/100</span>
+                            </div>
+                            <div class="w-full bg-navy-100 rounded-full h-2">
+                                <div class="bg-green-500 h-2 rounded-full" style="width: 95%"></div>
+                            </div>
+                            <p class="text-xs text-navy-500 mt-1">Consistent top-quartile returns across funds</p>
+                        </div>
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-sm font-medium text-navy-700">Size Fit</span>
+                                <span class="text-sm font-semibold text-green-600">92/100</span>
+                            </div>
+                            <div class="w-full bg-navy-100 rounded-full h-2">
+                                <div class="bg-green-500 h-2 rounded-full" style="width: 92%"></div>
+                            </div>
+                            <p class="text-xs text-navy-500 mt-1">$500M target within your $300M-$1B range</p>
+                        </div>
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-sm font-medium text-navy-700">Geography</span>
+                                <span class="text-sm font-semibold text-green-600">90/100</span>
+                            </div>
+                            <div class="w-full bg-navy-100 rounded-full h-2">
+                                <div class="bg-green-500 h-2 rounded-full" style="width: 90%"></div>
+                            </div>
+                            <p class="text-xs text-navy-500 mt-1">North America focus aligns with mandate</p>
+                        </div>
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-sm font-medium text-navy-700">Team Stability</span>
+                                <span class="text-sm font-semibold text-green-600">94/100</span>
+                            </div>
+                            <div class="w-full bg-navy-100 rounded-full h-2">
+                                <div class="bg-green-500 h-2 rounded-full" style="width: 94%"></div>
+                            </div>
+                            <p class="text-xs text-navy-500 mt-1">Key partners have been together 15+ years</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Key Questions -->
+                <div class="card p-4 lg:p-6">
+                    <h2 class="font-semibold text-navy-900 mb-4">Suggested Due Diligence Questions</h2>
+                    <ul class="space-y-3">
+                        <li class="flex items-start">
+                            <span class="w-6 h-6 rounded-full bg-teal-50 text-teal-600 flex items-center justify-center text-sm font-medium mr-3 mt-0.5">1</span>
+                            <span class="text-navy-600">What is the expected timeline for Fund II realizations?</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="w-6 h-6 rounded-full bg-teal-50 text-teal-600 flex items-center justify-center text-sm font-medium mr-3 mt-0.5">2</span>
+                            <span class="text-navy-600">How do you plan to deploy the 43% increase in fund size without compromising returns?</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="w-6 h-6 rounded-full bg-teal-50 text-teal-600 flex items-center justify-center text-sm font-medium mr-3 mt-0.5">3</span>
+                            <span class="text-navy-600">What is the succession plan for the founding partners?</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="w-6 h-6 rounded-full bg-teal-50 text-teal-600 flex items-center justify-center text-sm font-medium mr-3 mt-0.5">4</span>
+                            <span class="text-navy-600">How do you differentiate in competitive growth equity deals?</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="space-y-6">
+                <!-- Fund Summary -->
+                <div class="card p-4 lg:p-6">
+                    <h2 class="font-semibold text-navy-900 mb-4">Fund Summary</h2>
+                    <div class="space-y-3 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-navy-500">Fund</span>
+                            <span class="font-medium text-navy-900">Acme Growth Fund III</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-navy-500">GP</span>
+                            <span class="font-medium text-navy-900">Acme Capital</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-navy-500">Strategy</span>
+                            <span class="font-medium text-navy-900">Growth Equity</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-navy-500">Target Size</span>
+                            <span class="font-medium text-navy-900">$500M</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-navy-500">Geography</span>
+                            <span class="font-medium text-navy-900">North America</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-navy-500">Status</span>
+                            <span class="px-2 py-0.5 text-xs font-medium bg-green-50 text-green-700 rounded">Raising</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Your Mandate -->
+                <div class="card p-4 lg:p-6">
+                    <h2 class="font-semibold text-navy-900 mb-4">Matching Mandate</h2>
+                    <div class="space-y-3 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-navy-500">Mandate</span>
+                            <span class="font-medium text-navy-900">PE Growth</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-navy-500">Check Size</span>
+                            <span class="font-medium text-navy-900">$25M - $100M</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-navy-500">Fund Size Range</span>
+                            <span class="font-medium text-navy-900">$300M - $1B</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-navy-500">Geography</span>
+                            <span class="font-medium text-navy-900">North America, Europe</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="card p-4 lg:p-6">
+                    <h2 class="font-semibold text-navy-900 mb-4">Actions</h2>
+                    <div class="space-y-2">
+                        <button class="btn-teal w-full">Add to Pipeline</button>
+                        <button class="btn-secondary w-full">Add to Watchlist</button>
+                        <a href="gp-detail.html" class="btn-secondary w-full block text-center">View Full Profile</a>
+                    </div>
+                </div>
+
+                <!-- Analysis Info -->
+                <div class="card p-4 lg:p-6">
+                    <div class="flex items-center justify-between mb-2">
+                        <h2 class="font-semibold text-navy-900">Analysis Info</h2>
+                    </div>
+                    <p class="text-sm text-navy-500">Generated: 2 hours ago</p>
+                    <p class="text-xs text-navy-400 mt-1">AI Model: Claude Opus 4.5</p>
+                    <button class="text-sm text-teal-500 hover:text-teal-600 mt-2">Regenerate Analysis</button>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

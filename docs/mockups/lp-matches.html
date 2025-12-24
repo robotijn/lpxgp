@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fund Matches - LPxGP</title>
+    <script src="tailwind.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        navy: { 50: '#f8fafc', 100: '#f1f5f9', 200: '#e2e8f0', 300: '#cbd5e1', 400: '#94a3b8', 500: '#64748b', 600: '#475569', 700: '#334155', 800: '#1e293b', 900: '#0f172a', 950: '#020617' },
+                        gold: { 50: '#fffbeb', 100: '#fef3c7', 200: '#fde68a', 300: '#fcd34d', 400: '#fbbf24', 500: '#d4a84b', 600: '#b8860b', 700: '#92400e', DEFAULT: '#d4a84b' },
+                        teal: { 50: '#f0fdfa', 100: '#ccfbf1', 500: '#0ea5e9', 600: '#0284c7' }
+                    },
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        html, body { margin: 0; padding: 0; width: 100%; min-height: 100%; background: #f8fafc; }
+        body { font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+        .card { background: white; border: 1px solid #e2e8f0; border-radius: 0.75rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: all 0.2s; }
+        .card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); border-color: #0ea5e9; }
+        .btn-primary { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: white; padding: 0.625rem 1.25rem; border-radius: 0.5rem; font-weight: 500; font-size: 0.875rem; transition: all 0.2s; }
+        .btn-primary:hover { box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.3); }
+        .btn-teal { background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); color: white; padding: 0.625rem 1.25rem; border-radius: 0.5rem; font-weight: 600; }
+        .btn-secondary { background: white; color: #334155; border: 1px solid #e2e8f0; padding: 0.625rem 1.25rem; border-radius: 0.5rem; }
+        .nav-active { color: #0f172a !important; border-bottom: 2px solid #0ea5e9; }
+    </style>
+</head>
+<body>
+    <!-- Header with LP Navigation -->
+    <header class="bg-white border-b border-navy-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <a href="index.html" class="flex items-center mr-8">
+                        <img src="logo-primary.png" alt="LPxGP" class="h-8 w-auto">
+                        <span class="ml-2 text-xs font-medium text-teal-500 bg-teal-50 px-2 py-0.5 rounded">LP</span>
+                    </a>
+                    <nav class="hidden lg:flex items-center space-x-6">
+                        <a href="lp-dashboard.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">Dashboard</a>
+                        <a href="gp-search.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">Find GPs</a>
+                        <a href="lp-matches.html" class="text-sm font-medium text-navy-900 nav-active pb-5 -mb-px">Matches</a>
+                        <a href="lp-pipeline.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">Pipeline</a>
+                        <a href="lp-watchlist.html" class="text-sm font-medium text-navy-500 hover:text-navy-700">Watchlist</a>
+                    </nav>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="hidden sm:block text-sm text-navy-600">CalPERS</span>
+                    <a href="lp-settings.html" class="w-8 h-8 rounded-full bg-gradient-to-br from-teal-100 to-teal-200 flex items-center justify-center">
+                        <span class="text-sm font-semibold text-teal-700">MJ</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 lg:px-6 py-6 lg:py-8" style="padding-bottom: 3rem;">
+        <!-- Page Header -->
+        <div class="flex justify-between items-start mb-6">
+            <div>
+                <h1 class="text-xl lg:text-2xl font-semibold text-navy-900">Fund Matches</h1>
+                <p class="text-sm text-navy-500 mt-1">AI-powered matches for your investment mandates</p>
+            </div>
+            <button class="btn-primary flex items-center">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                </svg>
+                Refresh Matches
+            </button>
+        </div>
+
+        <!-- Mandate Selector -->
+        <div class="flex space-x-1 mb-6 bg-slate-100 p-1 rounded-lg w-fit">
+            <button class="px-4 py-2 text-sm font-medium bg-white text-navy-900 rounded shadow-sm">All Mandates (84)</button>
+            <button class="px-4 py-2 text-sm font-medium text-navy-500 hover:text-navy-700">PE Growth (52)</button>
+            <button class="px-4 py-2 text-sm font-medium text-navy-500 hover:text-navy-700">Infrastructure (32)</button>
+        </div>
+
+        <!-- Stats Row -->
+        <div class="grid grid-cols-4 gap-4 mb-6">
+            <div class="card p-4">
+                <div class="text-sm text-navy-500">Total Matches</div>
+                <div class="text-xl lg:text-2xl font-semibold text-navy-900">84</div>
+            </div>
+            <div class="card p-4">
+                <div class="text-sm text-navy-500">Avg Score</div>
+                <div class="text-xl lg:text-2xl font-semibold text-navy-900">78</div>
+            </div>
+            <div class="card p-4">
+                <div class="text-sm text-navy-500">In Pipeline</div>
+                <div class="text-xl lg:text-2xl font-semibold text-navy-900">12</div>
+            </div>
+            <div class="card p-4">
+                <div class="text-sm text-navy-500">Watching</div>
+                <div class="text-xl lg:text-2xl font-semibold text-navy-900">8</div>
+            </div>
+        </div>
+
+        <!-- Match Cards -->
+        <div class="space-y-4">
+            <!-- Match 1 - High Score -->
+            <a href="lp-match-detail.html" class="card p-6 block hover:shadow-lg transition-shadow">
+                <div class="flex items-start justify-between">
+                    <div class="flex items-start space-x-4">
+                        <div class="flex items-center justify-center w-12 h-12 rounded-full bg-green-50 text-green-700 font-bold text-lg">
+                            94
+                        </div>
+                        <div>
+                            <div class="flex items-center">
+                                <h3 class="font-semibold text-navy-900">Acme Growth Fund III</h3>
+                                <span class="ml-2 px-2 py-0.5 text-xs bg-green-50 text-green-700 rounded">Excellent Fit</span>
+                            </div>
+                            <p class="text-sm text-navy-500 mt-0.5">Acme Capital | Growth Equity | $500M Target</p>
+                            <div class="flex items-center mt-3 space-x-6 text-sm">
+                                <div class="flex items-center text-green-600">
+                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    Strategy aligned
+                                </div>
+                                <div class="flex items-center text-green-600">
+                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    Track record
+                                </div>
+                                <div class="flex items-center text-green-600">
+                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    Size fit
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex space-x-2">
+                        <span class="btn-secondary text-sm">Why this match?</span>
+                        <button class="btn-teal text-sm" onclick="event.preventDefault(); event.stopPropagation();">+ Pipeline</button>
+                    </div>
+                </div>
+            </a>
+
+            <!-- Match 2 -->
+            <a href="lp-match-detail.html" class="card p-6 block hover:shadow-lg transition-shadow">
+                <div class="flex items-start justify-between">
+                    <div class="flex items-start space-x-4">
+                        <div class="flex items-center justify-center w-12 h-12 rounded-full bg-green-50 text-green-700 font-bold text-lg">
+                            91
+                        </div>
+                        <div>
+                            <div class="flex items-center">
+                                <h3 class="font-semibold text-navy-900">Summit Infra Fund II</h3>
+                                <span class="ml-2 px-2 py-0.5 text-xs bg-green-50 text-green-700 rounded">Excellent Fit</span>
+                                <span class="ml-2 px-2 py-0.5 text-xs bg-teal-50 text-teal-700 rounded">Infrastructure</span>
+                            </div>
+                            <p class="text-sm text-navy-500 mt-0.5">Summit Partners | Infrastructure | $1.2B Target</p>
+                            <div class="flex items-center mt-3 space-x-6 text-sm">
+                                <div class="flex items-center text-green-600">
+                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    Strong returns
+                                </div>
+                                <div class="flex items-center text-green-600">
+                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    Experienced team
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex space-x-2">
+                        <span class="btn-secondary text-sm">Why this match?</span>
+                        <button class="btn-teal text-sm" onclick="event.preventDefault(); event.stopPropagation();">+ Pipeline</button>
+                    </div>
+                </div>
+            </a>
+
+            <!-- Match 3 -->
+            <a href="lp-match-detail.html" class="card p-6 block hover:shadow-lg transition-shadow">
+                <div class="flex items-start justify-between">
+                    <div class="flex items-start space-x-4">
+                        <div class="flex items-center justify-center w-12 h-12 rounded-full bg-yellow-50 text-yellow-700 font-bold text-lg">
+                            87
+                        </div>
+                        <div>
+                            <div class="flex items-center">
+                                <h3 class="font-semibold text-navy-900">Horizon Growth V</h3>
+                                <span class="ml-2 px-2 py-0.5 text-xs bg-yellow-50 text-yellow-700 rounded">Strong Fit</span>
+                            </div>
+                            <p class="text-sm text-navy-500 mt-0.5">Horizon Ventures | Growth Equity | $750M Target</p>
+                            <div class="flex items-center mt-3 space-x-6 text-sm">
+                                <div class="flex items-center text-green-600">
+                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    Strategy aligned
+                                </div>
+                                <div class="flex items-center text-amber-600">
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                    </svg>
+                                    First-time LP outreach
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex space-x-2">
+                        <span class="btn-secondary text-sm">Why this match?</span>
+                        <button class="btn-teal text-sm" onclick="event.preventDefault(); event.stopPropagation();">+ Pipeline</button>
+                    </div>
+                </div>
+            </a>
+
+            <!-- Match 4 -->
+            <a href="lp-match-detail.html" class="card p-6 block hover:shadow-lg transition-shadow">
+                <div class="flex items-start justify-between">
+                    <div class="flex items-start space-x-4">
+                        <div class="flex items-center justify-center w-12 h-12 rounded-full bg-blue-50 text-blue-700 font-bold text-lg">
+                            82
+                        </div>
+                        <div>
+                            <div class="flex items-center">
+                                <h3 class="font-semibold text-navy-900">Northstar Tech Fund IV</h3>
+                                <span class="ml-2 px-2 py-0.5 text-xs bg-blue-50 text-blue-700 rounded">Good Fit</span>
+                            </div>
+                            <p class="text-sm text-navy-500 mt-0.5">Northstar Capital | Growth Equity | $400M Target</p>
+                            <div class="flex items-center mt-3 space-x-6 text-sm">
+                                <div class="flex items-center text-green-600">
+                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    ESG aligned
+                                </div>
+                                <div class="flex items-center text-amber-600">
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                    </svg>
+                                    Below size range
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex space-x-2">
+                        <span class="btn-secondary text-sm">Why this match?</span>
+                        <button class="btn-teal text-sm" onclick="event.preventDefault(); event.stopPropagation();">+ Pipeline</button>
+                    </div>
+                </div>
+            </a>
+
+            <!-- Match 5 -->
+            <a href="lp-match-detail.html" class="card p-6 block hover:shadow-lg transition-shadow">
+                <div class="flex items-start justify-between">
+                    <div class="flex items-start space-x-4">
+                        <div class="flex items-center justify-center w-12 h-12 rounded-full bg-slate-100 text-slate-600 font-bold text-lg">
+                            74
+                        </div>
+                        <div>
+                            <div class="flex items-center">
+                                <h3 class="font-semibold text-navy-900">Catalyst Growth III</h3>
+                                <span class="ml-2 px-2 py-0.5 text-xs bg-slate-100 text-slate-600 rounded">Moderate Fit</span>
+                            </div>
+                            <p class="text-sm text-navy-500 mt-0.5">Catalyst Partners | Growth Equity | $600M Target</p>
+                            <div class="flex items-center mt-3 space-x-6 text-sm">
+                                <div class="flex items-center text-green-600">
+                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    Strategy aligned
+                                </div>
+                                <div class="flex items-center text-amber-600">
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                    </svg>
+                                    Europe focus
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex space-x-2">
+                        <span class="btn-secondary text-sm">Why this match?</span>
+                        <button class="btn-teal text-sm" onclick="event.preventDefault(); event.stopPropagation();">+ Pipeline</button>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <!-- Load More -->
+        <div class="text-center mt-6">
+            <button class="btn-secondary">Load More (79 remaining)</button>
+        </div>
+    </main>
+</body>
+</html>
