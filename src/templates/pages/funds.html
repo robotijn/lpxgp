@@ -101,7 +101,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
             </svg>
             <p class="text-navy-500 mb-4">No funds yet. Create your first fund to get AI-powered LP recommendations.</p>
-            <button onclick="document.getElementById('create-fund-modal').classList.remove('hidden')"
+            <button onclick="document.getElementById('create-fund-modal').classList.add('hidden'); document.getElementById('create-fund-modal').classList.remove('hidden')"
                     class="btn-primary">
                 Create Your First Fund
             </button>
@@ -110,16 +110,193 @@
     </div>
 </div>
 
-<!-- Create Fund Modal (placeholder) -->
+<!-- Create Fund Modal -->
 <div id="create-fund-modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50"
      onclick="if(event.target === this) this.classList.add('hidden')">
-    <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full mx-4 p-6" onclick="event.stopPropagation()">
-        <h2 class="text-xl font-bold text-navy-900 mb-4">Create New Fund</h2>
-        <p class="text-navy-500 mb-6">Fund creation wizard coming soon. This will include deck upload and AI extraction.</p>
-        <div class="flex justify-end">
+    <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto"
+         onclick="event.stopPropagation()">
+        <!-- Header -->
+        <div class="sticky top-0 bg-white border-b border-navy-100 px-6 py-4 flex items-center justify-between">
+            <h2 class="text-xl font-bold text-navy-900">Create New Fund</h2>
             <button onclick="this.closest('#create-fund-modal').classList.add('hidden')"
-                    class="btn-secondary">Close</button>
+                    class="text-navy-400 hover:text-navy-600 p-1">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
         </div>
+
+        <!-- Form -->
+        <form id="create-fund-form" hx-post="/api/funds" hx-target="#form-response" hx-swap="innerHTML">
+            <div class="p-6 space-y-6">
+                <!-- Response area -->
+                <div id="form-response"></div>
+
+                <!-- Basic Info -->
+                <div>
+                    <h3 class="text-sm font-semibold text-navy-700 mb-3 flex items-center">
+                        <span class="w-6 h-6 rounded-full bg-gold text-white text-xs flex items-center justify-center mr-2">1</span>
+                        Basic Information
+                    </h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="col-span-2">
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Fund Name *</label>
+                            <input type="text" name="name" required
+                                   placeholder="e.g., Growth Fund III"
+                                   class="form-input w-full">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-sm font-medium text-navy-700 mb-1">GP Organization *</label>
+                            <select name="org_id" required class="form-input w-full">
+                                <option value="">Select organization...</option>
+                                {% for org in gp_orgs %}
+                                <option value="{{ org.id }}">{{ org.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Status</label>
+                            <select name="status" class="form-input w-full">
+                                <option value="draft">Draft</option>
+                                <option value="raising">Raising</option>
+                                <option value="closed">Closed</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Vintage Year</label>
+                            <input type="number" name="vintage_year" min="2000" max="2030"
+                                   placeholder="2024" class="form-input w-full">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Target Size ($M)</label>
+                            <input type="number" name="target_size_mm" step="0.01" min="0"
+                                   placeholder="500" class="form-input w-full">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Strategy -->
+                <div>
+                    <h3 class="text-sm font-semibold text-navy-700 mb-3 flex items-center">
+                        <span class="w-6 h-6 rounded-full bg-gold text-white text-xs flex items-center justify-center mr-2">2</span>
+                        Strategy & Focus
+                    </h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Primary Strategy</label>
+                            <select name="strategy" class="form-input w-full">
+                                <option value="">Select...</option>
+                                <option value="buyout">Buyout</option>
+                                <option value="growth">Growth Equity</option>
+                                <option value="venture">Venture Capital</option>
+                                <option value="credit">Private Credit</option>
+                                <option value="real_estate">Real Estate</option>
+                                <option value="infrastructure">Infrastructure</option>
+                                <option value="secondaries">Secondaries</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Sub-Strategy</label>
+                            <input type="text" name="sub_strategy"
+                                   placeholder="e.g., Mid-market, Tech-focused"
+                                   class="form-input w-full">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Geographic Focus</label>
+                            <input type="text" name="geographic_focus"
+                                   placeholder="North America, Europe"
+                                   class="form-input w-full">
+                            <p class="text-xs text-navy-400 mt-1">Comma-separated</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Sector Focus</label>
+                            <input type="text" name="sector_focus"
+                                   placeholder="Technology, Healthcare"
+                                   class="form-input w-full">
+                            <p class="text-xs text-navy-400 mt-1">Comma-separated</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Investment Parameters -->
+                <div>
+                    <h3 class="text-sm font-semibold text-navy-700 mb-3 flex items-center">
+                        <span class="w-6 h-6 rounded-full bg-gold text-white text-xs flex items-center justify-center mr-2">3</span>
+                        Investment Parameters
+                    </h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Min Check Size ($M)</label>
+                            <input type="number" name="check_size_min_mm" step="0.01" min="0"
+                                   placeholder="10" class="form-input w-full">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Max Check Size ($M)</label>
+                            <input type="number" name="check_size_max_mm" step="0.01" min="0"
+                                   placeholder="100" class="form-input w-full">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Terms -->
+                <div>
+                    <h3 class="text-sm font-semibold text-navy-700 mb-3 flex items-center">
+                        <span class="w-6 h-6 rounded-full bg-gold text-white text-xs flex items-center justify-center mr-2">4</span>
+                        Fund Terms
+                    </h3>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Mgmt Fee (%)</label>
+                            <input type="number" name="management_fee_pct" step="0.01" min="0" max="5"
+                                   placeholder="2.0" class="form-input w-full">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Carry (%)</label>
+                            <input type="number" name="carried_interest_pct" step="0.01" min="0" max="50"
+                                   placeholder="20" class="form-input w-full">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">GP Commit (%)</label>
+                            <input type="number" name="gp_commitment_pct" step="0.01" min="0" max="20"
+                                   placeholder="2.0" class="form-input w-full">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Investment Thesis -->
+                <div>
+                    <h3 class="text-sm font-semibold text-navy-700 mb-3 flex items-center">
+                        <span class="w-6 h-6 rounded-full bg-gold text-white text-xs flex items-center justify-center mr-2">5</span>
+                        Investment Thesis
+                    </h3>
+                    <textarea name="investment_thesis" rows="4"
+                              placeholder="Describe your fund's investment thesis, target opportunities, and differentiation..."
+                              class="form-input w-full"></textarea>
+                    <p class="text-xs text-navy-400 mt-1">This will be used for AI-powered LP matching</p>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="sticky bottom-0 bg-white border-t border-navy-100 px-6 py-4 flex justify-end gap-3">
+                <button type="button"
+                        onclick="this.closest('#create-fund-modal').classList.add('hidden')"
+                        class="px-4 py-2 text-navy-600 hover:text-navy-800 font-medium">
+                    Cancel
+                </button>
+                <button type="submit" class="btn-primary">
+                    Create Fund
+                </button>
+            </div>
+        </form>
     </div>
 </div>
+
+<script>
+// Reset form and close modal on success
+document.body.addEventListener('fundCreated', function() {
+    setTimeout(() => {
+        window.location.reload();
+    }, 1500);
+});
+</script>
 {% endblock %}

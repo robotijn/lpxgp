@@ -228,6 +228,7 @@ async def funds_page(request: Request):
     empty_response = {
         "title": "Funds - LPxGP",
         "funds": [],
+        "gp_orgs": [],
         "total_target": 0,
         "raising_count": 0,
     }
@@ -238,6 +239,7 @@ async def funds_page(request: Request):
 
     try:
         with conn.cursor() as cur:
+            # Get funds
             cur.execute("""
                 SELECT
                     f.id, f.name, f.status, f.vintage_year,
@@ -252,6 +254,14 @@ async def funds_page(request: Request):
             """)
             funds = cur.fetchall()
 
+            # Get GP organizations for the create form
+            cur.execute("""
+                SELECT id, name FROM organizations
+                WHERE is_gp = TRUE
+                ORDER BY name
+            """)
+            gp_orgs = cur.fetchall()
+
         # Calculate stats
         total_target = sum(f["target_size_mm"] or 0 for f in funds)
         raising_count = sum(1 for f in funds if f["status"] == "raising")
@@ -262,6 +272,7 @@ async def funds_page(request: Request):
             {
                 "title": "Funds - LPxGP",
                 "funds": funds,
+                "gp_orgs": gp_orgs,
                 "total_target": total_target,
                 "raising_count": raising_count,
             },
@@ -459,6 +470,108 @@ async def lp_detail(request: Request, lp_id: str):
             "partials/lp_detail_modal.html",
             {"lp": lp, "contacts": contacts},
         )
+    finally:
+        conn.close()
+
+
+@app.post("/api/funds", response_class=HTMLResponse)
+async def create_fund(
+    request: Request,
+    name: str = Form(...),
+    org_id: str = Form(...),
+    status: str = Form(default="draft"),
+    vintage_year: Optional[int] = Form(default=None),
+    target_size_mm: Optional[float] = Form(default=None),
+    strategy: Optional[str] = Form(default=None),
+    sub_strategy: Optional[str] = Form(default=None),
+    geographic_focus: Optional[str] = Form(default=""),
+    sector_focus: Optional[str] = Form(default=""),
+    check_size_min_mm: Optional[float] = Form(default=None),
+    check_size_max_mm: Optional[float] = Form(default=None),
+    investment_thesis: Optional[str] = Form(default=None),
+    management_fee_pct: Optional[float] = Form(default=None),
+    carried_interest_pct: Optional[float] = Form(default=None),
+    gp_commitment_pct: Optional[float] = Form(default=None),
+):
+    """Create a new fund."""
+    if not is_valid_uuid(org_id):
+        return HTMLResponse(
+            content="<p class='text-red-500'>Invalid organization ID</p>",
+            status_code=400
+        )
+
+    conn = get_db()
+    if not conn:
+        return HTMLResponse(
+            content="<p class='text-navy-500'>Database not configured</p>",
+            status_code=503
+        )
+
+    try:
+        # Parse array fields (comma-separated)
+        geo_array = [g.strip() for g in geographic_focus.split(",") if g.strip()] if geographic_focus else []
+        sector_array = [s.strip() for s in sector_focus.split(",") if s.strip()] if sector_focus else []
+
+        with conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO funds (
+                    org_id, name, status, vintage_year, target_size_mm,
+                    strategy, sub_strategy, geographic_focus, sector_focus,
+                    check_size_min_mm, check_size_max_mm, investment_thesis,
+                    management_fee_pct, carried_interest_pct, gp_commitment_pct
+                ) VALUES (
+                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+                ) RETURNING id
+            """, (
+                org_id, name, status, vintage_year, target_size_mm,
+                strategy, sub_strategy, geo_array, sector_array,
+                check_size_min_mm, check_size_max_mm, investment_thesis,
+                management_fee_pct, carried_interest_pct, gp_commitment_pct
+            ))
+            fund_id = cur.fetchone()["id"]
+            conn.commit()
+
+        # Return success with redirect
+        return HTMLResponse(
+            content=f"""
+            <div class="text-center p-4">
+                <svg class="w-12 h-12 text-green-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                <h3 class="text-lg font-semibold text-navy-900 mb-2">Fund Created!</h3>
+                <p class="text-navy-500 mb-4">{name} has been created successfully.</p>
+                <a href="/funds" class="btn-primary">View All Funds</a>
+            </div>
+            """,
+            headers={"HX-Trigger": "fundCreated"}
+        )
+    except Exception as e:
+        logger.error(f"Failed to create fund: {e}")
+        conn.rollback()
+        return HTMLResponse(
+            content=f"<p class='text-red-500'>Failed to create fund: {str(e)}</p>",
+            status_code=500
+        )
+    finally:
+        conn.close()
+
+
+@app.get("/api/organizations/gp", response_class=JSONResponse)
+async def get_gp_organizations():
+    """Get list of GP organizations for fund creation."""
+    conn = get_db()
+    if not conn:
+        return JSONResponse(content=[], status_code=200)
+
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT id, name FROM organizations
+                WHERE is_gp = TRUE
+                ORDER BY name
+            """)
+            orgs = cur.fetchall()
+        return JSONResponse(content=[dict(o) for o in orgs])
     finally:
         conn.close()
 
