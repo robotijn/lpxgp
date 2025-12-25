@@ -31,8 +31,21 @@ jobs:
         run: uv run ruff check .
         continue-on-error: true  # Don't fail CI on lint warnings for now
 
-      - name: Run tests
-        run: uv run pytest tests/ -v --tb=short
+      - name: Run unit tests
+        run: uv run pytest tests/ -v --tb=short -m "not browser"
+
+      - name: Install Playwright browsers
+        run: uv run playwright install chromium --with-deps
+
+      - name: Run browser tests
+        run: |
+          # Start server in background
+          uv run uvicorn src.main:app --host 127.0.0.1 --port 8000 &
+          sleep 3
+          # Run browser tests
+          uv run pytest tests/ -v --tb=short -m "browser"
+          # Kill server
+          kill %1 || true
 
       - name: Check test coverage
         run: |
