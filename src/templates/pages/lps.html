@@ -11,9 +11,18 @@
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
     <!-- Page Header -->
-    <div class="mb-8">
-        <h1 class="text-2xl font-bold text-navy-900">LP Database</h1>
-        <p class="text-navy-500 mt-1">Browse and search institutional investors</p>
+    <div class="flex items-center justify-between mb-8">
+        <div>
+            <h1 class="text-2xl font-bold text-navy-900">LP Database</h1>
+            <p class="text-navy-500 mt-1">Browse and search institutional investors</p>
+        </div>
+        <button onclick="document.getElementById('create-lp-modal').classList.remove('hidden')"
+                class="btn-primary">
+            <svg class="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            New LP
+        </button>
     </div>
 
     <!-- Search & Filters -->
@@ -65,13 +74,10 @@
     <!-- LP Grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {% for lp in lps %}
-        <div class="card p-5 hover:shadow-md transition-shadow cursor-pointer"
-             hx-get="/api/lp/{{ lp.id }}/detail"
-             hx-target="#lp-detail-modal"
-             hx-swap="innerHTML">
+        <div class="card p-5 hover:shadow-md transition-shadow">
             <div class="flex items-start justify-between mb-3">
-                <div>
-                    <h3 class="font-semibold text-navy-900">{{ lp.name }}</h3>
+                <div class="cursor-pointer" hx-get="/api/lp/{{ lp.id }}/detail" hx-target="#lp-detail-modal" hx-swap="innerHTML">
+                    <h3 class="font-semibold text-navy-900 hover:text-gold">{{ lp.name }}</h3>
                     <p class="text-sm text-navy-500">{{ lp.hq_city }}{% if lp.hq_country %}, {{ lp.hq_country }}{% endif %}</p>
                 </div>
                 <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-navy-100 text-navy-700">
@@ -101,7 +107,7 @@
                 <div>
                     <div class="text-navy-500">Website</div>
                     {% if lp.website %}
-                    <a href="{{ lp.website }}" target="_blank" class="font-medium text-gold hover:underline" onclick="event.stopPropagation()">Visit</a>
+                    <a href="{{ lp.website }}" target="_blank" class="font-medium text-gold hover:underline">Visit</a>
                     {% else %}
                     <div class="text-navy-400">-</div>
                     {% endif %}
@@ -115,24 +121,235 @@
                 {% endfor %}
             </div>
             {% endif %}
+
+            <div class="mt-4 pt-3 border-t border-navy-100 flex justify-end">
+                <button hx-get="/api/lps/{{ lp.id }}/edit"
+                        hx-target="#lp-edit-modal"
+                        hx-swap="innerHTML"
+                        class="text-sm text-navy-500 hover:text-navy-700">
+                    Edit
+                </button>
+            </div>
         </div>
         {% else %}
         <div class="col-span-full card p-8 text-center">
             <svg class="w-12 h-12 text-navy-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
             </svg>
-            <p class="text-navy-500">
+            <p class="text-navy-500 mb-4">
                 {% if search or lp_type %}
                 No LPs found matching your criteria. Try adjusting your filters.
                 {% else %}
-                No LP data available. Import LP data to get started.
+                No LP data available. Add your first LP to get started.
                 {% endif %}
             </p>
+            <button onclick="document.getElementById('create-lp-modal').classList.remove('hidden')"
+                    class="btn-primary">
+                Add Your First LP
+            </button>
         </div>
         {% endfor %}
     </div>
 </div>
 
+<!-- Create LP Modal -->
+<div id="create-lp-modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+     onclick="if(event.target === this) this.classList.add('hidden')">
+    <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto"
+         onclick="event.stopPropagation()">
+        <!-- Header -->
+        <div class="sticky top-0 bg-white border-b border-navy-100 px-6 py-4 flex items-center justify-between">
+            <h2 class="text-xl font-bold text-navy-900">Add New LP</h2>
+            <button onclick="this.closest('#create-lp-modal').classList.add('hidden')"
+                    class="text-navy-400 hover:text-navy-600 p-1">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Form -->
+        <form id="create-lp-form" hx-post="/api/lps" hx-target="#lp-form-response" hx-swap="innerHTML">
+            <div class="p-6 space-y-6">
+                <!-- Response area -->
+                <div id="lp-form-response"></div>
+
+                <!-- Basic Info -->
+                <div>
+                    <h3 class="text-sm font-semibold text-navy-700 mb-3 flex items-center">
+                        <span class="w-6 h-6 rounded-full bg-gold text-white text-xs flex items-center justify-center mr-2">1</span>
+                        Organization Info
+                    </h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="col-span-2">
+                            <label class="block text-sm font-medium text-navy-700 mb-1">LP Name *</label>
+                            <input type="text" name="name" required
+                                   placeholder="e.g., California Public Employees' Retirement System"
+                                   class="form-input w-full">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">LP Type</label>
+                            <select name="lp_type" class="form-input w-full">
+                                <option value="">Select type...</option>
+                                <option value="pension">Pension</option>
+                                <option value="endowment">Endowment</option>
+                                <option value="foundation">Foundation</option>
+                                <option value="family_office">Family Office</option>
+                                <option value="sovereign_wealth">Sovereign Wealth</option>
+                                <option value="insurance">Insurance</option>
+                                <option value="fund_of_funds">Fund of Funds</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Website</label>
+                            <input type="url" name="website" placeholder="https://..."
+                                   class="form-input w-full">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">HQ City</label>
+                            <input type="text" name="hq_city" placeholder="New York"
+                                   class="form-input w-full">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">HQ Country</label>
+                            <input type="text" name="hq_country" placeholder="USA"
+                                   class="form-input w-full">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Description</label>
+                            <textarea name="description" rows="2"
+                                      placeholder="Brief description of the LP..."
+                                      class="form-input w-full"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Investment Profile -->
+                <div>
+                    <h3 class="text-sm font-semibold text-navy-700 mb-3 flex items-center">
+                        <span class="w-6 h-6 rounded-full bg-gold text-white text-xs flex items-center justify-center mr-2">2</span>
+                        Investment Profile
+                    </h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Total AUM ($B)</label>
+                            <input type="number" name="total_aum_bn" step="0.01" min="0"
+                                   placeholder="100" class="form-input w-full">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">PE Allocation (%)</label>
+                            <input type="number" name="pe_allocation_pct" step="0.01" min="0" max="100"
+                                   placeholder="10" class="form-input w-full">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Min Check Size ($M)</label>
+                            <input type="number" name="check_size_min_mm" step="0.01" min="0"
+                                   placeholder="25" class="form-input w-full">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Max Check Size ($M)</label>
+                            <input type="number" name="check_size_max_mm" step="0.01" min="0"
+                                   placeholder="100" class="form-input w-full">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Preferences -->
+                <div>
+                    <h3 class="text-sm font-semibold text-navy-700 mb-3 flex items-center">
+                        <span class="w-6 h-6 rounded-full bg-gold text-white text-xs flex items-center justify-center mr-2">3</span>
+                        Investment Preferences
+                    </h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Strategies</label>
+                            <input type="text" name="strategies"
+                                   placeholder="buyout, growth, venture"
+                                   class="form-input w-full">
+                            <p class="text-xs text-navy-400 mt-1">Comma-separated</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Geographic Focus</label>
+                            <input type="text" name="geographic_preferences"
+                                   placeholder="North America, Europe"
+                                   class="form-input w-full">
+                            <p class="text-xs text-navy-400 mt-1">Comma-separated</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Sector Focus</label>
+                            <input type="text" name="sector_preferences"
+                                   placeholder="Technology, Healthcare"
+                                   class="form-input w-full">
+                            <p class="text-xs text-navy-400 mt-1">Comma-separated</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Min Track Record</label>
+                            <input type="number" name="min_track_record_years" min="0"
+                                   placeholder="5" class="form-input w-full">
+                            <p class="text-xs text-navy-400 mt-1">Years</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Min Fund Number</label>
+                            <input type="number" name="min_fund_number" min="1"
+                                   placeholder="2" class="form-input w-full">
+                        </div>
+                        <div class="flex items-center gap-4 pt-6">
+                            <label class="flex items-center gap-2 text-sm">
+                                <input type="checkbox" name="esg_required" value="true" class="rounded">
+                                ESG Required
+                            </label>
+                            <label class="flex items-center gap-2 text-sm">
+                                <input type="checkbox" name="emerging_manager_ok" value="true" class="rounded">
+                                Emerging OK
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mandate -->
+                <div>
+                    <h3 class="text-sm font-semibold text-navy-700 mb-3 flex items-center">
+                        <span class="w-6 h-6 rounded-full bg-gold text-white text-xs flex items-center justify-center mr-2">4</span>
+                        Investment Mandate
+                    </h3>
+                    <textarea name="mandate_description" rows="3"
+                              placeholder="Describe the LP's investment mandate and criteria..."
+                              class="form-input w-full"></textarea>
+                    <p class="text-xs text-navy-400 mt-1">Used for AI-powered fund matching</p>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="sticky bottom-0 bg-white border-t border-navy-100 px-6 py-4 flex justify-end gap-3">
+                <button type="button"
+                        onclick="this.closest('#create-lp-modal').classList.add('hidden')"
+                        class="px-4 py-2 text-navy-600 hover:text-navy-800 font-medium">
+                    Cancel
+                </button>
+                <button type="submit" class="btn-primary">
+                    Add LP
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.body.addEventListener('lpCreated', function() {
+    setTimeout(() => { window.location.reload(); }, 1500);
+});
+document.body.addEventListener('lpUpdated', function() {
+    setTimeout(() => { window.location.reload(); }, 1500);
+});
+document.body.addEventListener('lpDeleted', function() {
+    setTimeout(() => { window.location.reload(); }, 1500);
+});
+</script>
+
 <!-- LP Detail Modal -->
 <div id="lp-detail-modal"></div>
+
+<!-- LP Edit Modal -->
+<div id="lp-edit-modal"></div>
 {% endblock %}

@@ -762,6 +762,277 @@ async def delete_fund(request: Request, fund_id: str):
         conn.close()
 
 
+# -----------------------------------------------------------------------------
+# LP CRUD Endpoints
+# -----------------------------------------------------------------------------
+
+@app.post("/api/lps", response_class=HTMLResponse)
+async def create_lp(
+    request: Request,
+    name: str = Form(...),
+    lp_type: Optional[str] = Form(default=None),
+    hq_city: Optional[str] = Form(default=None),
+    hq_country: Optional[str] = Form(default=None),
+    website: Optional[str] = Form(default=None),
+    description: Optional[str] = Form(default=None),
+    total_aum_bn: Optional[float] = Form(default=None),
+    pe_allocation_pct: Optional[float] = Form(default=None),
+    strategies: Optional[str] = Form(default=""),
+    geographic_preferences: Optional[str] = Form(default=""),
+    sector_preferences: Optional[str] = Form(default=""),
+    check_size_min_mm: Optional[float] = Form(default=None),
+    check_size_max_mm: Optional[float] = Form(default=None),
+    fund_size_min_mm: Optional[float] = Form(default=None),
+    fund_size_max_mm: Optional[float] = Form(default=None),
+    min_track_record_years: Optional[int] = Form(default=None),
+    min_fund_number: Optional[int] = Form(default=None),
+    esg_required: bool = Form(default=False),
+    emerging_manager_ok: bool = Form(default=False),
+    mandate_description: Optional[str] = Form(default=None),
+):
+    """Create a new LP (organization + lp_profile)."""
+    conn = get_db()
+    if not conn:
+        return HTMLResponse(
+            content="<p class='text-navy-500'>Database not configured</p>",
+            status_code=503
+        )
+
+    try:
+        # Parse array fields
+        strategies_arr = [s.strip() for s in strategies.split(",") if s.strip()] if strategies else []
+        geo_arr = [g.strip() for g in geographic_preferences.split(",") if g.strip()] if geographic_preferences else []
+        sector_arr = [s.strip() for s in sector_preferences.split(",") if s.strip()] if sector_preferences else []
+
+        with conn.cursor() as cur:
+            # Create organization
+            cur.execute("""
+                INSERT INTO organizations (name, website, hq_city, hq_country, description, is_lp)
+                VALUES (%s, %s, %s, %s, %s, TRUE)
+                RETURNING id
+            """, (name, website, hq_city, hq_country, description))
+            org_id = cur.fetchone()["id"]
+
+            # Create lp_profile
+            cur.execute("""
+                INSERT INTO lp_profiles (
+                    org_id, lp_type, total_aum_bn, pe_allocation_pct,
+                    strategies, geographic_preferences, sector_preferences,
+                    check_size_min_mm, check_size_max_mm,
+                    fund_size_min_mm, fund_size_max_mm,
+                    min_track_record_years, min_fund_number,
+                    esg_required, emerging_manager_ok, mandate_description
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """, (
+                org_id, lp_type, total_aum_bn, pe_allocation_pct,
+                strategies_arr, geo_arr, sector_arr,
+                check_size_min_mm, check_size_max_mm,
+                fund_size_min_mm, fund_size_max_mm,
+                min_track_record_years, min_fund_number,
+                esg_required, emerging_manager_ok, mandate_description
+            ))
+            conn.commit()
+
+        return HTMLResponse(
+            content=f"""
+            <div class="text-center p-4">
+                <svg class="w-12 h-12 text-green-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                <h3 class="text-lg font-semibold text-navy-900 mb-2">LP Created!</h3>
+                <p class="text-navy-500 mb-4">{name} has been added to the database.</p>
+            </div>
+            """,
+            headers={"HX-Trigger": "lpCreated"}
+        )
+    except Exception as e:
+        logger.error(f"Failed to create LP: {e}")
+        conn.rollback()
+        return HTMLResponse(
+            content=f"<p class='text-red-500'>Failed to create LP: {str(e)}</p>",
+            status_code=500
+        )
+    finally:
+        conn.close()
+
+
+@app.get("/api/lps/{lp_id}/edit", response_class=HTMLResponse)
+async def get_lp_edit_form(request: Request, lp_id: str):
+    """Get LP edit form with pre-populated data."""
+    if not is_valid_uuid(lp_id):
+        return HTMLResponse(content="<p class='text-red-500'>Invalid LP ID</p>", status_code=400)
+
+    conn = get_db()
+    if not conn:
+        return HTMLResponse(content="<p class='text-navy-500'>Database not configured</p>", status_code=503)
+
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT
+                    o.id, o.name, o.hq_city, o.hq_country, o.website, o.description,
+                    lp.lp_type, lp.total_aum_bn, lp.pe_allocation_pct,
+                    lp.strategies, lp.geographic_preferences, lp.sector_preferences,
+                    lp.check_size_min_mm, lp.check_size_max_mm,
+                    lp.fund_size_min_mm, lp.fund_size_max_mm,
+                    lp.min_track_record_years, lp.min_fund_number,
+                    lp.esg_required, lp.emerging_manager_ok, lp.mandate_description
+                FROM organizations o
+                JOIN lp_profiles lp ON lp.org_id = o.id
+                WHERE o.id = %s
+            """, (lp_id,))
+            lp = cur.fetchone()
+
+            if not lp:
+                return HTMLResponse(content="<p class='text-red-500'>LP not found</p>", status_code=404)
+
+        return templates.TemplateResponse(
+            "partials/lp_edit_modal.html",
+            {"request": request, "lp": lp}
+        )
+    finally:
+        conn.close()
+
+
+@app.put("/api/lps/{lp_id}", response_class=HTMLResponse)
+async def update_lp(
+    request: Request,
+    lp_id: str,
+    name: str = Form(...),
+    lp_type: Optional[str] = Form(default=None),
+    hq_city: Optional[str] = Form(default=None),
+    hq_country: Optional[str] = Form(default=None),
+    website: Optional[str] = Form(default=None),
+    description: Optional[str] = Form(default=None),
+    total_aum_bn: Optional[float] = Form(default=None),
+    pe_allocation_pct: Optional[float] = Form(default=None),
+    strategies: Optional[str] = Form(default=""),
+    geographic_preferences: Optional[str] = Form(default=""),
+    sector_preferences: Optional[str] = Form(default=""),
+    check_size_min_mm: Optional[float] = Form(default=None),
+    check_size_max_mm: Optional[float] = Form(default=None),
+    fund_size_min_mm: Optional[float] = Form(default=None),
+    fund_size_max_mm: Optional[float] = Form(default=None),
+    min_track_record_years: Optional[int] = Form(default=None),
+    min_fund_number: Optional[int] = Form(default=None),
+    esg_required: bool = Form(default=False),
+    emerging_manager_ok: bool = Form(default=False),
+    mandate_description: Optional[str] = Form(default=None),
+):
+    """Update an existing LP."""
+    if not is_valid_uuid(lp_id):
+        return HTMLResponse(content="<p class='text-red-500'>Invalid LP ID</p>", status_code=400)
+
+    conn = get_db()
+    if not conn:
+        return HTMLResponse(content="<p class='text-navy-500'>Database not configured</p>", status_code=503)
+
+    try:
+        # Parse array fields
+        strategies_arr = [s.strip() for s in strategies.split(",") if s.strip()] if strategies else []
+        geo_arr = [g.strip() for g in geographic_preferences.split(",") if g.strip()] if geographic_preferences else []
+        sector_arr = [s.strip() for s in sector_preferences.split(",") if s.strip()] if sector_preferences else []
+
+        with conn.cursor() as cur:
+            # Update organization
+            cur.execute("""
+                UPDATE organizations SET
+                    name = %s, website = %s, hq_city = %s, hq_country = %s,
+                    description = %s, updated_at = NOW()
+                WHERE id = %s
+            """, (name, website, hq_city, hq_country, description, lp_id))
+
+            # Update lp_profile
+            cur.execute("""
+                UPDATE lp_profiles SET
+                    lp_type = %s, total_aum_bn = %s, pe_allocation_pct = %s,
+                    strategies = %s, geographic_preferences = %s, sector_preferences = %s,
+                    check_size_min_mm = %s, check_size_max_mm = %s,
+                    fund_size_min_mm = %s, fund_size_max_mm = %s,
+                    min_track_record_years = %s, min_fund_number = %s,
+                    esg_required = %s, emerging_manager_ok = %s,
+                    mandate_description = %s, updated_at = NOW()
+                WHERE org_id = %s
+            """, (
+                lp_type, total_aum_bn, pe_allocation_pct,
+                strategies_arr, geo_arr, sector_arr,
+                check_size_min_mm, check_size_max_mm,
+                fund_size_min_mm, fund_size_max_mm,
+                min_track_record_years, min_fund_number,
+                esg_required, emerging_manager_ok,
+                mandate_description, lp_id
+            ))
+            conn.commit()
+
+        return HTMLResponse(
+            content=f"""
+            <div class="text-center p-4">
+                <svg class="w-12 h-12 text-green-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                <h3 class="text-lg font-semibold text-navy-900 mb-2">LP Updated!</h3>
+                <p class="text-navy-500 mb-4">{name} has been updated successfully.</p>
+            </div>
+            """,
+            headers={"HX-Trigger": "lpUpdated"}
+        )
+    except Exception as e:
+        logger.error(f"Failed to update LP: {e}")
+        conn.rollback()
+        return HTMLResponse(
+            content=f"<p class='text-red-500'>Failed to update LP: {str(e)}</p>",
+            status_code=500
+        )
+    finally:
+        conn.close()
+
+
+@app.delete("/api/lps/{lp_id}", response_class=HTMLResponse)
+async def delete_lp(request: Request, lp_id: str):
+    """Delete an LP (organization + lp_profile via CASCADE)."""
+    if not is_valid_uuid(lp_id):
+        return HTMLResponse(content="<p class='text-red-500'>Invalid LP ID</p>", status_code=400)
+
+    conn = get_db()
+    if not conn:
+        return HTMLResponse(content="<p class='text-navy-500'>Database not configured</p>", status_code=503)
+
+    try:
+        with conn.cursor() as cur:
+            # Get LP name
+            cur.execute("SELECT name FROM organizations WHERE id = %s", (lp_id,))
+            org = cur.fetchone()
+            if not org:
+                return HTMLResponse(content="<p class='text-red-500'>LP not found</p>", status_code=404)
+            lp_name = org["name"]
+
+            # Delete organization (CASCADE deletes lp_profile)
+            cur.execute("DELETE FROM organizations WHERE id = %s", (lp_id,))
+            conn.commit()
+
+        return HTMLResponse(
+            content=f"""
+            <div class="text-center p-4">
+                <svg class="w-12 h-12 text-green-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                <h3 class="text-lg font-semibold text-navy-900 mb-2">LP Deleted</h3>
+                <p class="text-navy-500 mb-4">{lp_name} has been removed.</p>
+            </div>
+            """,
+            headers={"HX-Trigger": "lpDeleted"}
+        )
+    except Exception as e:
+        logger.error(f"Failed to delete LP: {e}")
+        conn.rollback()
+        return HTMLResponse(
+            content=f"<p class='text-red-500'>Failed to delete LP: {str(e)}</p>",
+            status_code=500
+        )
+    finally:
+        conn.close()
+
+
 @app.post("/api/match/{match_id}/generate-pitch", response_class=HTMLResponse)
 async def generate_pitch(
     request: Request,

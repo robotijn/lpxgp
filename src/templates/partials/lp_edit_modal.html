@@ -1,0 +1,243 @@
+<!-- LP Edit Modal Content -->
+<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+     onclick="if(event.target === this) this.remove()">
+    <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto"
+         onclick="event.stopPropagation()">
+        <!-- Header -->
+        <div class="sticky top-0 bg-white border-b border-navy-100 px-6 py-4 flex items-center justify-between">
+            <h2 class="text-xl font-bold text-navy-900">Edit LP</h2>
+            <button onclick="this.closest('.fixed').remove()"
+                    class="text-navy-400 hover:text-navy-600 p-1">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Form -->
+        <form hx-put="/api/lps/{{ lp.id }}" hx-target="#lp-edit-form-response" hx-swap="innerHTML">
+            <div class="p-6 space-y-6">
+                <!-- Response area -->
+                <div id="lp-edit-form-response"></div>
+
+                <!-- Basic Info -->
+                <div>
+                    <h3 class="text-sm font-semibold text-navy-700 mb-3 flex items-center">
+                        <span class="w-6 h-6 rounded-full bg-gold text-white text-xs flex items-center justify-center mr-2">1</span>
+                        Organization Info
+                    </h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="col-span-2">
+                            <label class="block text-sm font-medium text-navy-700 mb-1">LP Name *</label>
+                            <input type="text" name="name" required
+                                   value="{{ lp.name }}"
+                                   class="form-input w-full">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">LP Type</label>
+                            <select name="lp_type" class="form-input w-full">
+                                <option value="">Select type...</option>
+                                <option value="pension" {% if lp.lp_type == 'pension' %}selected{% endif %}>Pension</option>
+                                <option value="endowment" {% if lp.lp_type == 'endowment' %}selected{% endif %}>Endowment</option>
+                                <option value="foundation" {% if lp.lp_type == 'foundation' %}selected{% endif %}>Foundation</option>
+                                <option value="family_office" {% if lp.lp_type == 'family_office' %}selected{% endif %}>Family Office</option>
+                                <option value="sovereign_wealth" {% if lp.lp_type == 'sovereign_wealth' %}selected{% endif %}>Sovereign Wealth</option>
+                                <option value="insurance" {% if lp.lp_type == 'insurance' %}selected{% endif %}>Insurance</option>
+                                <option value="fund_of_funds" {% if lp.lp_type == 'fund_of_funds' %}selected{% endif %}>Fund of Funds</option>
+                                <option value="other" {% if lp.lp_type == 'other' %}selected{% endif %}>Other</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Website</label>
+                            <input type="url" name="website"
+                                   value="{{ lp.website or '' }}"
+                                   class="form-input w-full">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">HQ City</label>
+                            <input type="text" name="hq_city"
+                                   value="{{ lp.hq_city or '' }}"
+                                   class="form-input w-full">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">HQ Country</label>
+                            <input type="text" name="hq_country"
+                                   value="{{ lp.hq_country or '' }}"
+                                   class="form-input w-full">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Description</label>
+                            <textarea name="description" rows="2"
+                                      class="form-input w-full">{{ lp.description or '' }}</textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Investment Profile -->
+                <div>
+                    <h3 class="text-sm font-semibold text-navy-700 mb-3 flex items-center">
+                        <span class="w-6 h-6 rounded-full bg-gold text-white text-xs flex items-center justify-center mr-2">2</span>
+                        Investment Profile
+                    </h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Total AUM ($B)</label>
+                            <input type="number" name="total_aum_bn" step="0.01" min="0"
+                                   value="{{ lp.total_aum_bn or '' }}"
+                                   class="form-input w-full">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">PE Allocation (%)</label>
+                            <input type="number" name="pe_allocation_pct" step="0.01" min="0" max="100"
+                                   value="{{ lp.pe_allocation_pct or '' }}"
+                                   class="form-input w-full">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Min Check Size ($M)</label>
+                            <input type="number" name="check_size_min_mm" step="0.01" min="0"
+                                   value="{{ lp.check_size_min_mm or '' }}"
+                                   class="form-input w-full">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Max Check Size ($M)</label>
+                            <input type="number" name="check_size_max_mm" step="0.01" min="0"
+                                   value="{{ lp.check_size_max_mm or '' }}"
+                                   class="form-input w-full">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Min Fund Size ($M)</label>
+                            <input type="number" name="fund_size_min_mm" step="0.01" min="0"
+                                   value="{{ lp.fund_size_min_mm or '' }}"
+                                   class="form-input w-full">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Max Fund Size ($M)</label>
+                            <input type="number" name="fund_size_max_mm" step="0.01" min="0"
+                                   value="{{ lp.fund_size_max_mm or '' }}"
+                                   class="form-input w-full">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Preferences -->
+                <div>
+                    <h3 class="text-sm font-semibold text-navy-700 mb-3 flex items-center">
+                        <span class="w-6 h-6 rounded-full bg-gold text-white text-xs flex items-center justify-center mr-2">3</span>
+                        Investment Preferences
+                    </h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Strategies</label>
+                            <input type="text" name="strategies"
+                                   value="{{ lp.strategies|join(', ') if lp.strategies else '' }}"
+                                   class="form-input w-full">
+                            <p class="text-xs text-navy-400 mt-1">Comma-separated</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Geographic Focus</label>
+                            <input type="text" name="geographic_preferences"
+                                   value="{{ lp.geographic_preferences|join(', ') if lp.geographic_preferences else '' }}"
+                                   class="form-input w-full">
+                            <p class="text-xs text-navy-400 mt-1">Comma-separated</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Sector Focus</label>
+                            <input type="text" name="sector_preferences"
+                                   value="{{ lp.sector_preferences|join(', ') if lp.sector_preferences else '' }}"
+                                   class="form-input w-full">
+                            <p class="text-xs text-navy-400 mt-1">Comma-separated</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Min Track Record</label>
+                            <input type="number" name="min_track_record_years" min="0"
+                                   value="{{ lp.min_track_record_years or '' }}"
+                                   class="form-input w-full">
+                            <p class="text-xs text-navy-400 mt-1">Years</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Min Fund Number</label>
+                            <input type="number" name="min_fund_number" min="1"
+                                   value="{{ lp.min_fund_number or '' }}"
+                                   class="form-input w-full">
+                        </div>
+                        <div class="flex items-center gap-4 pt-6">
+                            <label class="flex items-center gap-2 text-sm">
+                                <input type="checkbox" name="esg_required" value="true" class="rounded"
+                                       {% if lp.esg_required %}checked{% endif %}>
+                                ESG Required
+                            </label>
+                            <label class="flex items-center gap-2 text-sm">
+                                <input type="checkbox" name="emerging_manager_ok" value="true" class="rounded"
+                                       {% if lp.emerging_manager_ok %}checked{% endif %}>
+                                Emerging OK
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mandate -->
+                <div>
+                    <h3 class="text-sm font-semibold text-navy-700 mb-3 flex items-center">
+                        <span class="w-6 h-6 rounded-full bg-gold text-white text-xs flex items-center justify-center mr-2">4</span>
+                        Investment Mandate
+                    </h3>
+                    <textarea name="mandate_description" rows="3"
+                              class="form-input w-full">{{ lp.mandate_description or '' }}</textarea>
+                    <p class="text-xs text-navy-400 mt-1">Used for AI-powered fund matching</p>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="sticky bottom-0 bg-white border-t border-navy-100 px-6 py-4">
+                <!-- Normal footer -->
+                <div id="lp-edit-footer-normal" class="flex justify-between">
+                    <button type="button"
+                            onclick="document.getElementById('lp-edit-footer-normal').classList.add('hidden'); document.getElementById('lp-edit-footer-delete').classList.remove('hidden');"
+                            class="px-4 py-2 text-red-500 hover:text-red-700 font-medium">
+                        Delete LP
+                    </button>
+                    <div class="flex gap-3">
+                        <button type="button"
+                                onclick="this.closest('.fixed').remove()"
+                                class="px-4 py-2 text-navy-600 hover:text-navy-800 font-medium">
+                            Cancel
+                        </button>
+                        <button type="submit" class="btn-primary">
+                            Save Changes
+                        </button>
+                    </div>
+                </div>
+                <!-- Delete confirmation -->
+                <div id="lp-edit-footer-delete" class="hidden">
+                    <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-3">
+                        <p class="text-red-800 text-sm font-medium">Are you sure you want to delete this LP?</p>
+                        <p class="text-red-600 text-xs mt-1">This action cannot be undone.</p>
+                    </div>
+                    <div class="flex justify-end gap-3">
+                        <button type="button"
+                                onclick="document.getElementById('lp-edit-footer-delete').classList.add('hidden'); document.getElementById('lp-edit-footer-normal').classList.remove('hidden');"
+                                class="px-4 py-2 text-navy-600 hover:text-navy-800 font-medium">
+                            Cancel
+                        </button>
+                        <button type="button"
+                                hx-delete="/api/lps/{{ lp.id }}"
+                                hx-target="#lp-edit-form-response"
+                                hx-swap="innerHTML"
+                                class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium">
+                            Yes, Delete LP
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.body.addEventListener('lpUpdated', function() {
+    setTimeout(() => { window.location.reload(); }, 1500);
+});
+document.body.addEventListener('lpDeleted', function() {
+    setTimeout(() => { window.location.reload(); }, 1500);
+});
+</script>
