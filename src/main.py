@@ -296,14 +296,17 @@ async def api_login(
     user = auth.authenticate_user(email, password)
 
     if not user:
+        # HTMX ignores non-2xx responses by default, so return 200 for HTMX
+        # but 401 for regular requests (API clients, unit tests)
+        is_htmx = request.headers.get("HX-Request") == "true"
         return templates.TemplateResponse(
             request,
             "partials/auth_error.html",
             {"error": "Invalid email or password"},
-            status_code=401,
+            status_code=200 if is_htmx else 401,
         )
 
-    return auth.login_response(user, redirect_to="/dashboard")
+    return auth.login_response(user, redirect_to="/dashboard", request=request)
 
 
 @app.post("/api/auth/register", response_model=None)
@@ -338,7 +341,7 @@ async def api_register(
         else:
             validated_role = "gp"
         user = auth.create_user(email=email, password=password, name=name, role=validated_role)
-        return auth.login_response(user, redirect_to="/dashboard")
+        return auth.login_response(user, redirect_to="/dashboard", request=request)
     except ValueError as e:
         return templates.TemplateResponse(
             request,

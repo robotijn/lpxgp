@@ -31,7 +31,7 @@ import secrets
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Literal, TypedDict
 
-from fastapi import HTTPException, Request
+from fastapi import HTTPException, Request, Response
 from fastapi.responses import RedirectResponse
 
 if TYPE_CHECKING:
@@ -511,27 +511,41 @@ def get_current_user(request: Request) -> CurrentUser | None:
 def login_response(
     user: UserData,
     redirect_to: str = "/dashboard",
-) -> RedirectResponse:
+    request: Request | None = None,
+) -> Response | RedirectResponse:
     """Create a login response with session cookie.
 
     Creates a new session for the user and returns a redirect response
-    with the session cookie set.
+    with the session cookie set. Handles both HTMX and regular requests.
 
     Args:
         user: Authenticated user data.
         redirect_to: URL to redirect to after login. Defaults to "/dashboard".
+        request: Optional request object to detect HTMX requests.
 
     Returns:
-        RedirectResponse with session cookie set.
+        Response with HX-Redirect for HTMX, or RedirectResponse for regular requests.
 
     Example:
         >>> user = authenticate_user(email, password)
         >>> if user:
-        ...     return login_response(user)
+        ...     return login_response(user, request=request)
     """
     session_id = create_session(user)
 
-    response = RedirectResponse(url=redirect_to, status_code=303)
+    # Check if this is an HTMX request
+    is_htmx = request and request.headers.get("HX-Request") == "true"
+
+    if is_htmx:
+        # HTMX needs 200 with HX-Redirect header to follow redirects
+        response = Response(
+            status_code=200,
+            headers={"HX-Redirect": redirect_to}
+        )
+    else:
+        # Standard HTTP redirect for non-HTMX requests
+        response = RedirectResponse(url=redirect_to, status_code=303)
+
     response.set_cookie(
         key=SESSION_COOKIE_NAME,
         value=session_id,

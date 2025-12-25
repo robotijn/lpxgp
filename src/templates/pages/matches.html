@@ -54,11 +54,11 @@
     <!-- Matches Grid -->
     <div id="matches-grid" class="space-y-4">
         {% for match in matches %}
-        <div class="card p-6 hover:shadow-md transition-shadow">
-            <div class="flex items-start justify-between">
-                <div class="flex-1">
-                    <div class="flex items-center space-x-3">
-                        <h3 class="text-lg font-semibold text-navy-900">{{ match.lp_name }}</h3>
+        <div class="card p-4 sm:p-6 hover:shadow-md transition-shadow">
+            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                <div class="flex-1 min-w-0">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <h3 class="text-lg font-semibold text-navy-900 truncate">{{ match.lp_name }}</h3>
                         <span class="px-2 py-0.5 text-xs font-medium rounded-full
                             {% if match.score >= 90 %}bg-green-100 text-green-800
                             {% elif match.score >= 75 %}bg-yellow-100 text-yellow-800
@@ -79,8 +79,8 @@
                         <strong>Fund:</strong> {{ match.fund_name }}
                     </p>
                 </div>
-                <div class="ml-4">
-                    <button class="btn-primary text-sm"
+                <div class="sm:ml-4 flex-shrink-0">
+                    <button class="btn-primary text-sm w-full sm:w-auto"
                             hx-get="/api/match/{{ match.id }}/detail"
                             hx-target="#match-detail-modal"
                             hx-swap="innerHTML">
@@ -90,7 +90,7 @@
             </div>
 
             <!-- Score Breakdown -->
-            <div class="mt-4 grid grid-cols-4 gap-4">
+            <div class="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
                 {% if match.score_breakdown %}
                 {% for key, value in match.score_breakdown.items() %}
                 <div class="text-center">
@@ -109,7 +109,7 @@
             {% endif %}
 
             <!-- Talking Points & Concerns -->
-            <div class="mt-4 grid grid-cols-2 gap-4">
+            <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {% if match.talking_points %}
                 <div>
                     <h4 class="text-xs font-semibold text-green-700 uppercase mb-2">Talking Points</h4>

@@ -28,6 +28,7 @@ dependencies = [
     "sentry-sdk[fastapi]>=2.19.2",
     "slowapi>=0.1.9",  # Rate limiting
     "structlog>=24.4.0",  # Structured logging with field redaction
+    "pytest-xdist>=3.8.0",
 ]
 
 [project.optional-dependencies]
