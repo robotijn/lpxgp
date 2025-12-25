@@ -4,6 +4,100 @@
 **Purpose:** Communicate requirements with product owner, generate automated tests later
 **Total:** ~16,150 lines of test specifications across 9 files (~1,782 scenarios)
 
+---
+
+## Running Tests Locally
+
+**IMPORTANT:** Never skip tests. All tests must pass before pushing to main.
+
+### Quick Reference
+
+```bash
+# Run ALL tests (recommended before pushing)
+uv run pytest tests/ -v
+
+# Run only unit tests (fast, no browser needed)
+uv run pytest tests/ -v -m "not browser"
+
+# Run only browser tests (requires running server)
+uv run uvicorn src.main:app --host 127.0.0.1 --port 8000 &
+sleep 3
+uv run pytest tests/ -v -m "browser"
+kill %1
+```
+
+### Full CI Simulation
+
+Run these commands in order to simulate exactly what CI does:
+
+```bash
+# 1. Linting (ruff) - must pass
+uv run ruff check src/ --select=E,F
+uv run ruff check src/ --select=I          # Import sorting
+
+# 2. Type checking (mypy) - should not crash
+uv run mypy src/ --ignore-missing-imports
+
+# 3. Code quality checks
+uv run ruff check src/ --select=T201 --exclude=src/config.py  # No print statements
+uv run ruff check src/ --select=T100                          # No debugger statements
+
+# 4. Unit tests
+uv run pytest tests/ -v --tb=short -m "not browser"
+
+# 5. Browser tests (requires Playwright)
+uv run playwright install chromium
+uv run uvicorn src.main:app --host 127.0.0.1 --port 8000 &
+sleep 3
+uv run pytest tests/ -v --tb=short -m "browser"
+kill %1
+```
+
+### Test Files
+
+| File | Purpose | Marker |
+|------|---------|--------|
+| `tests/test_main.py` | API endpoints, auth, browser UI | `browser` for Playwright tests |
+| `tests/test_ci.py` | CI checks as unit tests (linting, types) | none |
+| `tests/conftest.py` | Shared fixtures and test data | N/A |
+
+### Pytest Markers
+
+```bash
+# List available markers
+uv run pytest --markers
+
+# Current markers:
+# @pytest.mark.browser - Tests requiring Playwright browser
+```
+
+### Common Issues
+
+| Issue | Solution |
+|-------|----------|
+| `ModuleNotFoundError` | Run `uv sync --all-extras` to install dev dependencies |
+| Browser tests fail locally | Start server first: `uv run uvicorn src.main:app &` |
+| Playwright not installed | Run `uv run playwright install chromium` |
+| Port 8000 in use | Kill existing process: `lsof -ti:8000 \| xargs kill` |
+
+### CI Workflow
+
+The GitHub Actions workflow (`.github/workflows/ci.yml`) runs:
+
+1. **test job** (58s):
+   - Install dependencies with `uv sync --all-extras`
+   - Run ruff linting
+   - Run unit tests (`-m "not browser"`)
+   - Install Playwright browsers
+   - Start server, run browser tests, stop server
+
+2. **type-check job** (15s):
+   - Run mypy type checking
+
+Both jobs must pass for CI to be green.
+
+---
+
 ## Test Coverage Summary
 
 | Category | Line Count | Scenarios | Key Features |
