@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+
+{% block title %}Pitch Generator - {{ lp.name }} - LPxGP{% endblock %}
+
+{% block content %}
+<main class="max-w-5xl mx-auto px-6 py-8">
+    <!-- Breadcrumb -->
+    <div class="flex items-center text-sm mb-6">
+        <a href="/outreach" class="text-slate-500 hover:text-slate-700">Outreach</a>
+        <span class="mx-2 text-slate-300">/</span>
+        <span class="text-slate-900">Generate Pitch</span>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Left: Configuration -->
+        <div class="space-y-6">
+            <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="font-semibold text-slate-900">Pitch Settings</h2>
+                    <a href="/lps/{{ lp.id }}" class="text-sm text-amber-600 hover:text-amber-700">← Back to LP</a>
+                </div>
+
+                <form hx-post="/api/pitch/generate" hx-target="#generated-content" hx-swap="innerHTML" class="space-y-4">
+                    <input type="hidden" name="lp_id" value="{{ lp.id }}">
+
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Target LP</label>
+                        <div class="flex items-center p-3 bg-slate-50 rounded-lg">
+                            <div class="w-8 h-8 bg-slate-200 rounded flex items-center justify-center mr-3">
+                                <span class="text-xs font-bold text-slate-600">{{ lp.name[:2].upper() }}</span>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-slate-900">{{ lp.name }}</p>
+                                <p class="text-xs text-slate-500">Score: {{ lp.score or 85 }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Fund</label>
+                        <select name="fund_id" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+                            {% for fund in funds %}
+                            <option value="{{ fund.id }}" {% if loop.first %}selected{% endif %}>{{ fund.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Content Type</label>
+                        <div class="space-y-2">
+                            <label class="flex items-center p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50">
+                                <input type="radio" name="content_type" value="email" checked class="text-amber-600">
+                                <span class="ml-3 text-sm text-slate-900">Outreach Email</span>
+                            </label>
+                            <label class="flex items-center p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50">
+                                <input type="radio" name="content_type" value="summary" class="text-amber-600">
+                                <span class="ml-3 text-sm text-slate-900">Executive Summary</span>
+                            </label>
+                            <label class="flex items-center p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50">
+                                <input type="radio" name="content_type" value="brief" class="text-amber-600">
+                                <span class="ml-3 text-sm text-slate-900">Meeting Brief</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Tone</label>
+                        <select name="tone" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+                            <option value="formal" selected>Professional & Formal</option>
+                            <option value="warm">Warm & Personable</option>
+                            <option value="direct">Direct & Concise</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Key Points to Emphasize</label>
+                        <div class="space-y-2">
+                            <label class="flex items-center">
+                                <input type="checkbox" name="emphasis[]" value="track_record" checked class="rounded border-slate-300 text-amber-600">
+                                <span class="ml-2 text-sm text-slate-600">Track record</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" name="emphasis[]" value="team" checked class="rounded border-slate-300 text-amber-600">
+                                <span class="ml-2 text-sm text-slate-600">Team experience</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" name="emphasis[]" value="esg" class="rounded border-slate-300 text-amber-600">
+                                <span class="ml-2 text-sm text-slate-600">ESG commitment</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" name="emphasis[]" value="coinvest" class="rounded border-slate-300 text-amber-600">
+                                <span class="ml-2 text-sm text-slate-600">Co-investment capacity</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full bg-slate-900 text-white px-4 py-2.5 rounded-lg font-medium hover:bg-slate-800 transition flex items-center justify-center">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                        Generate Pitch
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Right: Generated Content -->
+        <div class="lg:col-span-2">
+            <div id="generated-content" class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center">
+                        <svg class="w-5 h-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                        </svg>
+                        <h2 class="font-semibold text-slate-900">Generated Outreach Email</h2>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button onclick="regeneratePitch()" class="bg-white border border-slate-200 text-slate-700 px-3 py-1.5 rounded-lg text-sm hover:bg-slate-50 transition">
+                            <svg class="w-4 h-4 mr-1 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                            </svg>
+                            Regenerate
+                        </button>
+                        <button onclick="copyToClipboard()" class="bg-slate-900 text-white px-3 py-1.5 rounded-lg text-sm hover:bg-slate-800 transition">
+                            <svg class="w-4 h-4 mr-1 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                            </svg>
+                            Copy to Clipboard
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Human Review Warning -->
+                <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+                    <div class="flex items-start">
+                        <svg class="w-5 h-5 text-amber-500 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                        </svg>
+                        <p class="text-sm text-amber-800">
+                            <strong>Human review required:</strong> AI-generated content should be reviewed and personalized before sending.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Email Preview -->
+                <div id="email-content" class="border border-slate-200 rounded-lg">
+                    <div class="px-4 py-3 border-b border-slate-200 bg-slate-50">
+                        <div class="text-sm">
+                            <span class="text-slate-500">To:</span>
+                            <span class="text-slate-900 ml-2">{{ lp.contact_name or 'Investment Director' }}, {{ lp.contact_title or 'Private Equity' }}</span>
+                        </div>
+                        <div class="text-sm mt-1">
+                            <span class="text-slate-500">Subject:</span>
+                            <span class="text-slate-900 ml-2">{{ user.org_name or 'Acme Capital' }} {{ funds[0].name if funds else 'Growth Fund III' }} - Investment Opportunity</span>
+                        </div>
+                    </div>
+                    <div class="p-6 prose prose-sm prose-slate max-w-none">
+                        <p>Dear {{ lp.contact_name or 'Investment Team' }},</p>
+
+                        <p>I hope this message finds you well. I am reaching out regarding {{ user.org_name or 'Acme Capital' }}'s {{ funds[0].name if funds else 'Growth Fund III' }}, a ${{ funds[0].target_size_mm if funds else 500 }}M growth equity vehicle focused on technology-enabled businesses in North America.</p>
+
+                        <p>Given {{ lp.name }}'s strategic interest in growth equity managers with demonstrated operational value creation capabilities, I believe there may be strong alignment with our investment approach.</p>
+
+                        <p><strong>Key highlights:</strong></p>
+                        <ul>
+                            <li><strong>Track Record:</strong> Our previous funds have achieved top-quartile performance among growth equity peers</li>
+                            <li><strong>Team:</strong> Our partners average 20+ years of PE experience across technology, healthcare, and financial services</li>
+                            <li><strong>Strategy:</strong> We target $50-200M revenue companies with proven unit economics, focusing on organic growth acceleration and strategic M&A</li>
+                        </ul>
+
+                        <p>We are currently meeting with prospective limited partners and would welcome the opportunity to discuss how our strategy may complement {{ lp.name }}'s private equity portfolio.</p>
+
+                        <p>Would you be available for a brief introductory call in the coming weeks?</p>
+
+                        <p>Best regards,</p>
+
+                        <p>{{ user.name or 'John Partner' }}<br>
+                        Managing Partner, {{ user.org_name or 'Acme Capital' }}<br>
+                        {{ user.email }}</p>
+                    </div>
+                </div>
+
+                <div class="mt-4 text-xs text-slate-400 flex items-center">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    Generated by Claude via OpenRouter • Based on {{ lp.name }} mandate analysis
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>
+function copyToClipboard() {
+    const content = document.getElementById('email-content').innerText;
+    navigator.clipboard.writeText(content).then(() => {
+        alert('Email copied to clipboard!');
+    });
+}
+
+function regeneratePitch() {
+    document.querySelector('form').dispatchEvent(new Event('submit'));
+}
+</script>
+{% endblock %}

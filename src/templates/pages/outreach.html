@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %}Outreach Hub - LPxGP{% endblock %}
+
+{% block content %}
+<main class="max-w-7xl mx-auto px-4 lg:px-6 py-6 lg:py-8">
+    <!-- Page Header -->
+    <div class="mb-8">
+        <h1 class="text-xl lg:text-2xl font-semibold text-slate-900">Outreach Hub</h1>
+        <p class="text-sm text-slate-500 mt-1">Manage LP communications across all funds</p>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8">
+        <div class="bg-white border border-slate-200 rounded-xl p-4 lg:p-6 shadow-sm">
+            <div class="text-sm font-medium text-slate-500 uppercase tracking-wide">Shortlisted</div>
+            <div class="mt-2 text-3xl font-semibold text-slate-900">{{ stats.shortlisted or 0 }}</div>
+            <div class="mt-1 text-sm text-slate-400">across {{ stats.funds_count or 0 }} funds</div>
+        </div>
+        <div class="bg-white border border-slate-200 rounded-xl p-4 lg:p-6 shadow-sm">
+            <div class="text-sm font-medium text-slate-500 uppercase tracking-wide">Contacted</div>
+            <div class="mt-2 text-3xl font-semibold text-slate-900">{{ stats.contacted or 0 }}</div>
+            <div class="mt-1 text-sm text-green-600">+{{ stats.contacted_week or 0 }} this week</div>
+        </div>
+        <div class="bg-white border border-slate-200 rounded-xl p-4 lg:p-6 shadow-sm">
+            <div class="text-sm font-medium text-slate-500 uppercase tracking-wide">Meetings</div>
+            <div class="mt-2 text-3xl font-semibold text-slate-900">{{ stats.meetings or 0 }}</div>
+            <div class="mt-1 text-sm text-green-600">+{{ stats.meetings_scheduled or 0 }} scheduled</div>
+        </div>
+        <div class="bg-white border border-slate-200 rounded-xl p-4 lg:p-6 shadow-sm">
+            <div class="text-sm font-medium text-slate-500 uppercase tracking-wide">Response Rate</div>
+            <div class="mt-2 text-3xl font-semibold text-slate-900">{{ stats.response_rate or 0 }}%</div>
+            <div class="mt-1 text-sm text-slate-400">{{ stats.responses or 0 }} of {{ stats.contacted or 0 }} replied</div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Activity Feed -->
+        <div class="lg:col-span-2">
+            <div class="bg-white border border-slate-200 rounded-xl shadow-sm">
+                <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                    <h2 class="font-semibold text-slate-900">Recent Activity</h2>
+                    <select class="border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+                        <option>All Funds</option>
+                        {% for fund in funds %}
+                        <option value="{{ fund.id }}">{{ fund.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="divide-y divide-slate-100">
+                    {% for activity in activities %}
+                    <div class="px-6 py-4">
+                        <div class="flex items-start">
+                            <div class="w-8 h-8 rounded-full
+                                {% if activity.type == 'meeting' %}bg-green-50{% elif activity.type == 'email' %}bg-blue-50{% elif activity.type == 'pitch' %}bg-purple-50{% else %}bg-amber-50{% endif %}
+                                flex items-center justify-center mr-3 mt-0.5">
+                                {% if activity.type == 'meeting' %}
+                                <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                </svg>
+                                {% elif activity.type == 'email' %}
+                                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                                </svg>
+                                {% elif activity.type == 'pitch' %}
+                                <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                {% else %}
+                                <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                </svg>
+                                {% endif %}
+                            </div>
+                            <div class="flex-1">
+                                <p class="text-sm text-slate-900">
+                                    {{ activity.description }}
+                                    {% if activity.lp_name %}
+                                    <a href="/lps/{{ activity.lp_id }}" class="font-medium hover:text-amber-600">{{ activity.lp_name }}</a>
+                                    {% endif %}
+                                </p>
+                                {% if activity.details %}
+                                <p class="text-xs text-slate-400 mt-1">{{ activity.details }}</p>
+                                {% endif %}
+                                <p class="text-xs text-slate-500 mt-1">{{ activity.fund_name }}</p>
+                            </div>
+                            <span class="text-xs text-slate-400">{{ activity.time_ago }}</span>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="px-6 py-8 text-center text-slate-500">
+                        <p>No recent activity. Start by generating pitches for your shortlisted LPs.</p>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="px-6 py-4 border-t border-slate-100">
+                    <button class="text-sm text-amber-600 hover:text-amber-700">View All Activity →</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="space-y-6">
+            <!-- Quick Actions -->
+            <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+                <h2 class="font-semibold text-slate-900 mb-4">Quick Actions</h2>
+                <div class="space-y-2">
+                    <a href="/pitch" class="block w-full text-left px-4 py-3 text-sm text-slate-600 hover:bg-slate-50 rounded-lg transition">
+                        Generate Batch Pitches →
+                    </a>
+                    <a href="/shortlist" class="block w-full text-left px-4 py-3 text-sm text-slate-600 hover:bg-slate-50 rounded-lg transition">
+                        View Shortlist →
+                    </a>
+                    <button class="block w-full text-left px-4 py-3 text-sm text-slate-600 hover:bg-slate-50 rounded-lg transition">
+                        Export Activity to CSV →
+                    </button>
+                </div>
+            </div>
+
+            <!-- Upcoming Meetings -->
+            <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+                <h2 class="font-semibold text-slate-900 mb-4">Upcoming Meetings</h2>
+                <div class="space-y-4">
+                    {% for meeting in upcoming_meetings %}
+                    <a href="/lps/{{ meeting.lp_id }}" class="p-3 bg-slate-50 rounded-lg block hover:bg-slate-100 transition">
+                        <p class="text-sm font-medium text-slate-900">{{ meeting.lp_name }}</p>
+                        <p class="text-xs text-slate-500">{{ meeting.date }}</p>
+                    </a>
+                    {% else %}
+                    <p class="text-sm text-slate-500">No upcoming meetings scheduled.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Follow-ups Needed -->
+            <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+                <h2 class="font-semibold text-slate-900 mb-4">Needs Follow-up</h2>
+                <div class="space-y-3">
+                    {% for followup in followups %}
+                    <a href="/lps/{{ followup.lp_id }}" class="flex items-center justify-between hover:text-amber-600">
+                        <span class="text-sm text-slate-600">{{ followup.lp_name }}</span>
+                        <span class="text-xs {% if followup.days_ago > 5 %}text-red-600{% else %}text-amber-600{% endif %}">{{ followup.days_ago }} days</span>
+                    </a>
+                    {% else %}
+                    <p class="text-sm text-slate-500">No follow-ups needed.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+{% endblock %}

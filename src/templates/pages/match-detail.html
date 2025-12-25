@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+
+{% block title %}Match Analysis: {{ lp.name }} - LPxGP{% endblock %}
+
+{% block content %}
+<main class="max-w-5xl mx-auto px-6 py-8">
+    <!-- Breadcrumb -->
+    <div class="flex items-center text-sm mb-6">
+        <a href="/funds" class="text-slate-500 hover:text-slate-700">Funds</a>
+        <span class="mx-2 text-slate-300">/</span>
+        <a href="/funds/{{ fund.id }}" class="text-slate-500 hover:text-slate-700">{{ fund.name }}</a>
+        <span class="mx-2 text-slate-300">/</span>
+        <a href="/matches" class="text-slate-500 hover:text-slate-700">Matches</a>
+        <span class="mx-2 text-slate-300">/</span>
+        <span class="text-slate-900">{{ lp.name }} Analysis</span>
+    </div>
+
+    <!-- Header Card -->
+    <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm mb-6">
+        <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+            <div class="flex items-center space-x-4">
+                <div class="flex items-center justify-center w-16 h-16 rounded-full
+                    {% if match.score >= 80 %}bg-green-50 text-green-700
+                    {% elif match.score >= 60 %}bg-amber-50 text-amber-700
+                    {% else %}bg-slate-50 text-slate-700{% endif %}
+                    font-bold text-2xl">
+                    {{ match.score }}
+                </div>
+                <div>
+                    <h1 class="text-xl font-semibold text-slate-900">
+                        <a href="/lps/{{ lp.id }}" class="hover:text-amber-600">{{ lp.name }}</a>
+                        × {{ fund.name }}
+                    </h1>
+                    <p class="text-slate-500">Match Analysis & AI Insights</p>
+                </div>
+            </div>
+            <div class="flex space-x-3">
+                <button
+                    hx-post="/api/shortlist/{{ lp.id }}/toggle"
+                    hx-swap="outerHTML"
+                    class="bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-lg font-medium hover:bg-slate-50 transition">
+                    {% if lp.in_shortlist %}★ In Shortlist{% else %}+ Add to Shortlist{% endif %}
+                </button>
+                <a href="/pitch?lp_id={{ lp.id }}&fund_id={{ fund.id }}" class="bg-slate-900 text-white px-4 py-2 rounded-lg font-medium hover:bg-slate-800 transition">
+                    Generate Pitch
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Score Breakdown -->
+    <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm mb-6">
+        <h2 class="font-semibold text-slate-900 mb-4">Score Breakdown</h2>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="text-center p-4 rounded-lg
+                {% if (match.score_breakdown.strategy or 85) >= 80 %}bg-green-50{% elif (match.score_breakdown.strategy or 85) >= 60 %}bg-amber-50{% else %}bg-slate-50{% endif %}">
+                <div class="text-2xl font-bold
+                    {% if (match.score_breakdown.strategy or 85) >= 80 %}text-green-700{% elif (match.score_breakdown.strategy or 85) >= 60 %}text-amber-700{% else %}text-slate-700{% endif %}">
+                    {{ match.score_breakdown.strategy or 95 }}
+                </div>
+                <div class="text-sm
+                    {% if (match.score_breakdown.strategy or 85) >= 80 %}text-green-600{% elif (match.score_breakdown.strategy or 85) >= 60 %}text-amber-600{% else %}text-slate-600{% endif %}">
+                    Strategy Fit
+                </div>
+            </div>
+            <div class="text-center p-4 rounded-lg
+                {% if (match.score_breakdown.size_fit or 85) >= 80 %}bg-green-50{% elif (match.score_breakdown.size_fit or 85) >= 60 %}bg-amber-50{% else %}bg-slate-50{% endif %}">
+                <div class="text-2xl font-bold
+                    {% if (match.score_breakdown.size_fit or 85) >= 80 %}text-green-700{% elif (match.score_breakdown.size_fit or 85) >= 60 %}text-amber-700{% else %}text-slate-700{% endif %}">
+                    {{ match.score_breakdown.size_fit or 90 }}
+                </div>
+                <div class="text-sm
+                    {% if (match.score_breakdown.size_fit or 85) >= 80 %}text-green-600{% elif (match.score_breakdown.size_fit or 85) >= 60 %}text-amber-600{% else %}text-slate-600{% endif %}">
+                    Size Match
+                </div>
+            </div>
+            <div class="text-center p-4 rounded-lg
+                {% if (match.score_breakdown.geography or 85) >= 80 %}bg-green-50{% elif (match.score_breakdown.geography or 85) >= 60 %}bg-amber-50{% else %}bg-slate-50{% endif %}">
+                <div class="text-2xl font-bold
+                    {% if (match.score_breakdown.geography or 85) >= 80 %}text-green-700{% elif (match.score_breakdown.geography or 85) >= 60 %}text-amber-700{% else %}text-slate-700{% endif %}">
+                    {{ match.score_breakdown.geography or 92 }}
+                </div>
+                <div class="text-sm
+                    {% if (match.score_breakdown.geography or 85) >= 80 %}text-green-600{% elif (match.score_breakdown.geography or 85) >= 60 %}text-amber-600{% else %}text-slate-600{% endif %}">
+                    Geography
+                </div>
+            </div>
+            <div class="text-center p-4 rounded-lg
+                {% if (match.score_breakdown.track_record or 85) >= 80 %}bg-green-50{% elif (match.score_breakdown.track_record or 85) >= 60 %}bg-amber-50{% else %}bg-slate-50{% endif %}">
+                <div class="text-2xl font-bold
+                    {% if (match.score_breakdown.track_record or 85) >= 80 %}text-green-700{% elif (match.score_breakdown.track_record or 85) >= 60 %}text-amber-700{% else %}text-slate-700{% endif %}">
+                    {{ match.score_breakdown.track_record or 88 }}
+                </div>
+                <div class="text-sm
+                    {% if (match.score_breakdown.track_record or 85) >= 80 %}text-green-600{% elif (match.score_breakdown.track_record or 85) >= 60 %}text-amber-600{% else %}text-slate-600{% endif %}">
+                    Thesis Alignment
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Analysis -->
+    <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm mb-6">
+        <div class="flex items-center mb-4">
+            <svg class="w-5 h-5 text-amber-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+            </svg>
+            <h2 class="font-semibold text-slate-900">AI Match Analysis</h2>
+        </div>
+
+        <div class="prose prose-slate max-w-none">
+            <!-- Why Strong Match -->
+            <div class="bg-slate-50 rounded-lg p-6 mb-6">
+                <h3 class="text-lg font-medium text-slate-900 mb-3">Why This Is a Strong Match</h3>
+                <p class="text-slate-600 mb-4">
+                    {{ match.explanation or lp.name + ' presents an excellent fit for ' + fund.name + ' based on several key factors:' }}
+                </p>
+                <ul class="space-y-2 text-slate-600">
+                    {% for point in match.talking_points or [
+                        {'title': 'Strategy alignment', 'text': lp.name + ' actively invests in growth equity managers targeting technology-enabled businesses, matching your fund\'s focus.'},
+                        {'title': 'Fund size fit', 'text': 'Your $' + (fund.target_size_mm|string or '500') + 'M target is within ' + lp.name + '\'s preferred commitment range.'},
+                        {'title': 'Track record', 'text': 'Your prior fund performance exceeds their target hurdle rate.'},
+                        {'title': 'ESG commitment', 'text': 'Both organizations prioritize responsible investment practices and governance.'}
+                    ] %}
+                    <li class="flex items-start">
+                        <svg class="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span><strong>{{ point.title if point.title else point }}:</strong> {{ point.text if point.text else '' }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <!-- Points to Consider -->
+            <div class="bg-amber-50 rounded-lg p-6">
+                <h3 class="text-lg font-medium text-slate-900 mb-3">Points to Consider</h3>
+                <ul class="space-y-2 text-slate-600">
+                    {% for concern in match.concerns or [
+                        {'title': 'Competition', 'text': lp.name + ' receives many manager proposals annually; differentiation is critical.'},
+                        {'title': 'Due diligence timeline', 'text': 'Their process typically takes 9-12 months from first meeting to commitment.'},
+                        {'title': 'Co-investment', 'text': 'They often expect co-investment opportunities; be prepared to discuss capacity.'}
+                    ] %}
+                    <li class="flex items-start">
+                        <svg class="w-5 h-5 text-amber-500 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                        </svg>
+                        <span><strong>{{ concern.title if concern.title else concern }}:</strong> {{ concern.text if concern.text else '' }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Talking Points -->
+    <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+        <h2 class="font-semibold text-slate-900 mb-4">Suggested Talking Points</h2>
+        <div class="space-y-4">
+            <div class="p-4 border border-slate-200 rounded-lg">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-sm font-medium text-slate-900">Track Record Highlight</span>
+                    <button onclick="copyText(this)" class="text-xs text-amber-600 hover:text-amber-700">Copy</button>
+                </div>
+                <p class="text-sm text-slate-600 talking-point">"Our prior funds have achieved top-quartile performance through disciplined growth investing in technology-enabled businesses, significantly exceeding the median PE benchmark."</p>
+            </div>
+            <div class="p-4 border border-slate-200 rounded-lg">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-sm font-medium text-slate-900">Value Creation Story</span>
+                    <button onclick="copyText(this)" class="text-xs text-amber-600 hover:text-amber-700">Copy</button>
+                </div>
+                <p class="text-sm text-slate-600 talking-point">"Our portfolio companies have grown revenue 3x on average through our operational support in sales optimization and strategic M&A, aligning with {{ lp.name }}'s focus on value creation over financial engineering."</p>
+            </div>
+            <div class="p-4 border border-slate-200 rounded-lg">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-sm font-medium text-slate-900">ESG Commitment</span>
+                    <button onclick="copyText(this)" class="text-xs text-amber-600 hover:text-amber-700">Copy</button>
+                </div>
+                <p class="text-sm text-slate-600 talking-point">"We integrate ESG considerations across our investment process, with 100% of portfolio companies implementing governance best practices within 12 months of investment."</p>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>
+function copyText(button) {
+    const text = button.closest('.p-4').querySelector('.talking-point').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+        const originalText = button.textContent;
+        button.textContent = 'Copied!';
+        setTimeout(() => { button.textContent = originalText; }, 2000);
+    });
+}
+</script>
+{% endblock %}

@@ -98,6 +98,99 @@ Both jobs must pass for CI to be green.
 
 ---
 
+## Test Parallelization Guidelines (CRITICAL)
+
+**⚠️ IMPORTANT:** Test performance matters. Before writing any new test, consider how it will run in parallel. Quality + Speed = Good Tests.
+
+### Current Test Performance
+
+| Test Type | Count | Execution Time | Strategy |
+|-----------|-------|----------------|----------|
+| Unit tests | 564+ | ~6s (parallel) | pytest-xdist with `-n auto` |
+| Browser tests | 102+ | ~100s (sequential) | Single browser, session-scoped logins |
+
+### Rules for Writing Parallelizable Tests
+
+#### 1. Unit Tests (Always Parallelizable)
+```python
+# GOOD: Independent fixtures, no shared state
+def test_endpoint_returns_200(client):
+    response = client.get("/api/resource")
+    assert response.status_code == 200
+
+# BAD: Modifying global state
+GLOBAL_COUNTER = 0
+def test_increment():
+    global GLOBAL_COUNTER
+    GLOBAL_COUNTER += 1  # Will cause race conditions!
+```
+
+#### 2. Browser Tests (Use Session-Scoped Fixtures)
+```python
+# GOOD: Use session-scoped login fixtures (fast)
+def test_dashboard_loads(gp_page):  # Reuses login session
+    gp_page.goto("/dashboard")
+    assert gp_page.locator("h1").count() > 0
+
+# BAD: Login fresh in every test (slow)
+def test_dashboard_loads(page):
+    page.goto("/login")
+    page.fill('input[name="email"]', "user@example.com")
+    page.fill('input[name="password"]', "password")
+    page.click('button[type="submit"]')  # 5+ seconds per test!
+    page.goto("/dashboard")
+```
+
+#### 3. Avoid Slow Waits
+```python
+# GOOD: Wait for specific element
+page.wait_for_selector("h1:has-text('Dashboard')")
+
+# BAD: Wait for all network to stop (500ms+ per call)
+page.wait_for_load_state("networkidle")
+
+# BAD: Hard waits
+page.wait_for_timeout(1000)  # Never use unless debugging!
+```
+
+#### 4. Test Data Independence
+```python
+# GOOD: Use unique IDs per test
+def test_create_resource():
+    unique_id = f"test-{uuid4()}"
+    response = client.post("/api/resource", json={"id": unique_id})
+
+# BAD: Rely on specific data existing
+def test_get_specific_resource():
+    response = client.get("/api/resource/hardcoded-id")  # May not exist!
+```
+
+### Available Session-Scoped Fixtures
+
+| Fixture | Description | Use Case |
+|---------|-------------|----------|
+| `gp_page` | Page with GP user logged in | Fund management, matching tests |
+| `lp_page` | Page with LP user logged in | LP dashboard tests |
+| `admin_page` | Page with admin logged in | Admin panel tests |
+| `browser_base_url` | xdist-safe base URL | All browser tests |
+
+### Checklist Before Adding New Tests
+
+- [ ] Can this test run in parallel with others? (No global state modification)
+- [ ] Am I using session-scoped fixtures where possible?
+- [ ] Am I avoiding `networkidle` waits? (Use element-specific waits)
+- [ ] Am I avoiding hard `wait_for_timeout()` calls?
+- [ ] Does this test have unique test data? (Not relying on hardcoded IDs)
+- [ ] Can multiple instances of this test run simultaneously?
+
+### Future Parallelization Opportunities
+
+1. **Multi-port browser testing**: Run multiple dev servers on different ports, each browser instance connects to its own server
+2. **CI matrix strategy**: Split browser tests across multiple runners
+3. **Test grouping**: Use `--dist=loadgroup` to keep related tests on same worker
+
+---
+
 ## Test Coverage Summary
 
 | Category | Line Count | Scenarios | Key Features |

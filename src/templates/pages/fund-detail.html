@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block title %}{{ fund.name }} - LPxGP{% endblock %}
+
+{% block content %}
+<main class="max-w-7xl mx-auto px-4 lg:px-6 py-6 lg:py-8">
+    <!-- Breadcrumb -->
+    <div class="flex items-center text-sm mb-6">
+        <a href="/funds" class="text-slate-500 hover:text-slate-700">Funds</a>
+        <span class="mx-2 text-slate-300">/</span>
+        <span class="text-slate-900">{{ fund.name }}</span>
+    </div>
+
+    <!-- Fund Header -->
+    <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm mb-6">
+        <div class="flex flex-col lg:flex-row justify-between items-start gap-4">
+            <div>
+                <div class="flex items-center">
+                    <h1 class="text-xl lg:text-2xl font-semibold text-slate-900">{{ fund.name }}</h1>
+                    <span class="ml-3 px-2 py-1 text-xs font-medium
+                        {% if fund.status == 'fundraising' %}bg-green-50 text-green-700
+                        {% elif fund.status == 'closed' %}bg-slate-50 text-slate-700
+                        {% elif fund.status == 'investing' %}bg-blue-50 text-blue-700
+                        {% else %}bg-amber-50 text-amber-700{% endif %}
+                        rounded">{{ fund.status|title if fund.status else 'Raising' }}</span>
+                </div>
+                <p class="text-slate-500 mt-1">{{ fund.strategy|replace('_', ' ')|title if fund.strategy else 'Private Equity' }} - {{ fund.primary_strategy|replace('_', ' ')|title if fund.primary_strategy else 'Growth Equity' }}</p>
+            </div>
+            <div class="flex space-x-3">
+                <a href="/funds/{{ fund.id }}/edit" class="bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-lg font-medium hover:bg-slate-50 transition">
+                    Edit Fund
+                </a>
+                <a href="/matches?fund_id={{ fund.id }}" class="bg-slate-900 text-white px-4 py-2 rounded-lg font-medium hover:bg-slate-800 transition">
+                    View Matches
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Fund Details -->
+        <div class="lg:col-span-2 space-y-6">
+            <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+                <h2 class="font-semibold text-slate-900 mb-4">Fund Overview</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div>
+                        <label class="text-sm text-slate-500">Target Size</label>
+                        <p class="font-medium text-slate-900">${{ fund.target_size_mm or 500 }}M</p>
+                    </div>
+                    <div>
+                        <label class="text-sm text-slate-500">Target Close</label>
+                        <p class="font-medium text-slate-900">{{ fund.target_close or 'Q2 2025' }}</p>
+                    </div>
+                    <div>
+                        <label class="text-sm text-slate-500">Geography Focus</label>
+                        <p class="font-medium text-slate-900">{{ fund.geo_focus or 'North America' }}</p>
+                    </div>
+                    <div>
+                        <label class="text-sm text-slate-500">Sector Focus</label>
+                        <p class="font-medium text-slate-900">{{ fund.sectors|join(', ') if fund.sectors else 'Technology, Healthcare' }}</p>
+                    </div>
+                    <div>
+                        <label class="text-sm text-slate-500">Check Size</label>
+                        <p class="font-medium text-slate-900">${{ fund.check_min_mm or 25 }}M - ${{ fund.check_max_mm or 75 }}M</p>
+                    </div>
+                    <div>
+                        <label class="text-sm text-slate-500">Stage</label>
+                        <p class="font-medium text-slate-900">{{ fund.stage or 'Growth / Expansion' }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+                <h2 class="font-semibold text-slate-900 mb-4">Investment Thesis</h2>
+                <p class="text-slate-600 leading-relaxed">
+                    {{ fund.thesis or fund.name + ' focuses on technology-enabled businesses in the upper mid-market segment ($50M-$200M revenue) with strong unit economics and paths to market leadership. We target companies with proven business models seeking capital to accelerate organic growth, pursue strategic M&A, or expand into new markets.' }}
+                </p>
+                <p class="text-slate-600 leading-relaxed mt-4">
+                    {{ fund.value_add or 'Our value-add approach includes operational support through our portfolio services team, board-level governance expertise, and access to our extensive network of industry executives and potential customers.' }}
+                </p>
+            </div>
+
+            <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+                <h2 class="font-semibold text-slate-900 mb-4">Track Record</h2>
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 text-center">
+                    <div class="p-4 bg-slate-50 rounded-lg">
+                        <div class="text-xl lg:text-2xl font-semibold text-slate-900">{{ fund.prior_moic or '2.3' }}x</div>
+                        <div class="text-sm text-slate-500">Gross MOIC (Prior Fund)</div>
+                    </div>
+                    <div class="p-4 bg-slate-50 rounded-lg">
+                        <div class="text-xl lg:text-2xl font-semibold text-slate-900">{{ fund.prior_irr or '28.5' }}%</div>
+                        <div class="text-sm text-slate-500">Net IRR (Prior Fund)</div>
+                    </div>
+                    <div class="p-4 bg-slate-50 rounded-lg">
+                        <div class="text-xl lg:text-2xl font-semibold text-slate-900">{{ fund.portfolio_count or 18 }}</div>
+                        <div class="text-sm text-slate-500">Portfolio Companies</div>
+                    </div>
+                    <div class="p-4 bg-slate-50 rounded-lg">
+                        <div class="text-xl lg:text-2xl font-semibold text-slate-900">${{ fund.capital_deployed_mm or 550 }}M</div>
+                        <div class="text-sm text-slate-500">Capital Deployed</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Team Section -->
+            {% if fund.team %}
+            <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+                <h2 class="font-semibold text-slate-900 mb-4">Investment Team</h2>
+                <div class="divide-y divide-slate-100">
+                    {% for member in fund.team %}
+                    <div class="py-4 flex items-center">
+                        <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mr-3">
+                            <span class="text-sm font-medium text-slate-600">{{ member.name[:2].upper() if member.name else 'TM' }}</span>
+                        </div>
+                        <div>
+                            <p class="font-medium text-slate-900">{{ member.name }}</p>
+                            <p class="text-sm text-slate-500">{{ member.title }}</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Sidebar -->
+        <div class="space-y-6">
+            <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+                <h2 class="font-semibold text-slate-900 mb-4">Matching Stats</h2>
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-slate-500">Total Matches</span>
+                        <span class="text-lg font-semibold text-slate-900">{{ fund.total_matches or 45 }}</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-slate-500">High Score (80+)</span>
+                        <span class="text-lg font-semibold text-green-600">{{ fund.high_score_matches or 12 }}</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-slate-500">Shortlisted</span>
+                        <span class="text-lg font-semibold text-slate-900">{{ fund.shortlisted or 8 }}</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-slate-500">Contacted</span>
+                        <span class="text-lg font-semibold text-slate-900">{{ fund.contacted or 5 }}</span>
+                    </div>
+                </div>
+                <a href="/matches?fund_id={{ fund.id }}" class="block w-full text-center bg-slate-900 text-white px-4 py-2 rounded-lg mt-4 hover:bg-slate-800 transition">
+                    View All Matches
+                </a>
+            </div>
+
+            <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+                <h2 class="font-semibold text-slate-900 mb-4">Quick Actions</h2>
+                <div class="space-y-2">
+                    <a href="/pitch?fund_id={{ fund.id }}" class="block w-full text-left px-4 py-3 text-sm text-slate-600 hover:bg-slate-50 rounded-lg transition">
+                        Generate LP Pitch →
+                    </a>
+                    <button class="block w-full text-left px-4 py-3 text-sm text-slate-600 hover:bg-slate-50 rounded-lg transition">
+                        Export Fund Summary →
+                    </button>
+                    <button
+                        hx-post="/api/funds/{{ fund.id }}/generate-matches"
+                        hx-swap="none"
+                        class="block w-full text-left px-4 py-3 text-sm text-slate-600 hover:bg-slate-50 rounded-lg transition">
+                        Refresh Matches →
+                    </button>
+                </div>
+            </div>
+
+            <!-- Fundraising Progress -->
+            <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+                <h2 class="font-semibold text-slate-900 mb-4">Fundraising Progress</h2>
+                <div class="mb-2">
+                    <div class="flex justify-between text-sm mb-1">
+                        <span class="text-slate-500">Raised</span>
+                        <span class="font-medium text-slate-900">${{ fund.raised_mm or 0 }}M / ${{ fund.target_size_mm or 500 }}M</span>
+                    </div>
+                    <div class="w-full bg-slate-200 rounded-full h-2">
+                        <div class="bg-green-500 h-2 rounded-full" style="width: {{ ((fund.raised_mm or 0) / (fund.target_size_mm or 500) * 100)|int }}%"></div>
+                    </div>
+                </div>
+                <p class="text-xs text-slate-500 mt-2">{{ ((fund.raised_mm or 0) / (fund.target_size_mm or 500) * 100)|int }}% of target</p>
+            </div>
+        </div>
+    </div>
+</main>
+{% endblock %}

@@ -11,19 +11,190 @@ Fixtures:
     sql_injection_payloads: Security test payloads.
     xss_payloads: XSS test payloads.
     unicode_test_strings: Internationalization test data.
+
+Performance optimizations:
+    - Session-scoped browser contexts for reusing login sessions
+    - xdist-safe fixtures with worker_id awareness
+    - Helper functions for fast element-specific waits
 """
 
 from __future__ import annotations
 
 import os
 from collections.abc import Generator
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
 
 from src.main import _shortlists, _user_preferences, app
+
+if TYPE_CHECKING:
+    from playwright.sync_api import BrowserContext, Page
+
+
+# =============================================================================
+# Browser Test Helpers
+# =============================================================================
+
+
+def wait_for_page_ready(page: "Page", selector: str | None = None, timeout: int = 5000) -> None:
+    """Fast page ready check - avoids slow networkidle waits.
+
+    Args:
+        page: Playwright page instance.
+        selector: Optional CSS selector to wait for.
+        timeout: Maximum wait time in milliseconds.
+    """
+    page.wait_for_load_state("domcontentloaded")
+    if selector:
+        page.wait_for_selector(selector, timeout=timeout)
+
+
+# =============================================================================
+# Session-Scoped Browser Fixtures (Performance Optimization)
+# =============================================================================
+
+
+@pytest.fixture(scope="session")
+def browser_base_url(worker_id: str) -> str:
+    """Get base URL for browser tests, supporting xdist workers.
+
+    When running with pytest-xdist, each worker could potentially
+    use a different port. For now, all workers share port 8000.
+
+    Args:
+        worker_id: xdist worker identifier (e.g., 'master', 'gw0', 'gw1').
+
+    Returns:
+        Base URL for the test server.
+    """
+    # Future: Support multi-port with: 8000 + int(worker_id[2:]) if worker_id != "master"
+    return "http://localhost:8000"
+
+
+@pytest.fixture(scope="session")
+def gp_session_context(browser: Any, browser_base_url: str) -> Generator["BrowserContext", None, None]:
+    """Session-scoped GP login context - login once, reuse across tests.
+
+    This dramatically speeds up browser tests by avoiding repeated logins.
+
+    Args:
+        browser: Playwright browser instance.
+        browser_base_url: Base URL for the test server.
+
+    Yields:
+        BrowserContext with GP user logged in.
+    """
+    context = browser.new_context()
+    page = context.new_page()
+
+    # Login once for the session
+    page.goto(f"{browser_base_url}/login")
+    page.fill('input[name="email"]', "gp@demo.com")
+    page.fill('input[name="password"]', "demo123")
+    page.click('button[type="submit"]')
+    page.wait_for_url(f"{browser_base_url}/dashboard", timeout=10000)
+    page.close()  # Close setup page, keep context with cookies
+
+    yield context
+    context.close()
+
+
+@pytest.fixture(scope="session")
+def lp_session_context(browser: Any, browser_base_url: str) -> Generator["BrowserContext", None, None]:
+    """Session-scoped LP login context.
+
+    Args:
+        browser: Playwright browser instance.
+        browser_base_url: Base URL for the test server.
+
+    Yields:
+        BrowserContext with LP user logged in.
+    """
+    context = browser.new_context()
+    page = context.new_page()
+
+    page.goto(f"{browser_base_url}/login")
+    page.fill('input[name="email"]', "lp@demo.com")
+    page.fill('input[name="password"]', "demo123")
+    page.click('button[type="submit"]')
+    page.wait_for_url(f"{browser_base_url}/dashboard", timeout=10000)
+    page.close()
+
+    yield context
+    context.close()
+
+
+@pytest.fixture(scope="session")
+def admin_session_context(browser: Any, browser_base_url: str) -> Generator["BrowserContext", None, None]:
+    """Session-scoped admin login context.
+
+    Args:
+        browser: Playwright browser instance.
+        browser_base_url: Base URL for the test server.
+
+    Yields:
+        BrowserContext with admin user logged in.
+    """
+    context = browser.new_context()
+    page = context.new_page()
+
+    page.goto(f"{browser_base_url}/login")
+    page.fill('input[name="email"]', "admin@demo.com")
+    page.fill('input[name="password"]', "admin123")
+    page.click('button[type="submit"]')
+    page.wait_for_url(f"{browser_base_url}/dashboard", timeout=10000)
+    page.close()
+
+    yield context
+    context.close()
+
+
+@pytest.fixture
+def gp_page(gp_session_context: "BrowserContext") -> Generator["Page", None, None]:
+    """Fresh page within GP session - fast because login is reused.
+
+    Args:
+        gp_session_context: Session-scoped GP login context.
+
+    Yields:
+        New page within the logged-in GP context.
+    """
+    page = gp_session_context.new_page()
+    yield page
+    page.close()
+
+
+@pytest.fixture
+def lp_page(lp_session_context: "BrowserContext") -> Generator["Page", None, None]:
+    """Fresh page within LP session.
+
+    Args:
+        lp_session_context: Session-scoped LP login context.
+
+    Yields:
+        New page within the logged-in LP context.
+    """
+    page = lp_session_context.new_page()
+    yield page
+    page.close()
+
+
+@pytest.fixture
+def admin_page(admin_session_context: "BrowserContext") -> Generator["Page", None, None]:
+    """Fresh page within admin session.
+
+    Args:
+        admin_session_context: Session-scoped admin login context.
+
+    Yields:
+        New page within the logged-in admin context.
+    """
+    page = admin_session_context.new_page()
+    yield page
+    page.close()
 
 
 @pytest.fixture(autouse=True)

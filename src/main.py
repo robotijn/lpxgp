@@ -798,6 +798,360 @@ async def lps_page(
         conn.close()
 
 
+@app.get("/lps/{lp_id}", response_class=HTMLResponse, response_model=None)
+async def lp_detail_page(request: Request, lp_id: str) -> HTMLResponse | RedirectResponse:
+    """LP detail page showing full profile and match analysis.
+
+    Requires authentication.
+    """
+    user = auth.get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    if not is_valid_uuid(lp_id):
+        return HTMLResponse(content="Invalid LP ID", status_code=400)
+
+    # Mock LP data for offline mode
+    mock_lp = {
+        "id": lp_id,
+        "name": "CalPERS",
+        "full_name": "California Public Employees' Retirement System",
+        "lp_type": "Public Pension",
+        "hq_city": "Sacramento",
+        "hq_country": "USA",
+        "total_aum_bn": 450.0,
+        "pe_allocation_pct": 13.0,
+        "check_size_min_mm": 100,
+        "check_size_max_mm": 500,
+        "target_return": "Net IRR 11%+",
+        "geo_preferences": "North America, Europe",
+        "strategies": ["buyout", "growth_equity", "venture"],
+        "score": 92,
+        "in_shortlist": is_in_shortlist(user["id"], lp_id),
+        "contacts": [
+            {"name": "Michael Smith", "title": "Managing Investment Director, Private Equity"},
+            {"name": "Jennifer Chen", "title": "Investment Director, Growth Equity"},
+        ],
+    }
+
+    conn = get_db()
+    if not conn:
+        return templates.TemplateResponse(
+            request,
+            "pages/lp-detail.html",
+            {"title": f"{mock_lp['name']} - LPxGP", "user": user, "lp": mock_lp},
+        )
+
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT o.id, o.name, o.hq_city, o.hq_country, o.website,
+                       lp.lp_type, lp.total_aum_bn, lp.pe_allocation_pct,
+                       lp.check_size_min_mm, lp.check_size_max_mm,
+                       lp.geographic_preferences, lp.strategies
+                FROM organizations o
+                JOIN lp_profiles lp ON lp.org_id = o.id
+                WHERE o.id = %s
+                """,
+                (lp_id,),
+            )
+            lp = cur.fetchone()
+
+            if not lp:
+                # Fall back to mock data if LP not in database
+                return templates.TemplateResponse(
+                    request,
+                    "pages/lp-detail.html",
+                    {"title": f"{mock_lp['name']} - LPxGP", "user": user, "lp": mock_lp},
+                )
+
+            lp["in_shortlist"] = is_in_shortlist(user["id"], lp_id)
+            lp["score"] = 85  # Default score
+
+        return templates.TemplateResponse(
+            request,
+            "pages/lp-detail.html",
+            {"title": f"{lp['name']} - LPxGP", "user": user, "lp": lp},
+        )
+    finally:
+        conn.close()
+
+
+@app.get("/funds/{fund_id}", response_class=HTMLResponse, response_model=None)
+async def fund_detail_page(request: Request, fund_id: str) -> HTMLResponse | RedirectResponse:
+    """Fund detail page showing full fund profile.
+
+    Requires authentication.
+    """
+    user = auth.get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    if not is_valid_uuid(fund_id):
+        return HTMLResponse(content="Invalid Fund ID", status_code=400)
+
+    # Mock fund data for offline mode
+    mock_fund = {
+        "id": fund_id,
+        "name": "Growth Fund III",
+        "status": "fundraising",
+        "strategy": "private_equity",
+        "primary_strategy": "growth_equity",
+        "target_size_mm": 500,
+        "raised_mm": 150,
+        "target_close": "Q2 2025",
+        "geo_focus": "North America",
+        "sectors": ["Technology", "Healthcare"],
+        "check_min_mm": 25,
+        "check_max_mm": 75,
+        "stage": "Growth / Expansion",
+        "prior_moic": "2.3",
+        "prior_irr": "28.5",
+        "portfolio_count": 18,
+        "capital_deployed_mm": 550,
+        "total_matches": 45,
+        "high_score_matches": 12,
+        "shortlisted": 8,
+        "contacted": 5,
+    }
+
+    conn = get_db()
+    if not conn:
+        return templates.TemplateResponse(
+            request,
+            "pages/fund-detail.html",
+            {"title": f"{mock_fund['name']} - LPxGP", "user": user, "fund": mock_fund},
+        )
+
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT id, name, status, target_size_mm, vintage_year,
+                       strategy, geo_focus, sector_focus
+                FROM funds
+                WHERE id = %s
+                """,
+                (fund_id,),
+            )
+            fund = cur.fetchone()
+
+            if not fund:
+                # Fall back to mock data if fund not in database
+                return templates.TemplateResponse(
+                    request,
+                    "pages/fund-detail.html",
+                    {"title": f"{mock_fund['name']} - LPxGP", "user": user, "fund": mock_fund},
+                )
+
+        return templates.TemplateResponse(
+            request,
+            "pages/fund-detail.html",
+            {"title": f"{fund['name']} - LPxGP", "user": user, "fund": fund},
+        )
+    except Exception:
+        # Fall back to mock data on any database error
+        return templates.TemplateResponse(
+            request,
+            "pages/fund-detail.html",
+            {"title": f"{mock_fund['name']} - LPxGP", "user": user, "fund": mock_fund},
+        )
+    finally:
+        conn.close()
+
+
+@app.get("/matches/{lp_id}", response_class=HTMLResponse, response_model=None)
+async def match_detail_page(
+    request: Request,
+    lp_id: str,
+    fund_id: str | None = Query(None),
+) -> HTMLResponse | RedirectResponse:
+    """Match detail page showing AI analysis for LP-Fund pairing.
+
+    Requires authentication.
+    """
+    user = auth.get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    if not is_valid_uuid(lp_id):
+        return HTMLResponse(content="Invalid LP ID", status_code=400)
+
+    # Validate fund_id if provided
+    if fund_id and not is_valid_uuid(fund_id):
+        fund_id = None  # Fall back to default if invalid
+
+    # Mock data for offline mode
+    mock_lp = {
+        "id": lp_id,
+        "name": "CalPERS",
+        "in_shortlist": is_in_shortlist(user["id"], lp_id),
+    }
+    mock_fund = {
+        "id": fund_id or "00000000-0000-0000-0000-000000000001",
+        "name": "Growth Fund III",
+        "target_size_mm": 500,
+    }
+    mock_match = {
+        "score": 92,
+        "explanation": "CalPERS presents an excellent fit for Growth Fund III based on several key factors:",
+        "score_breakdown": {
+            "strategy": 95,
+            "size_fit": 90,
+            "geography": 92,
+            "track_record": 88,
+        },
+        "talking_points": [
+            "Strategy alignment: CalPERS actively invests in growth equity managers",
+            "Fund size fit: Your $500M target is within their preferred range",
+            "Track record: Your prior fund performance exceeds their hurdle rate",
+            "ESG commitment: Both organizations prioritize responsible investing",
+        ],
+        "concerns": [
+            "Competition: CalPERS receives many manager proposals annually",
+            "Due diligence timeline: Their process typically takes 9-12 months",
+            "Co-investment: They often expect co-investment opportunities",
+        ],
+    }
+
+    return templates.TemplateResponse(
+        request,
+        "pages/match-detail.html",
+        {
+            "title": f"Match Analysis: {mock_lp['name']} - LPxGP",
+            "user": user,
+            "lp": mock_lp,
+            "fund": mock_fund,
+            "match": mock_match,
+        },
+    )
+
+
+@app.get("/outreach", response_class=HTMLResponse, response_model=None)
+async def outreach_page(request: Request) -> HTMLResponse | RedirectResponse:
+    """Outreach Hub for managing LP communications.
+
+    Requires authentication.
+    """
+    user = auth.get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    # Mock stats for offline mode
+    stats = {
+        "shortlisted": len(get_user_shortlist(user["id"])),
+        "funds_count": 3,
+        "contacted": 18,
+        "contacted_week": 5,
+        "meetings": 8,
+        "meetings_scheduled": 3,
+        "response_rate": 44,
+        "responses": 8,
+    }
+
+    # Mock activities
+    activities = [
+        {
+            "type": "meeting",
+            "description": "Meeting scheduled with",
+            "lp_name": "Yale Endowment",
+            "lp_id": "lp-yale",
+            "details": "January 15, 2025 at 2:00 PM EST",
+            "fund_name": "Growth Fund III",
+            "time_ago": "2 hours ago",
+        },
+        {
+            "type": "email",
+            "description": "Email sent to",
+            "lp_name": "CalPERS",
+            "lp_id": "lp-calpers",
+            "details": "Michael Smith",
+            "fund_name": "Growth Fund III",
+            "time_ago": "Yesterday",
+        },
+        {
+            "type": "pitch",
+            "description": "Pitch generated for",
+            "lp_name": "Ontario Teachers",
+            "lp_id": "lp-ontario",
+            "fund_name": "Growth Fund III",
+            "time_ago": "2 days ago",
+        },
+    ]
+
+    upcoming_meetings = [
+        {"lp_name": "Yale Endowment", "lp_id": "lp-yale", "date": "Jan 15, 2:00 PM"},
+        {"lp_name": "Stanford Endowment", "lp_id": "lp-stanford", "date": "Jan 18, 10:00 AM"},
+    ]
+
+    followups = [
+        {"lp_name": "Ontario Teachers", "lp_id": "lp-ontario", "days_ago": 5},
+        {"lp_name": "CalPERS", "lp_id": "lp-calpers", "days_ago": 3},
+        {"lp_name": "CPPIB", "lp_id": "lp-cppib", "days_ago": 7},
+    ]
+
+    mock_funds = [
+        {"id": "fund-1", "name": "Growth Fund III"},
+        {"id": "fund-2", "name": "Growth Fund II"},
+    ]
+
+    return templates.TemplateResponse(
+        request,
+        "pages/outreach.html",
+        {
+            "title": "Outreach Hub - LPxGP",
+            "user": user,
+            "stats": stats,
+            "activities": activities,
+            "upcoming_meetings": upcoming_meetings,
+            "followups": followups,
+            "funds": mock_funds,
+        },
+    )
+
+
+@app.get("/pitch", response_class=HTMLResponse, response_model=None)
+async def pitch_generator_page(
+    request: Request,
+    lp_id: str | None = Query(None),
+    fund_id: str | None = Query(None),
+) -> HTMLResponse | RedirectResponse:
+    """Pitch generator page for creating LP-specific content.
+
+    Requires authentication.
+    """
+    user = auth.get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    # Mock LP data
+    mock_lp = {
+        "id": lp_id or "lp-calpers",
+        "name": "CalPERS",
+        "score": 92,
+        "contact_name": "Michael Smith",
+        "contact_title": "Managing Investment Director",
+    }
+
+    # Mock funds
+    mock_funds = [
+        {"id": "fund-1", "name": "Growth Fund III", "target_size_mm": 500},
+        {"id": "fund-2", "name": "Growth Fund II", "target_size_mm": 350},
+    ]
+
+    return templates.TemplateResponse(
+        request,
+        "pages/pitch-generator.html",
+        {
+            "title": f"Pitch Generator - {mock_lp['name']} - LPxGP",
+            "user": user,
+            "lp": mock_lp,
+            "funds": mock_funds,
+        },
+    )
+
+
 # -----------------------------------------------------------------------------
 # API Endpoints (HTMX partials)
 # -----------------------------------------------------------------------------
