@@ -707,6 +707,61 @@ async def update_fund(
         conn.close()
 
 
+@app.delete("/api/funds/{fund_id}", response_class=HTMLResponse)
+async def delete_fund(request: Request, fund_id: str):
+    """Delete a fund."""
+    if not is_valid_uuid(fund_id):
+        return HTMLResponse(
+            content="<p class='text-red-500'>Invalid fund ID</p>",
+            status_code=400
+        )
+
+    conn = get_db()
+    if not conn:
+        return HTMLResponse(
+            content="<p class='text-navy-500'>Database not configured</p>",
+            status_code=503
+        )
+
+    try:
+        with conn.cursor() as cur:
+            # Get fund name for confirmation message
+            cur.execute("SELECT name FROM funds WHERE id = %s", (fund_id,))
+            fund = cur.fetchone()
+            if not fund:
+                return HTMLResponse(
+                    content="<p class='text-red-500'>Fund not found</p>",
+                    status_code=404
+                )
+            fund_name = fund["name"]
+
+            # Delete the fund
+            cur.execute("DELETE FROM funds WHERE id = %s", (fund_id,))
+            conn.commit()
+
+        return HTMLResponse(
+            content=f"""
+            <div class="text-center p-4">
+                <svg class="w-12 h-12 text-green-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                <h3 class="text-lg font-semibold text-navy-900 mb-2">Fund Deleted</h3>
+                <p class="text-navy-500 mb-4">{fund_name} has been deleted.</p>
+            </div>
+            """,
+            headers={"HX-Trigger": "fundDeleted"}
+        )
+    except Exception as e:
+        logger.error(f"Failed to delete fund: {e}")
+        conn.rollback()
+        return HTMLResponse(
+            content=f"<p class='text-red-500'>Failed to delete fund: {str(e)}</p>",
+            status_code=500
+        )
+    finally:
+        conn.close()
+
+
 @app.post("/api/match/{match_id}/generate-pitch", response_class=HTMLResponse)
 async def generate_pitch(
     request: Request,

@@ -164,15 +164,46 @@
             </div>
 
             <!-- Footer -->
-            <div class="sticky bottom-0 bg-white border-t border-navy-100 px-6 py-4 flex justify-end gap-3">
-                <button type="button"
-                        onclick="this.closest('.fixed').remove()"
-                        class="px-4 py-2 text-navy-600 hover:text-navy-800 font-medium">
-                    Cancel
-                </button>
-                <button type="submit" class="btn-primary">
-                    Save Changes
-                </button>
+            <div class="sticky bottom-0 bg-white border-t border-navy-100 px-6 py-4">
+                <!-- Normal footer -->
+                <div id="edit-footer-normal" class="flex justify-between">
+                    <button type="button"
+                            onclick="document.getElementById('edit-footer-normal').classList.add('hidden'); document.getElementById('edit-footer-delete').classList.remove('hidden');"
+                            class="px-4 py-2 text-red-500 hover:text-red-700 font-medium">
+                        Delete Fund
+                    </button>
+                    <div class="flex gap-3">
+                        <button type="button"
+                                onclick="this.closest('.fixed').remove()"
+                                class="px-4 py-2 text-navy-600 hover:text-navy-800 font-medium">
+                            Cancel
+                        </button>
+                        <button type="submit" class="btn-primary">
+                            Save Changes
+                        </button>
+                    </div>
+                </div>
+                <!-- Delete confirmation -->
+                <div id="edit-footer-delete" class="hidden">
+                    <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-3">
+                        <p class="text-red-800 text-sm font-medium">Are you sure you want to delete this fund?</p>
+                        <p class="text-red-600 text-xs mt-1">This action cannot be undone.</p>
+                    </div>
+                    <div class="flex justify-end gap-3">
+                        <button type="button"
+                                onclick="document.getElementById('edit-footer-delete').classList.add('hidden'); document.getElementById('edit-footer-normal').classList.remove('hidden');"
+                                class="px-4 py-2 text-navy-600 hover:text-navy-800 font-medium">
+                            Cancel
+                        </button>
+                        <button type="button"
+                                hx-delete="/api/funds/{{ fund.id }}"
+                                hx-target="#edit-form-response"
+                                hx-swap="innerHTML"
+                                class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium">
+                            Yes, Delete Fund
+                        </button>
+                    </div>
+                </div>
             </div>
         </form>
     </div>
@@ -181,6 +212,12 @@
 <script>
 // Listen for successful update
 document.body.addEventListener('fundUpdated', function() {
+    setTimeout(() => {
+        window.location.reload();
+    }, 1500);
+});
+// Listen for successful delete
+document.body.addEventListener('fundDeleted', function() {
     setTimeout(() => {
         window.location.reload();
     }, 1500);
