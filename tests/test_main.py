@@ -2534,3 +2534,296 @@ class TestPlaywrightMobile:
                 # WCAG recommends 44x44px minimum
                 assert box["width"] >= 40, f"Button too narrow: {box['width']}px"
                 assert box["height"] >= 40, f"Button too short: {box['height']}px"
+
+
+# =============================================================================
+# AUTHENTICATION TESTS
+# =============================================================================
+
+
+class TestAuthPages:
+    """Test authentication page rendering."""
+
+    def test_login_page_renders(self, client):
+        """Login page should render successfully."""
+        response = client.get("/login")
+        assert response.status_code == 200
+        assert "Sign in to LPxGP" in response.text
+
+    def test_login_page_has_form(self, client):
+        """Login page should have email and password fields."""
+        response = client.get("/login")
+        assert 'name="email"' in response.text
+        assert 'name="password"' in response.text
+        assert 'type="email"' in response.text
+        assert 'type="password"' in response.text
+
+    def test_login_page_shows_demo_accounts(self, client):
+        """Login page should show demo account info."""
+        response = client.get("/login")
+        assert "gp@demo.com" in response.text
+        assert "demo123" in response.text
+
+    def test_register_page_renders(self, client):
+        """Register page should render successfully."""
+        response = client.get("/register")
+        assert response.status_code == 200
+        assert "Create your account" in response.text
+
+    def test_register_page_has_all_fields(self, client):
+        """Register page should have name, email, password, and role fields."""
+        response = client.get("/register")
+        assert 'name="name"' in response.text
+        assert 'name="email"' in response.text
+        assert 'name="password"' in response.text
+        assert 'name="role"' in response.text
+
+
+class TestAuthLogin:
+    """Test login functionality."""
+
+    def test_login_with_valid_demo_credentials(self, client):
+        """Login with demo GP account should redirect to dashboard."""
+        response = client.post(
+            "/api/auth/login",
+            data={"email": "gp@demo.com", "password": "demo123"},
+            follow_redirects=False
+        )
+        # Should redirect to dashboard
+        assert response.status_code == 303
+        assert response.headers.get("location") == "/dashboard"
+
+    def test_login_sets_session_cookie(self, client):
+        """Successful login should set session cookie."""
+        response = client.post(
+            "/api/auth/login",
+            data={"email": "gp@demo.com", "password": "demo123"},
+            follow_redirects=False
+        )
+        # Check that a session cookie was set
+        cookies = response.cookies
+        assert "lpxgp_session" in cookies
+
+    def test_login_with_invalid_password(self, client):
+        """Login with wrong password should show error."""
+        response = client.post(
+            "/api/auth/login",
+            data={"email": "gp@demo.com", "password": "wrongpassword"},
+        )
+        assert response.status_code == 401
+        assert "Invalid email or password" in response.text
+
+    def test_login_with_nonexistent_email(self, client):
+        """Login with unknown email should show error."""
+        response = client.post(
+            "/api/auth/login",
+            data={"email": "unknown@example.com", "password": "anypassword"},
+        )
+        assert response.status_code == 401
+        assert "Invalid email or password" in response.text
+
+    def test_login_case_insensitive_email(self, client):
+        """Email should be case-insensitive for login."""
+        response = client.post(
+            "/api/auth/login",
+            data={"email": "GP@DEMO.COM", "password": "demo123"},
+            follow_redirects=False
+        )
+        assert response.status_code == 303
+
+
+class TestAuthRegister:
+    """Test registration functionality."""
+
+    def test_register_new_user(self, client):
+        """New user registration should succeed and redirect."""
+        import uuid
+        unique_email = f"test_{uuid.uuid4().hex[:8]}@example.com"
+
+        response = client.post(
+            "/api/auth/register",
+            data={
+                "email": unique_email,
+                "password": "testpassword123",
+                "name": "Test User",
+                "role": "gp"
+            },
+            follow_redirects=False
+        )
+        assert response.status_code == 303
+        assert response.headers.get("location") == "/dashboard"
+
+    def test_register_duplicate_email(self, client):
+        """Registering with existing email should fail."""
+        response = client.post(
+            "/api/auth/register",
+            data={
+                "email": "gp@demo.com",  # Already exists
+                "password": "newpassword",
+                "name": "Another User",
+                "role": "gp"
+            },
+        )
+        assert response.status_code == 400
+        assert "already registered" in response.text.lower()
+
+
+class TestAuthLogout:
+    """Test logout functionality."""
+
+    def test_logout_redirects_to_home(self, client):
+        """Logout should redirect to home page."""
+        # First login
+        client.post(
+            "/api/auth/login",
+            data={"email": "gp@demo.com", "password": "demo123"},
+        )
+        # Then logout
+        response = client.get("/logout", follow_redirects=False)
+        assert response.status_code == 303
+        assert response.headers.get("location") == "/"
+
+    def test_logout_clears_session(self, client):
+        """Logout should clear the session cookie."""
+        # First login
+        client.post(
+            "/api/auth/login",
+            data={"email": "gp@demo.com", "password": "demo123"},
+        )
+        # Then logout
+        response = client.get("/logout", follow_redirects=False)
+        # Cookie should be deleted (empty or expired)
+        cookies = response.cookies
+        # After logout, session cookie should be cleared
+        assert cookies.get("lpxgp_session") is None or cookies.get("lpxgp_session") == ""
+
+
+class TestProtectedRoutes:
+    """Test protected route access control."""
+
+    def test_dashboard_requires_auth(self, client):
+        """Dashboard should redirect to login if not authenticated."""
+        response = client.get("/dashboard", follow_redirects=False)
+        assert response.status_code == 303
+        assert response.headers.get("location") == "/login"
+
+    def test_dashboard_accessible_when_logged_in(self, client):
+        """Dashboard should be accessible after login."""
+        # Login first
+        client.post(
+            "/api/auth/login",
+            data={"email": "gp@demo.com", "password": "demo123"},
+        )
+        # Access dashboard
+        response = client.get("/dashboard")
+        assert response.status_code == 200
+        assert "Welcome back" in response.text
+
+    def test_settings_requires_auth(self, client):
+        """Settings page should redirect to login if not authenticated."""
+        response = client.get("/settings", follow_redirects=False)
+        assert response.status_code == 303
+        assert response.headers.get("location") == "/login"
+
+    def test_settings_accessible_when_logged_in(self, client):
+        """Settings page should be accessible after login."""
+        # Login first
+        client.post(
+            "/api/auth/login",
+            data={"email": "gp@demo.com", "password": "demo123"},
+        )
+        # Access settings
+        response = client.get("/settings")
+        assert response.status_code == 200
+        assert "Settings" in response.text
+
+    def test_login_redirects_to_dashboard_if_authenticated(self, client):
+        """Login page should redirect to dashboard if already logged in."""
+        # Login first
+        client.post(
+            "/api/auth/login",
+            data={"email": "gp@demo.com", "password": "demo123"},
+        )
+        # Try to access login page
+        response = client.get("/login", follow_redirects=False)
+        assert response.status_code == 303
+        assert response.headers.get("location") == "/dashboard"
+
+
+class TestDashboardContent:
+    """Test dashboard page content."""
+
+    def test_dashboard_shows_user_name(self, client):
+        """Dashboard should display user's name."""
+        client.post(
+            "/api/auth/login",
+            data={"email": "gp@demo.com", "password": "demo123"},
+        )
+        response = client.get("/dashboard")
+        assert "Demo" in response.text  # First name from "Demo GP User"
+
+    def test_dashboard_shows_stats(self, client):
+        """Dashboard should show statistics cards."""
+        client.post(
+            "/api/auth/login",
+            data={"email": "gp@demo.com", "password": "demo123"},
+        )
+        response = client.get("/dashboard")
+        assert "Total Funds" in response.text
+        assert "Total LPs" in response.text
+        assert "AI Matches" in response.text
+
+    def test_dashboard_has_quick_actions(self, client):
+        """Dashboard should have quick action links."""
+        client.post(
+            "/api/auth/login",
+            data={"email": "gp@demo.com", "password": "demo123"},
+        )
+        response = client.get("/dashboard")
+        assert "Quick Actions" in response.text
+        assert "/funds" in response.text
+        assert "/matches" in response.text
+
+    def test_dashboard_has_navigation(self, client):
+        """Dashboard should have navigation to other pages."""
+        client.post(
+            "/api/auth/login",
+            data={"email": "gp@demo.com", "password": "demo123"},
+        )
+        response = client.get("/dashboard")
+        assert 'href="/matches"' in response.text
+        assert 'href="/funds"' in response.text
+        assert 'href="/lps"' in response.text
+
+
+class TestSettingsContent:
+    """Test settings page content."""
+
+    def test_settings_shows_user_info(self, client):
+        """Settings should display user information."""
+        client.post(
+            "/api/auth/login",
+            data={"email": "gp@demo.com", "password": "demo123"},
+        )
+        response = client.get("/settings")
+        assert "gp@demo.com" in response.text
+        assert "Demo GP User" in response.text
+
+    def test_settings_has_notification_options(self, client):
+        """Settings should have notification preferences."""
+        client.post(
+            "/api/auth/login",
+            data={"email": "gp@demo.com", "password": "demo123"},
+        )
+        response = client.get("/settings")
+        assert "Notifications" in response.text
+
+    def test_settings_has_security_section(self, client):
+        """Settings should have security section."""
+        client.post(
+            "/api/auth/login",
+            data={"email": "gp@demo.com", "password": "demo123"},
+        )
+        response = client.get("/settings")
+        assert "Security" in response.text
+        assert "Password" in response.text

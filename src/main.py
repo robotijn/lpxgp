@@ -18,6 +18,7 @@ from fastapi.templating import Jinja2Templates
 
 from src.config import get_settings, validate_settings_on_startup
 from src.logging_config import get_logger
+from src import auth
 
 
 def is_valid_uuid(value: str) -> bool:
@@ -138,10 +139,141 @@ async def home(request: Request):
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
     """Login page."""
+    # Redirect to dashboard if already logged in
+    user = auth.get_current_user(request)
+    if user:
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url="/dashboard", status_code=303)
+
     return templates.TemplateResponse(
         request,
         "pages/login.html",
         {"title": "Login - LPxGP"},
+    )
+
+
+@app.get("/register", response_class=HTMLResponse)
+async def register_page(request: Request):
+    """Registration page."""
+    # Redirect to dashboard if already logged in
+    user = auth.get_current_user(request)
+    if user:
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url="/dashboard", status_code=303)
+
+    return templates.TemplateResponse(
+        request,
+        "pages/register.html",
+        {"title": "Register - LPxGP"},
+    )
+
+
+@app.post("/api/auth/login")
+async def api_login(
+    request: Request,
+    email: str = Form(...),
+    password: str = Form(...),
+):
+    """Handle login form submission."""
+    user = auth.authenticate_user(email, password)
+
+    if not user:
+        return templates.TemplateResponse(
+            request,
+            "partials/auth_error.html",
+            {"error": "Invalid email or password"},
+            status_code=401,
+        )
+
+    return auth.login_response(user, redirect_to="/dashboard")
+
+
+@app.post("/api/auth/register")
+async def api_register(
+    request: Request,
+    email: str = Form(...),
+    password: str = Form(...),
+    name: str = Form(...),
+    role: str = Form(default="gp"),
+):
+    """Handle registration form submission."""
+    try:
+        user = auth.create_user(email=email, password=password, name=name, role=role)
+        return auth.login_response(user, redirect_to="/dashboard")
+    except ValueError as e:
+        return templates.TemplateResponse(
+            request,
+            "partials/auth_error.html",
+            {"error": str(e)},
+            status_code=400,
+        )
+
+
+@app.get("/logout")
+async def logout(request: Request):
+    """Handle logout."""
+    return auth.logout_response(request, redirect_to="/")
+
+
+@app.get("/dashboard", response_class=HTMLResponse)
+async def dashboard_page(request: Request):
+    """Dashboard page (protected)."""
+    user = auth.get_current_user(request)
+    if not user:
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url="/login", status_code=303)
+
+    # Get stats for dashboard
+    stats = {
+        "total_funds": 0,
+        "total_lps": 0,
+        "total_matches": 0,
+        "active_outreach": 0,
+    }
+
+    conn = get_db()
+    if conn:
+        try:
+            with conn.cursor() as cur:
+                cur.execute("SELECT COUNT(*) FROM funds")
+                stats["total_funds"] = cur.fetchone()["count"]
+
+                cur.execute("SELECT COUNT(*) FROM lps")
+                stats["total_lps"] = cur.fetchone()["count"]
+
+                cur.execute("SELECT COUNT(*) FROM fund_lp_matches")
+                stats["total_matches"] = cur.fetchone()["count"]
+        except Exception:
+            pass
+        finally:
+            conn.close()
+
+    return templates.TemplateResponse(
+        request,
+        "pages/dashboard.html",
+        {
+            "title": "Dashboard - LPxGP",
+            "user": user,
+            "stats": stats,
+        },
+    )
+
+
+@app.get("/settings", response_class=HTMLResponse)
+async def settings_page(request: Request):
+    """Settings page (protected)."""
+    user = auth.get_current_user(request)
+    if not user:
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url="/login", status_code=303)
+
+    return templates.TemplateResponse(
+        request,
+        "pages/settings.html",
+        {
+            "title": "Settings - LPxGP",
+            "user": user,
+        },
     )
 
 
