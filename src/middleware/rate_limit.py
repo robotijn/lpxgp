@@ -101,13 +101,13 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
     """Custom handler that returns structured JSON response."""
     # Parse the limit from the exception
     # exc.detail format: "Rate limit exceeded: X per Y"
-    limit_info = str(exc.detail)
+    str(exc.detail)
 
     # Extract retry-after from headers if available
     retry_after = 60  # Default to 60 seconds
 
     response = RateLimitResponse(
-        message=f"Rate limit exceeded. Please try again later.",
+        message="Rate limit exceeded. Please try again later.",
         retry_after_seconds=retry_after,
         limit=10,  # Will be overridden per endpoint
         window_seconds=60,

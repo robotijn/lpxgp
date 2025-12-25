@@ -832,7 +832,7 @@ async def create_fund(
                 check_size_min_mm, check_size_max_mm, investment_thesis,
                 management_fee_pct, carried_interest_pct, gp_commitment_pct
             ))
-            fund_id = cur.fetchone()["id"]
+            cur.fetchone()["id"]
             conn.commit()
 
         # Return success with redirect
