@@ -11,9 +11,9 @@ Test Categories:
 - Browser tests: Playwright for real viewport testing (marked with @pytest.mark.browser)
 """
 
-import pytest
 import re
 
+import pytest
 
 # =============================================================================
 # EXISTING TESTS (PRESERVED - DO NOT REMOVE)
@@ -819,7 +819,6 @@ class TestFundsPage:
     def test_funds_page_has_form_fields(self, client):
         """Funds page create form should have required fields."""
         response = client.get("/funds")
-        text = response.text.lower()
         assert 'name="name"' in response.text
         assert 'name="org_id"' in response.text
 
@@ -2557,12 +2556,10 @@ class TestAccessibility:
         response = client.get("/login")
         html = response.text
 
-        # Count inputs and labels
-        input_count = html.count("<input")
+        # Count labels (inputs include hidden fields which don't need labels)
         label_count = html.count("<label")
 
-        # Every visible input should have a label
-        # (hidden inputs don't need labels)
+        # Forms should have labels for accessibility
         assert label_count > 0, "Forms need labels for accessibility"
 
     def test_images_have_alt_text(self, client):

@@ -17,7 +17,6 @@ Usage:
 """
 
 from dataclasses import dataclass
-from typing import Dict
 
 
 @dataclass(frozen=True)
@@ -133,7 +132,7 @@ class Colors:
 colors = Colors()
 
 # Convenience shortcuts
-NAVY: Dict[int, str] = {
+NAVY: dict[int, str] = {
     50: colors.navy.n50,
     100: colors.navy.n100,
     200: colors.navy.n200,
@@ -146,7 +145,7 @@ NAVY: Dict[int, str] = {
     900: colors.navy.n900,
 }
 
-SLATE: Dict[int, str] = {
+SLATE: dict[int, str] = {
     50: colors.slate.n50,
     100: colors.slate.n100,
     200: colors.slate.n200,

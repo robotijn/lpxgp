@@ -6,8 +6,8 @@ CSRF tokens via headers on every request.
 
 import hmac
 import secrets
+from collections.abc import Callable
 from datetime import timedelta
-from typing import Callable
 
 from fastapi import FastAPI, HTTPException, Request, Response, status
 

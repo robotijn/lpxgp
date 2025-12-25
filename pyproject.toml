@@ -42,11 +42,15 @@ dev = [
 ]
 
 [tool.ruff]
-line-length = 100
+line-length = 120
 target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP"]
+ignore = ["E501"]  # Line length handled by formatter, not linter
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["E501"]  # Test data strings are often long
 
 [tool.mypy]
 packages = ["src"]

@@ -1,16 +1,14 @@
 """Standard API response wrappers."""
 
-from typing import Any, Generic, TypeVar
+from typing import Any
 from uuid import UUID
 
 from pydantic import Field
 
 from src.models.base import BaseModel
 
-T = TypeVar("T")
 
-
-class APIResponse(BaseModel, Generic[T]):
+class APIResponse[T](BaseModel):
     """Standard API response wrapper."""
 
     success: bool = True
@@ -19,7 +17,7 @@ class APIResponse(BaseModel, Generic[T]):
     request_id: str | None = Field(default=None, description="Request ID for tracking")
 
 
-class PaginatedResponse(BaseModel, Generic[T]):
+class PaginatedResponse[T](BaseModel):
     """Paginated response wrapper."""
 
     success: bool = True

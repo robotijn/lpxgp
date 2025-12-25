@@ -3,7 +3,7 @@
 Configurable rate limits per endpoint with org-scoped and user-scoped options.
 """
 
-from typing import Callable
+from collections.abc import Callable
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse

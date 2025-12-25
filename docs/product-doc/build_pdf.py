@@ -7,8 +7,8 @@ Run from /tmp/pdf-env:
     python /home/tijn/code/lpxgp/docs/product-doc/build_pdf.py
 """
 import asyncio
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
 # Paths
 SCRIPT_DIR = Path(__file__).parent
@@ -160,7 +160,7 @@ async def take_screenshots():
         for category, screens in SCREENS.items():
             for item in screens:
                 filename = item[0]
-                title = item[1]
+                _title = item[1]  # noqa: F841 - title used for documentation
                 html_path = MOCKUPS_DIR / filename
                 if not html_path.exists():
                     print(f"  Skipping {filename} (not found)")

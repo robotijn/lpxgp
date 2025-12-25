@@ -29,7 +29,6 @@ jobs:
 
       - name: Run linting
         run: uv run ruff check .
-        continue-on-error: true  # Don't fail CI on lint warnings for now
 
       - name: Run unit tests
         run: uv run pytest tests/ -v --tb=short -m "not browser"
@@ -75,4 +74,3 @@ jobs:
 
       - name: Type check with mypy
         run: uv run mypy src/ --ignore-missing-imports
-        continue-on-error: true  # Don't fail CI on type errors for now

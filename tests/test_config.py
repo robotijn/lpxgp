@@ -14,7 +14,6 @@ from pydantic import ValidationError
 
 from src.config import Settings, get_settings, validate_settings_on_startup
 
-
 # =============================================================================
 # SETTINGS CLASS TESTS
 # =============================================================================
