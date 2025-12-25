@@ -402,6 +402,67 @@ async def match_detail(request: Request, match_id: str):
         conn.close()
 
 
+@app.get("/api/lp/{lp_id}/detail", response_class=HTMLResponse)
+async def lp_detail(request: Request, lp_id: str):
+    """Get LP detail for modal display (HTMX partial)."""
+    if not is_valid_uuid(lp_id):
+        return HTMLResponse(
+            content="<p class='text-red-500'>Invalid LP ID</p>",
+            status_code=400
+        )
+
+    conn = get_db()
+    if not conn:
+        return HTMLResponse(
+            content="<p class='text-navy-500'>Database not configured</p>",
+            status_code=503
+        )
+
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT
+                    o.id, o.name, o.hq_city, o.hq_country, o.website,
+                    o.description,
+                    lp.lp_type, lp.total_aum_bn, lp.pe_allocation_pct,
+                    lp.check_size_min_mm, lp.check_size_max_mm,
+                    lp.fund_size_min_mm, lp.fund_size_max_mm,
+                    lp.strategies, lp.geographic_preferences, lp.sector_preferences,
+                    lp.esg_required, lp.emerging_manager_ok,
+                    lp.min_track_record_years, lp.min_fund_number,
+                    lp.mandate_description
+                FROM organizations o
+                JOIN lp_profiles lp ON lp.org_id = o.id
+                WHERE o.id = %s
+            """, (lp_id,))
+            lp = cur.fetchone()
+
+            # Get contacts for this LP
+            cur.execute("""
+                SELECT p.id, p.full_name, e.title, p.email, p.linkedin_url
+                FROM people p
+                JOIN employment e ON e.person_id = p.id
+                WHERE e.org_id = %s AND e.is_current = TRUE
+                ORDER BY p.full_name
+                LIMIT 5
+            """, (lp_id,))
+            contacts = cur.fetchall()
+
+        if not lp:
+            return HTMLResponse(
+                content="<p class='text-navy-500'>LP not found</p>",
+                status_code=404
+            )
+
+        return templates.TemplateResponse(
+            request,
+            "partials/lp_detail_modal.html",
+            {"lp": lp, "contacts": contacts},
+        )
+    finally:
+        conn.close()
+
+
 @app.post("/api/match/{match_id}/generate-pitch", response_class=HTMLResponse)
 async def generate_pitch(
     request: Request,
