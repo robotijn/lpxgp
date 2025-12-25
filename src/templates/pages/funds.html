@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block nav %}
+<nav class="hidden md:flex ml-10 space-x-8">
+    <a href="/matches" class="text-navy-600 hover:text-navy-900 text-sm">Matches</a>
+    <a href="/funds" class="text-gold font-medium text-sm">Funds</a>
+    <a href="/lps" class="text-navy-600 hover:text-navy-900 text-sm">LPs</a>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+    <!-- Page Header -->
+    <div class="flex items-center justify-between mb-8">
+        <div>
+            <h1 class="text-2xl font-bold text-navy-900">Funds</h1>
+            <p class="text-navy-500 mt-1">Manage your fund profiles</p>
+        </div>
+        <button onclick="document.getElementById('create-fund-modal').classList.remove('hidden')"
+                class="btn-primary">
+            <svg class="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            New Fund
+        </button>
+    </div>
+
+    <!-- Stats Summary -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div class="card p-4">
+            <div class="text-2xl font-bold text-navy-900">{{ funds|length }}</div>
+            <div class="text-sm text-navy-500">Total Funds</div>
+        </div>
+        <div class="card p-4">
+            <div class="text-2xl font-bold text-green-600">{{ raising_count }}</div>
+            <div class="text-sm text-navy-500">Currently Raising</div>
+        </div>
+        <div class="card p-4">
+            <div class="text-2xl font-bold text-gold">${{ "%.0f"|format(total_target) }}M</div>
+            <div class="text-sm text-navy-500">Total Target</div>
+        </div>
+    </div>
+
+    <!-- Funds Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for fund in funds %}
+        <div class="card p-6 hover:shadow-md transition-shadow">
+            <div class="flex items-start justify-between mb-4">
+                <div>
+                    <h3 class="text-lg font-semibold text-navy-900">{{ fund.name }}</h3>
+                    <p class="text-sm text-navy-500">{{ fund.gp_name }}</p>
+                </div>
+                <span class="px-2 py-1 text-xs font-medium rounded-full
+                    {% if fund.status == 'raising' %}bg-green-100 text-green-800
+                    {% elif fund.status == 'closed' %}bg-blue-100 text-blue-800
+                    {% elif fund.status == 'draft' %}bg-gray-100 text-gray-800
+                    {% else %}bg-navy-100 text-navy-800{% endif %}">
+                    {{ fund.status|title if fund.status else 'Draft' }}
+                </span>
+            </div>
+
+            <div class="space-y-3">
+                <div class="flex justify-between text-sm">
+                    <span class="text-navy-500">Target Size</span>
+                    <span class="font-medium text-navy-900">${{ fund.target_size_mm or '?' }}M</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-navy-500">Vintage</span>
+                    <span class="font-medium text-navy-900">{{ fund.vintage_year or '-' }}</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-navy-500">Strategy</span>
+                    <span class="font-medium text-navy-900">{{ fund.strategy or '-' }}</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-navy-500">LP Matches</span>
+                    <span class="font-medium text-gold">{{ fund.match_count }}</span>
+                </div>
+            </div>
+
+            {% if fund.geographic_focus %}
+            <div class="mt-4 flex flex-wrap gap-1">
+                {% for geo in fund.geographic_focus[:3] %}
+                <span class="px-2 py-0.5 text-xs bg-navy-100 text-navy-700 rounded">{{ geo }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="mt-4 pt-4 border-t border-navy-100 flex justify-between">
+                <a href="/matches?fund_id={{ fund.id }}" class="text-sm text-gold hover:text-gold/80 font-medium">
+                    View Matches
+                </a>
+                <button class="text-sm text-navy-500 hover:text-navy-700">
+                    Edit
+                </button>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-span-full card p-8 text-center">
+            <svg class="w-12 h-12 text-navy-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+            </svg>
+            <p class="text-navy-500 mb-4">No funds yet. Create your first fund to get AI-powered LP recommendations.</p>
+            <button onclick="document.getElementById('create-fund-modal').classList.remove('hidden')"
+                    class="btn-primary">
+                Create Your First Fund
+            </button>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Create Fund Modal (placeholder) -->
+<div id="create-fund-modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+     onclick="if(event.target === this) this.classList.add('hidden')">
+    <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full mx-4 p-6" onclick="event.stopPropagation()">
+        <h2 class="text-xl font-bold text-navy-900 mb-4">Create New Fund</h2>
+        <p class="text-navy-500 mb-6">Fund creation wizard coming soon. This will include deck upload and AI extraction.</p>
+        <div class="flex justify-end">
+            <button onclick="this.closest('#create-fund-modal').classList.add('hidden')"
+                    class="btn-secondary">Close</button>
+        </div>
+    </div>
+</div>
+{% endblock %}

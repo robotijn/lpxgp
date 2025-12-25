@@ -222,6 +222,129 @@ async def matches_page(request: Request, fund_id: Optional[str] = Query(None)):
         conn.close()
 
 
+@app.get("/funds", response_class=HTMLResponse)
+async def funds_page(request: Request):
+    """Funds page listing GP fund profiles."""
+    empty_response = {
+        "title": "Funds - LPxGP",
+        "funds": [],
+        "total_target": 0,
+        "raising_count": 0,
+    }
+
+    conn = get_db()
+    if not conn:
+        return templates.TemplateResponse(request, "pages/funds.html", empty_response)
+
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT
+                    f.id, f.name, f.status, f.vintage_year,
+                    f.target_size_mm, f.current_size_mm,
+                    f.strategy, f.sub_strategy,
+                    f.geographic_focus, f.sector_focus,
+                    o.name as gp_name,
+                    (SELECT COUNT(*) FROM fund_lp_matches m WHERE m.fund_id = f.id) as match_count
+                FROM funds f
+                JOIN organizations o ON o.id = f.org_id
+                ORDER BY f.created_at DESC
+            """)
+            funds = cur.fetchall()
+
+        # Calculate stats
+        total_target = sum(f["target_size_mm"] or 0 for f in funds)
+        raising_count = sum(1 for f in funds if f["status"] == "raising")
+
+        return templates.TemplateResponse(
+            request,
+            "pages/funds.html",
+            {
+                "title": "Funds - LPxGP",
+                "funds": funds,
+                "total_target": total_target,
+                "raising_count": raising_count,
+            },
+        )
+    finally:
+        conn.close()
+
+
+@app.get("/lps", response_class=HTMLResponse)
+async def lps_page(
+    request: Request,
+    search: Optional[str] = Query(None),
+    lp_type: Optional[str] = Query(None),
+):
+    """LPs page for browsing and searching LP profiles."""
+    empty_response = {
+        "title": "LPs - LPxGP",
+        "lps": [],
+        "total_aum": 0,
+        "search": search or "",
+        "lp_type": lp_type or "",
+        "lp_types": [],
+    }
+
+    conn = get_db()
+    if not conn:
+        return templates.TemplateResponse(request, "pages/lps.html", empty_response)
+
+    try:
+        with conn.cursor() as cur:
+            # Get distinct LP types for filter dropdown
+            cur.execute("""
+                SELECT DISTINCT lp_type FROM lp_profiles
+                WHERE lp_type IS NOT NULL
+                ORDER BY lp_type
+            """)
+            lp_types = [row["lp_type"] for row in cur.fetchall()]
+
+            # Build query with optional filters
+            query = """
+                SELECT
+                    o.id, o.name, o.hq_city, o.hq_country, o.website,
+                    lp.lp_type, lp.total_aum_bn, lp.pe_allocation_pct,
+                    lp.check_size_min_mm, lp.check_size_max_mm,
+                    lp.geographic_preferences, lp.strategies
+                FROM organizations o
+                JOIN lp_profiles lp ON lp.org_id = o.id
+                WHERE 1=1
+            """
+            params = []
+
+            if search:
+                query += " AND (o.name ILIKE %s OR o.hq_city ILIKE %s)"
+                params.extend([f"%{search}%", f"%{search}%"])
+
+            if lp_type:
+                query += " AND lp.lp_type = %s"
+                params.append(lp_type)
+
+            query += " ORDER BY lp.total_aum_bn DESC NULLS LAST LIMIT 100"
+
+            cur.execute(query, params)
+            lps = cur.fetchall()
+
+        # Calculate stats
+        total_aum = sum(lp["total_aum_bn"] or 0 for lp in lps)
+
+        return templates.TemplateResponse(
+            request,
+            "pages/lps.html",
+            {
+                "title": "LPs - LPxGP",
+                "lps": lps,
+                "total_aum": total_aum,
+                "search": search or "",
+                "lp_type": lp_type or "",
+                "lp_types": lp_types,
+            },
+        )
+    finally:
+        conn.close()
+
+
 # -----------------------------------------------------------------------------
 # API Endpoints (HTMX partials)
 # -----------------------------------------------------------------------------
