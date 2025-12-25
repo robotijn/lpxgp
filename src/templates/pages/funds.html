@@ -90,7 +90,10 @@
                 <a href="/matches?fund_id={{ fund.id }}" class="text-sm text-gold hover:text-gold/80 font-medium">
                     View Matches
                 </a>
-                <button class="text-sm text-navy-500 hover:text-navy-700">
+                <button hx-get="/api/funds/{{ fund.id }}/edit"
+                        hx-target="#fund-edit-modal"
+                        hx-swap="innerHTML"
+                        class="text-sm text-navy-500 hover:text-navy-700">
                     Edit
                 </button>
             </div>
@@ -298,5 +301,13 @@ document.body.addEventListener('fundCreated', function() {
         window.location.reload();
     }, 1500);
 });
+document.body.addEventListener('fundUpdated', function() {
+    setTimeout(() => {
+        window.location.reload();
+    }, 1500);
+});
 </script>
+
+<!-- Fund Edit Modal -->
+<div id="fund-edit-modal"></div>
 {% endblock %}

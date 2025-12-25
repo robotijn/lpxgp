@@ -1,0 +1,188 @@
+<!-- Fund Edit Modal Content -->
+<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+     onclick="if(event.target === this) this.remove()">
+    <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto"
+         onclick="event.stopPropagation()">
+        <!-- Header -->
+        <div class="sticky top-0 bg-white border-b border-navy-100 px-6 py-4 flex items-center justify-between">
+            <h2 class="text-xl font-bold text-navy-900">Edit Fund</h2>
+            <button onclick="this.closest('.fixed').remove()"
+                    class="text-navy-400 hover:text-navy-600 p-1">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Form -->
+        <form hx-put="/api/funds/{{ fund.id }}" hx-target="#edit-form-response" hx-swap="innerHTML">
+            <div class="p-6 space-y-6">
+                <!-- Response area -->
+                <div id="edit-form-response"></div>
+
+                <!-- Basic Info -->
+                <div>
+                    <h3 class="text-sm font-semibold text-navy-700 mb-3 flex items-center">
+                        <span class="w-6 h-6 rounded-full bg-gold text-white text-xs flex items-center justify-center mr-2">1</span>
+                        Basic Information
+                    </h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="col-span-2">
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Fund Name *</label>
+                            <input type="text" name="name" required
+                                   value="{{ fund.name }}"
+                                   class="form-input w-full">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-sm font-medium text-navy-700 mb-1">GP Organization *</label>
+                            <select name="org_id" required class="form-input w-full">
+                                {% for org in gp_orgs %}
+                                <option value="{{ org.id }}" {% if org.id == fund.org_id %}selected{% endif %}>{{ org.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Status</label>
+                            <select name="status" class="form-input w-full">
+                                <option value="draft" {% if fund.status == 'draft' %}selected{% endif %}>Draft</option>
+                                <option value="raising" {% if fund.status == 'raising' %}selected{% endif %}>Raising</option>
+                                <option value="closed" {% if fund.status == 'closed' %}selected{% endif %}>Closed</option>
+                                <option value="invested" {% if fund.status == 'invested' %}selected{% endif %}>Invested</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Vintage Year</label>
+                            <input type="number" name="vintage_year" min="2000" max="2030"
+                                   value="{{ fund.vintage_year or '' }}" class="form-input w-full">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Target Size ($M)</label>
+                            <input type="number" name="target_size_mm" step="0.01" min="0"
+                                   value="{{ fund.target_size_mm or '' }}" class="form-input w-full">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Strategy -->
+                <div>
+                    <h3 class="text-sm font-semibold text-navy-700 mb-3 flex items-center">
+                        <span class="w-6 h-6 rounded-full bg-gold text-white text-xs flex items-center justify-center mr-2">2</span>
+                        Strategy & Focus
+                    </h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Primary Strategy</label>
+                            <select name="strategy" class="form-input w-full">
+                                <option value="">Select...</option>
+                                <option value="buyout" {% if fund.strategy == 'buyout' %}selected{% endif %}>Buyout</option>
+                                <option value="growth" {% if fund.strategy == 'growth' %}selected{% endif %}>Growth Equity</option>
+                                <option value="venture" {% if fund.strategy == 'venture' %}selected{% endif %}>Venture Capital</option>
+                                <option value="credit" {% if fund.strategy == 'credit' %}selected{% endif %}>Private Credit</option>
+                                <option value="real_estate" {% if fund.strategy == 'real_estate' %}selected{% endif %}>Real Estate</option>
+                                <option value="infrastructure" {% if fund.strategy == 'infrastructure' %}selected{% endif %}>Infrastructure</option>
+                                <option value="secondaries" {% if fund.strategy == 'secondaries' %}selected{% endif %}>Secondaries</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Sub-Strategy</label>
+                            <input type="text" name="sub_strategy"
+                                   value="{{ fund.sub_strategy or '' }}"
+                                   class="form-input w-full">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Geographic Focus</label>
+                            <input type="text" name="geographic_focus"
+                                   value="{{ fund.geographic_focus|join(', ') if fund.geographic_focus else '' }}"
+                                   class="form-input w-full">
+                            <p class="text-xs text-navy-400 mt-1">Comma-separated</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Sector Focus</label>
+                            <input type="text" name="sector_focus"
+                                   value="{{ fund.sector_focus|join(', ') if fund.sector_focus else '' }}"
+                                   class="form-input w-full">
+                            <p class="text-xs text-navy-400 mt-1">Comma-separated</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Investment Parameters -->
+                <div>
+                    <h3 class="text-sm font-semibold text-navy-700 mb-3 flex items-center">
+                        <span class="w-6 h-6 rounded-full bg-gold text-white text-xs flex items-center justify-center mr-2">3</span>
+                        Investment Parameters
+                    </h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Min Check Size ($M)</label>
+                            <input type="number" name="check_size_min_mm" step="0.01" min="0"
+                                   value="{{ fund.check_size_min_mm or '' }}" class="form-input w-full">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Max Check Size ($M)</label>
+                            <input type="number" name="check_size_max_mm" step="0.01" min="0"
+                                   value="{{ fund.check_size_max_mm or '' }}" class="form-input w-full">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Terms -->
+                <div>
+                    <h3 class="text-sm font-semibold text-navy-700 mb-3 flex items-center">
+                        <span class="w-6 h-6 rounded-full bg-gold text-white text-xs flex items-center justify-center mr-2">4</span>
+                        Fund Terms
+                    </h3>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Mgmt Fee (%)</label>
+                            <input type="number" name="management_fee_pct" step="0.01" min="0" max="5"
+                                   value="{{ fund.management_fee_pct or '' }}" class="form-input w-full">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Carry (%)</label>
+                            <input type="number" name="carried_interest_pct" step="0.01" min="0" max="50"
+                                   value="{{ fund.carried_interest_pct or '' }}" class="form-input w-full">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">GP Commit (%)</label>
+                            <input type="number" name="gp_commitment_pct" step="0.01" min="0" max="20"
+                                   value="{{ fund.gp_commitment_pct or '' }}" class="form-input w-full">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Investment Thesis -->
+                <div>
+                    <h3 class="text-sm font-semibold text-navy-700 mb-3 flex items-center">
+                        <span class="w-6 h-6 rounded-full bg-gold text-white text-xs flex items-center justify-center mr-2">5</span>
+                        Investment Thesis
+                    </h3>
+                    <textarea name="investment_thesis" rows="4"
+                              class="form-input w-full">{{ fund.investment_thesis or '' }}</textarea>
+                    <p class="text-xs text-navy-400 mt-1">This will be used for AI-powered LP matching</p>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="sticky bottom-0 bg-white border-t border-navy-100 px-6 py-4 flex justify-end gap-3">
+                <button type="button"
+                        onclick="this.closest('.fixed').remove()"
+                        class="px-4 py-2 text-navy-600 hover:text-navy-800 font-medium">
+                    Cancel
+                </button>
+                <button type="submit" class="btn-primary">
+                    Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Listen for successful update
+document.body.addEventListener('fundUpdated', function() {
+    setTimeout(() => {
+        window.location.reload();
+    }, 1500);
+});
+</script>

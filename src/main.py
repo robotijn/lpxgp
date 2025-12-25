@@ -576,6 +576,137 @@ async def get_gp_organizations():
         conn.close()
 
 
+@app.get("/api/funds/{fund_id}/edit", response_class=HTMLResponse)
+async def get_fund_edit_form(request: Request, fund_id: str):
+    """Get fund edit form with pre-populated data."""
+    if not is_valid_uuid(fund_id):
+        return HTMLResponse(content="<p class='text-red-500'>Invalid fund ID</p>", status_code=400)
+
+    conn = get_db()
+    if not conn:
+        return HTMLResponse(content="<p class='text-navy-500'>Database not configured</p>", status_code=503)
+
+    try:
+        with conn.cursor() as cur:
+            # Get fund data
+            cur.execute("""
+                SELECT f.*, o.name as gp_name
+                FROM funds f
+                JOIN organizations o ON f.org_id = o.id
+                WHERE f.id = %s
+            """, (fund_id,))
+            fund = cur.fetchone()
+
+            if not fund:
+                return HTMLResponse(content="<p class='text-red-500'>Fund not found</p>", status_code=404)
+
+            # Get GP organizations for dropdown
+            cur.execute("""
+                SELECT id, name FROM organizations
+                WHERE is_gp = TRUE
+                ORDER BY name
+            """)
+            gp_orgs = cur.fetchall()
+
+        return templates.TemplateResponse(
+            "partials/fund_edit_modal.html",
+            {"request": request, "fund": fund, "gp_orgs": gp_orgs}
+        )
+    finally:
+        conn.close()
+
+
+@app.put("/api/funds/{fund_id}", response_class=HTMLResponse)
+async def update_fund(
+    request: Request,
+    fund_id: str,
+    name: str = Form(...),
+    org_id: str = Form(...),
+    status: str = Form(default="draft"),
+    vintage_year: Optional[int] = Form(default=None),
+    target_size_mm: Optional[float] = Form(default=None),
+    strategy: Optional[str] = Form(default=None),
+    sub_strategy: Optional[str] = Form(default=None),
+    geographic_focus: Optional[str] = Form(default=""),
+    sector_focus: Optional[str] = Form(default=""),
+    check_size_min_mm: Optional[float] = Form(default=None),
+    check_size_max_mm: Optional[float] = Form(default=None),
+    investment_thesis: Optional[str] = Form(default=None),
+    management_fee_pct: Optional[float] = Form(default=None),
+    carried_interest_pct: Optional[float] = Form(default=None),
+    gp_commitment_pct: Optional[float] = Form(default=None),
+):
+    """Update an existing fund."""
+    if not is_valid_uuid(fund_id) or not is_valid_uuid(org_id):
+        return HTMLResponse(
+            content="<p class='text-red-500'>Invalid ID</p>",
+            status_code=400
+        )
+
+    conn = get_db()
+    if not conn:
+        return HTMLResponse(
+            content="<p class='text-navy-500'>Database not configured</p>",
+            status_code=503
+        )
+
+    try:
+        # Parse array fields (comma-separated)
+        geo_array = [g.strip() for g in geographic_focus.split(",") if g.strip()] if geographic_focus else []
+        sector_array = [s.strip() for s in sector_focus.split(",") if s.strip()] if sector_focus else []
+
+        with conn.cursor() as cur:
+            cur.execute("""
+                UPDATE funds SET
+                    org_id = %s,
+                    name = %s,
+                    status = %s,
+                    vintage_year = %s,
+                    target_size_mm = %s,
+                    strategy = %s,
+                    sub_strategy = %s,
+                    geographic_focus = %s,
+                    sector_focus = %s,
+                    check_size_min_mm = %s,
+                    check_size_max_mm = %s,
+                    investment_thesis = %s,
+                    management_fee_pct = %s,
+                    carried_interest_pct = %s,
+                    gp_commitment_pct = %s,
+                    updated_at = NOW()
+                WHERE id = %s
+            """, (
+                org_id, name, status, vintage_year, target_size_mm,
+                strategy, sub_strategy, geo_array, sector_array,
+                check_size_min_mm, check_size_max_mm, investment_thesis,
+                management_fee_pct, carried_interest_pct, gp_commitment_pct,
+                fund_id
+            ))
+            conn.commit()
+
+        return HTMLResponse(
+            content=f"""
+            <div class="text-center p-4">
+                <svg class="w-12 h-12 text-green-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                <h3 class="text-lg font-semibold text-navy-900 mb-2">Fund Updated!</h3>
+                <p class="text-navy-500 mb-4">{name} has been updated successfully.</p>
+            </div>
+            """,
+            headers={"HX-Trigger": "fundUpdated"}
+        )
+    except Exception as e:
+        logger.error(f"Failed to update fund: {e}")
+        conn.rollback()
+        return HTMLResponse(
+            content=f"<p class='text-red-500'>Failed to update fund: {str(e)}</p>",
+            status_code=500
+        )
+    finally:
+        conn.close()
+
+
 @app.post("/api/match/{match_id}/generate-pitch", response_class=HTMLResponse)
 async def generate_pitch(
     request: Request,
