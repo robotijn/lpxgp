@@ -33,7 +33,7 @@ from uuid import UUID
 import httpx
 import psycopg
 from fastapi import FastAPI, Form, Query, Request
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from psycopg.rows import dict_row
@@ -279,7 +279,7 @@ async def api_login(
     request: Request,
     email: str = Form(...),
     password: str = Form(...),
-) -> HTMLResponse | RedirectResponse:
+) -> HTMLResponse | RedirectResponse | Response:
     """Handle login form submission via HTMX.
 
     Authenticates the user and either redirects to dashboard on success
@@ -316,7 +316,7 @@ async def api_register(
     password: str = Form(...),
     name: str = Form(...),
     role: str = Form(default="gp"),
-) -> HTMLResponse | RedirectResponse:
+) -> HTMLResponse | RedirectResponse | Response:
     """Handle registration form submission via HTMX.
 
     Creates a new user account and logs them in on success.
