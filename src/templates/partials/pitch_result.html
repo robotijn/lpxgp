@@ -1,0 +1,72 @@
+<!-- Pitch Result Panel -->
+<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+     onclick="if(event.target === this) this.remove()">
+    <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto"
+         onclick="event.stopPropagation()">
+        <!-- Header -->
+        <div class="sticky top-0 bg-white border-b border-navy-100 px-6 py-4 flex items-center justify-between">
+            <div>
+                <h2 class="text-xl font-bold text-navy-900">Generated {{ pitch_type|title }}</h2>
+                <p class="text-sm text-navy-500">For {{ match.lp_name }} | {{ tone|title }} tone</p>
+            </div>
+            <button onclick="this.closest('.fixed').remove()"
+                    class="text-navy-400 hover:text-navy-600 p-1">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+
+        <div class="p-6 space-y-4">
+            <!-- Pitch Content -->
+            <div class="bg-navy-50 rounded-lg p-4">
+                <pre class="whitespace-pre-wrap text-sm text-navy-800 font-sans">{{ pitch_content }}</pre>
+            </div>
+
+            <!-- Regenerate Options -->
+            <div class="border-t border-navy-100 pt-4">
+                <h3 class="text-sm font-semibold text-navy-700 mb-3">Regenerate with different options</h3>
+                <form hx-post="/api/match/{{ match.id }}/generate-pitch"
+                      hx-target="#match-detail-modal"
+                      hx-swap="innerHTML"
+                      class="flex flex-wrap gap-3 items-end">
+                    <div>
+                        <label class="block text-xs text-navy-500 mb-1">Type</label>
+                        <select name="pitch_type" class="form-input text-sm py-1.5">
+                            <option value="email" {% if pitch_type == 'email' %}selected{% endif %}>Email</option>
+                            <option value="summary" {% if pitch_type == 'summary' %}selected{% endif %}>Summary</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-navy-500 mb-1">Tone</label>
+                        <select name="tone" class="form-input text-sm py-1.5">
+                            <option value="professional" {% if tone == 'professional' %}selected{% endif %}>Professional</option>
+                            <option value="friendly" {% if tone == 'friendly' %}selected{% endif %}>Friendly</option>
+                            <option value="formal" {% if tone == 'formal' %}selected{% endif %}>Formal</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn-secondary text-sm py-1.5">
+                        <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                        Regenerate
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Footer Actions -->
+        <div class="sticky bottom-0 bg-white border-t border-navy-100 px-6 py-4 flex justify-between gap-3">
+            <button onclick="this.closest('.fixed').remove()"
+                    class="px-4 py-2 text-navy-600 hover:text-navy-800 font-medium">
+                Close
+            </button>
+            <div class="flex gap-2">
+                <button onclick="navigator.clipboard.writeText(document.querySelector('pre').textContent); this.textContent='Copied!'; setTimeout(() => this.textContent='Copy to Clipboard', 2000)"
+                        class="btn-secondary">
+                    Copy to Clipboard
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

@@ -7,10 +7,11 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Optional
 from uuid import UUID
+import httpx
 
 import psycopg
 from psycopg.rows import dict_row
-from fastapi import FastAPI, Request, Query
+from fastapi import FastAPI, Request, Query, Form
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -273,6 +274,147 @@ async def match_detail(request: Request, match_id: str):
             request,
             "partials/match_detail_modal.html",
             {"match": match},
+        )
+    finally:
+        conn.close()
+
+
+@app.post("/api/match/{match_id}/generate-pitch", response_class=HTMLResponse)
+async def generate_pitch(
+    request: Request,
+    match_id: str,
+    pitch_type: str = Form(default="email"),
+    tone: str = Form(default="professional"),
+):
+    """Generate an AI pitch for a match (HTMX partial)."""
+    if not is_valid_uuid(match_id):
+        return HTMLResponse(
+            content="<p class='text-red-500'>Invalid match ID</p>",
+            status_code=400
+        )
+
+    conn = get_db()
+    if not conn:
+        return HTMLResponse(
+            content="<p class='text-navy-500'>Database not configured</p>",
+            status_code=503
+        )
+
+    try:
+        # Fetch match data for pitch generation
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT
+                    m.id, m.score, m.explanation, m.talking_points, m.concerns,
+                    o.name as lp_name, o.hq_city as lp_city,
+                    lp.lp_type, lp.total_aum_bn,
+                    f.name as fund_name, f.target_size_mm,
+                    gp.name as gp_name
+                FROM fund_lp_matches m
+                JOIN organizations o ON o.id = m.lp_org_id
+                LEFT JOIN lp_profiles lp ON lp.org_id = m.lp_org_id
+                JOIN funds f ON f.id = m.fund_id
+                JOIN organizations gp ON gp.id = f.org_id
+                WHERE m.id = %s
+            """, (match_id,))
+            match = cur.fetchone()
+
+        if not match:
+            return HTMLResponse(
+                content="<p class='text-navy-500'>Match not found</p>",
+                status_code=404
+            )
+
+        # Build the prompt for pitch generation
+        talking_points = match.get("talking_points") or []
+        concerns = match.get("concerns") or []
+
+        prompt = f"""Generate a {tone} {pitch_type} pitch for a GP reaching out to an LP.
+
+GP: {match['gp_name']}
+Fund: {match['fund_name']} (Target: ${match['target_size_mm']}M)
+
+LP: {match['lp_name']}
+Type: {match['lp_type'] or 'Institutional Investor'}
+Location: {match['lp_city']}
+AUM: ${match['total_aum_bn']}B
+
+Match Score: {match['score']}%
+Why they match: {match['explanation']}
+
+Key talking points:
+{chr(10).join(f'- {p}' for p in talking_points[:3])}
+
+Potential concerns to address:
+{chr(10).join(f'- {c}' for c in concerns[:2])}
+
+Generate a compelling {pitch_type} that:
+1. Opens with a personalized hook relevant to the LP
+2. Briefly introduces the fund and its differentiation
+3. References why this LP is a good fit
+4. Includes a clear call to action
+5. Keeps it concise (under 200 words for email, under 100 for summary)
+
+Output only the {pitch_type} content, no preamble."""
+
+        # Try to generate with Ollama (local dev) or return mock
+        settings = get_settings()
+        pitch_content = None
+
+        try:
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                response = await client.post(
+                    f"{settings.ollama_base_url}/api/generate",
+                    json={
+                        "model": settings.ollama_model,
+                        "prompt": prompt,
+                        "stream": False,
+                    }
+                )
+                if response.status_code == 200:
+                    result = response.json()
+                    pitch_content = result.get("response", "").strip()
+        except Exception as e:
+            logger.warning(f"Ollama not available: {e}")
+
+        # Fallback to mock pitch if Ollama unavailable
+        if not pitch_content:
+            if pitch_type == "email":
+                pitch_content = f"""Subject: {match['fund_name']} - Investment Opportunity Aligned with {match['lp_name']}'s Strategy
+
+Dear {match['lp_name']} Investment Team,
+
+I hope this message finds you well. I'm reaching out from {match['gp_name']} regarding our {match['fund_name']}, which I believe aligns exceptionally well with your investment mandate.
+
+{match['explanation']}
+
+Our fund targets ${match['target_size_mm']}M and focuses on opportunities that match your portfolio strategy. {talking_points[0] if talking_points else ''}
+
+I would welcome the opportunity to schedule a brief call to discuss how {match['fund_name']} might complement your portfolio.
+
+Best regards,
+{match['gp_name']} Team"""
+            else:
+                pitch_content = f"""{match['fund_name']} presents a compelling opportunity for {match['lp_name']}.
+
+{match['explanation']}
+
+Key highlights:
+• Target fund size: ${match['target_size_mm']}M
+• {talking_points[0] if talking_points else 'Strong alignment with LP mandate'}
+• {talking_points[1] if len(talking_points) > 1 else 'Experienced management team'}
+
+Match score: {match['score']}%"""
+
+        return templates.TemplateResponse(
+            request,
+            "partials/pitch_result.html",
+            {
+                "match": match,
+                "pitch_type": pitch_type,
+                "tone": tone,
+                "pitch_content": pitch_content,
+            },
         )
     finally:
         conn.close()

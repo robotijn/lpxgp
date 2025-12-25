@@ -173,9 +173,35 @@
                     class="px-4 py-2 text-navy-600 hover:text-navy-800 font-medium">
                 Close
             </button>
-            <button class="btn-primary">
+            <button onclick="generatePitch(this)" class="btn-primary" id="generate-pitch-btn">
+                <span id="pitch-loading" class="hidden">
+                    <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </span>
                 Generate Pitch
             </button>
+            <script>
+            async function generatePitch(btn) {
+                const loading = document.getElementById('pitch-loading');
+                loading.classList.remove('hidden');
+                btn.disabled = true;
+                try {
+                    const response = await fetch('/api/match/{{ match.id }}/generate-pitch', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                        body: 'pitch_type=email&tone=professional'
+                    });
+                    const html = await response.text();
+                    document.getElementById('match-detail-modal').innerHTML = html;
+                } catch (e) {
+                    console.error('Failed to generate pitch:', e);
+                    btn.disabled = false;
+                    loading.classList.add('hidden');
+                }
+            }
+            </script>
         </div>
     </div>
 </div>
