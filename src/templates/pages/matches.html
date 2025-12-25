@@ -21,13 +21,10 @@
         <label class="block text-sm font-medium text-navy-700 mb-2">Select Fund</label>
         <select id="fund-selector"
                 class="form-input max-w-md"
-                hx-get="/api/matches"
-                hx-target="#matches-grid"
-                hx-trigger="change"
-                hx-include="this">
+                onchange="window.location.href = this.value ? '/matches?fund_id=' + this.value : '/matches'">
             <option value="">All Funds</option>
             {% for fund in funds %}
-            <option value="{{ fund.id }}" {% if selected_fund == fund.id %}selected{% endif %}>
+            <option value="{{ fund.id }}" {% if selected_fund == fund.id|string %}selected{% endif %}>
                 {{ fund.name }} ({{ fund.status }})
             </option>
             {% endfor %}
