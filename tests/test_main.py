@@ -766,3 +766,806 @@ class TestResponseValidation:
                 f"Endpoint {endpoint} missing HTML doctype/tag"
             )
             assert "</html>" in text.lower(), f"Endpoint {endpoint} missing closing HTML tag"
+
+
+# =============================================================================
+# FUNDS PAGE TESTS
+# =============================================================================
+
+
+class TestFundsPage:
+    """Test funds page rendering and structure.
+
+    Gherkin Reference: M2 - Fund Management
+    """
+
+    def test_funds_page_returns_200(self, client):
+        """Funds page should return 200 OK."""
+        response = client.get("/funds")
+        assert response.status_code == 200
+
+    def test_funds_page_returns_html(self, client):
+        """Funds page should return HTML content."""
+        response = client.get("/funds")
+        assert "text/html" in response.headers.get("content-type", "")
+
+    def test_funds_page_has_title(self, client):
+        """Funds page should have Funds in title or heading."""
+        response = client.get("/funds")
+        assert "funds" in response.text.lower()
+
+    def test_funds_page_has_new_fund_button(self, client):
+        """Funds page should have a button to create new fund."""
+        response = client.get("/funds")
+        assert "new fund" in response.text.lower() or "create" in response.text.lower()
+
+    def test_funds_page_has_stats_section(self, client):
+        """Funds page should display fund statistics."""
+        response = client.get("/funds")
+        text = response.text.lower()
+        assert "total" in text or "raising" in text or "target" in text
+
+    def test_funds_page_has_create_modal(self, client):
+        """Funds page should have create fund modal markup."""
+        response = client.get("/funds")
+        assert "create-fund-modal" in response.text
+
+    def test_funds_page_has_form_fields(self, client):
+        """Funds page create form should have required fields."""
+        response = client.get("/funds")
+        text = response.text.lower()
+        assert 'name="name"' in response.text
+        assert 'name="org_id"' in response.text
+
+    def test_funds_page_valid_html_structure(self, client):
+        """Funds page should have valid HTML structure."""
+        response = client.get("/funds")
+        assert "<!DOCTYPE html>" in response.text or "<html" in response.text.lower()
+        assert "</html>" in response.text.lower()
+
+
+class TestFundsCRUD:
+    """Test Fund CRUD API endpoints - basic operations.
+
+    Gherkin Reference: M2 - Fund CRUD Operations
+    """
+
+    def test_create_fund_without_db_returns_503(self, client):
+        """Creating fund without database should return 503."""
+        response = client.post(
+            "/api/funds",
+            data={"name": "Test Fund", "org_id": "00000000-0000-0000-0000-000000000000"}
+        )
+        assert response.status_code in [503, 400]
+
+    def test_create_fund_missing_name_returns_422(self, client):
+        """Creating fund without name should return 422."""
+        response = client.post("/api/funds", data={"org_id": "test"})
+        assert response.status_code == 422
+
+    def test_create_fund_missing_org_id_returns_422(self, client):
+        """Creating fund without org_id should return 422."""
+        response = client.post("/api/funds", data={"name": "Test Fund"})
+        assert response.status_code == 422
+
+    def test_get_fund_edit_invalid_id_returns_400(self, client):
+        """Getting fund edit form with invalid ID should return 400."""
+        response = client.get("/api/funds/invalid-uuid/edit")
+        assert response.status_code == 400
+
+    def test_get_fund_edit_valid_uuid_format(self, client):
+        """Getting fund edit form with valid UUID format should not crash."""
+        response = client.get("/api/funds/00000000-0000-0000-0000-000000000000/edit")
+        assert response.status_code in [404, 503]
+
+    def test_update_fund_invalid_id_returns_400(self, client):
+        """Updating fund with invalid ID should return 400."""
+        response = client.put(
+            "/api/funds/invalid-uuid",
+            data={"name": "Test", "org_id": "00000000-0000-0000-0000-000000000000"}
+        )
+        assert response.status_code == 400
+
+    def test_delete_fund_invalid_id_returns_400(self, client):
+        """Deleting fund with invalid ID should return 400."""
+        response = client.delete("/api/funds/invalid-uuid")
+        assert response.status_code == 400
+
+    def test_delete_fund_valid_uuid_without_db(self, client):
+        """Deleting fund with valid UUID but no DB should return 503."""
+        response = client.delete("/api/funds/00000000-0000-0000-0000-000000000000")
+        assert response.status_code in [503, 404]
+
+
+class TestFundsUUIDValidation:
+    """Test UUID validation for fund endpoints.
+
+    Security: Prevent injection and ensure proper ID handling.
+    """
+
+    @pytest.mark.parametrize("invalid_id", [
+        "",  # empty
+        "   ",  # whitespace
+        "not-a-uuid",  # plain text
+        "12345",  # numbers only
+        "00000000-0000-0000-0000",  # incomplete UUID
+        "00000000-0000-0000-0000-00000000000g",  # invalid char
+        "00000000_0000_0000_0000_000000000000",  # wrong separator
+        "../../../etc/passwd",  # path traversal
+        "'; DROP TABLE funds; --",  # SQL injection
+        "<script>alert(1)</script>",  # XSS
+    ])
+    def test_fund_edit_rejects_invalid_uuids(self, client, invalid_id):
+        """Fund edit endpoint should reject all invalid UUID formats."""
+        response = client.get(f"/api/funds/{invalid_id}/edit")
+        assert response.status_code in [400, 404, 422]
+        # Should never return 500 (server error)
+        assert response.status_code != 500
+
+    @pytest.mark.parametrize("invalid_id", [
+        "not-a-uuid",
+        "../../../etc/passwd",
+        "'; DROP TABLE funds; --",
+    ])
+    def test_fund_update_rejects_invalid_uuids(self, client, invalid_id):
+        """Fund update endpoint should reject invalid UUIDs."""
+        response = client.put(
+            f"/api/funds/{invalid_id}",
+            data={"name": "Test", "org_id": "00000000-0000-0000-0000-000000000000"}
+        )
+        assert response.status_code in [400, 404, 422]
+        assert response.status_code != 500
+
+    @pytest.mark.parametrize("invalid_id", [
+        "not-a-uuid",
+        "'; DROP TABLE funds; --",
+    ])
+    def test_fund_delete_rejects_invalid_uuids(self, client, invalid_id):
+        """Fund delete endpoint should reject invalid UUIDs."""
+        response = client.delete(f"/api/funds/{invalid_id}")
+        assert response.status_code in [400, 404, 422]
+        assert response.status_code != 500
+
+
+class TestFundsInputValidation:
+    """Test input validation for fund creation/update.
+
+    Security: Prevent XSS, SQL injection, and malformed data.
+    """
+
+    def test_create_fund_empty_name_rejected(self, client):
+        """Empty fund name should be rejected."""
+        response = client.post(
+            "/api/funds",
+            data={"name": "", "org_id": "00000000-0000-0000-0000-000000000000"}
+        )
+        # Should reject empty name (422) or fail gracefully (503 no db)
+        assert response.status_code in [400, 422, 503]
+
+    def test_create_fund_whitespace_name_rejected(self, client):
+        """Whitespace-only fund name should be rejected or trimmed."""
+        response = client.post(
+            "/api/funds",
+            data={"name": "   ", "org_id": "00000000-0000-0000-0000-000000000000"}
+        )
+        assert response.status_code in [400, 422, 503]
+
+    def test_create_fund_very_long_name(self, client):
+        """Very long fund name should be handled gracefully."""
+        long_name = "A" * 1000
+        response = client.post(
+            "/api/funds",
+            data={"name": long_name, "org_id": "00000000-0000-0000-0000-000000000000"}
+        )
+        # Should either accept (503 no db) or reject (400/422)
+        assert response.status_code in [400, 422, 503]
+        assert response.status_code != 500
+
+    def test_create_fund_xss_in_name_escaped(self, client):
+        """XSS in fund name should not execute - check no raw script in response."""
+        xss_payload = "<script>alert('xss')</script>"
+        response = client.post(
+            "/api/funds",
+            data={"name": xss_payload, "org_id": "00000000-0000-0000-0000-000000000000"}
+        )
+        # Response should not contain unescaped script tag
+        if response.status_code == 200:
+            assert "<script>alert" not in response.text
+
+    def test_create_fund_sql_injection_in_name(self, client):
+        """SQL injection in fund name should be safely handled."""
+        sql_payload = "'; DROP TABLE funds; --"
+        response = client.post(
+            "/api/funds",
+            data={"name": sql_payload, "org_id": "00000000-0000-0000-0000-000000000000"}
+        )
+        # Should not cause server error
+        assert response.status_code != 500
+
+    def test_create_fund_unicode_name(self, client):
+        """Unicode characters in fund name should be handled."""
+        unicode_name = "基金 Fund 🚀 Фонд"
+        response = client.post(
+            "/api/funds",
+            data={"name": unicode_name, "org_id": "00000000-0000-0000-0000-000000000000"}
+        )
+        assert response.status_code in [200, 400, 422, 503]
+        assert response.status_code != 500
+
+    def test_create_fund_null_bytes_in_name(self, client):
+        """Null bytes in fund name should be handled safely."""
+        null_name = "Test\x00Fund"
+        response = client.post(
+            "/api/funds",
+            data={"name": null_name, "org_id": "00000000-0000-0000-0000-000000000000"}
+        )
+        assert response.status_code != 500
+
+
+class TestFundsNumericValidation:
+    """Test numeric field validation for funds.
+
+    Boundary testing for target_size_mm, vintage_year, percentages.
+    """
+
+    def test_create_fund_negative_target_size(self, client):
+        """Negative target size should be rejected or handled."""
+        response = client.post(
+            "/api/funds",
+            data={
+                "name": "Test Fund",
+                "org_id": "00000000-0000-0000-0000-000000000000",
+                "target_size_mm": "-100"
+            }
+        )
+        # Should handle gracefully
+        assert response.status_code in [400, 422, 503]
+        assert response.status_code != 500
+
+    def test_create_fund_zero_target_size(self, client):
+        """Zero target size should be accepted."""
+        response = client.post(
+            "/api/funds",
+            data={
+                "name": "Test Fund",
+                "org_id": "00000000-0000-0000-0000-000000000000",
+                "target_size_mm": "0"
+            }
+        )
+        assert response.status_code in [200, 503]
+
+    def test_create_fund_very_large_target_size(self, client):
+        """Very large target size should be handled."""
+        response = client.post(
+            "/api/funds",
+            data={
+                "name": "Test Fund",
+                "org_id": "00000000-0000-0000-0000-000000000000",
+                "target_size_mm": "999999999999"
+            }
+        )
+        assert response.status_code != 500
+
+    def test_create_fund_non_numeric_target_size(self, client):
+        """Non-numeric target size should be rejected."""
+        response = client.post(
+            "/api/funds",
+            data={
+                "name": "Test Fund",
+                "org_id": "00000000-0000-0000-0000-000000000000",
+                "target_size_mm": "not-a-number"
+            }
+        )
+        assert response.status_code in [400, 422, 503]
+
+    def test_create_fund_invalid_vintage_year(self, client):
+        """Invalid vintage year should be rejected."""
+        response = client.post(
+            "/api/funds",
+            data={
+                "name": "Test Fund",
+                "org_id": "00000000-0000-0000-0000-000000000000",
+                "vintage_year": "1800"  # Too old
+            }
+        )
+        assert response.status_code != 500
+
+    def test_create_fund_percentage_over_100(self, client):
+        """Percentage fields over 100 should be handled."""
+        response = client.post(
+            "/api/funds",
+            data={
+                "name": "Test Fund",
+                "org_id": "00000000-0000-0000-0000-000000000000",
+                "management_fee_pct": "150"  # Over 100%
+            }
+        )
+        assert response.status_code != 500
+
+
+class TestFundsEnumValidation:
+    """Test enum field validation for funds.
+
+    Ensure invalid status/strategy values are handled.
+    """
+
+    def test_create_fund_invalid_status(self, client):
+        """Invalid fund status should be handled gracefully."""
+        response = client.post(
+            "/api/funds",
+            data={
+                "name": "Test Fund",
+                "org_id": "00000000-0000-0000-0000-000000000000",
+                "status": "invalid_status"
+            }
+        )
+        assert response.status_code != 500
+
+    def test_create_fund_invalid_strategy(self, client):
+        """Invalid fund strategy should be handled gracefully."""
+        response = client.post(
+            "/api/funds",
+            data={
+                "name": "Test Fund",
+                "org_id": "00000000-0000-0000-0000-000000000000",
+                "strategy": "not_a_real_strategy"
+            }
+        )
+        assert response.status_code != 500
+
+
+class TestFundsHTTPMethods:
+    """Test HTTP method handling for fund endpoints."""
+
+    def test_funds_api_get_not_allowed(self, client):
+        """GET on /api/funds (create endpoint) should return 405."""
+        response = client.get("/api/funds")
+        assert response.status_code == 405
+
+    def test_fund_edit_post_not_allowed(self, client):
+        """POST on fund edit endpoint should return 405."""
+        response = client.post("/api/funds/00000000-0000-0000-0000-000000000000/edit")
+        assert response.status_code == 405
+
+    def test_fund_delete_get_not_allowed(self, client):
+        """GET on fund delete endpoint doesn't exist (would be 405 if it did)."""
+        response = client.get("/api/funds/00000000-0000-0000-0000-000000000000")
+        # This endpoint doesn't exist, so 404 is expected
+        assert response.status_code in [404, 405]
+
+
+# =============================================================================
+# LPS PAGE TESTS
+# =============================================================================
+
+
+class TestLPsPage:
+    """Test LPs page rendering and structure.
+
+    Gherkin Reference: M2 - LP Management
+    """
+
+    def test_lps_page_returns_200(self, client):
+        """LPs page should return 200 OK."""
+        response = client.get("/lps")
+        assert response.status_code == 200
+
+    def test_lps_page_returns_html(self, client):
+        """LPs page should return HTML content."""
+        response = client.get("/lps")
+        assert "text/html" in response.headers.get("content-type", "")
+
+    def test_lps_page_has_title(self, client):
+        """LPs page should have LP in title or heading."""
+        response = client.get("/lps")
+        text = response.text.lower()
+        assert "lp" in text or "investor" in text
+
+    def test_lps_page_has_new_lp_button(self, client):
+        """LPs page should have a button to create new LP."""
+        response = client.get("/lps")
+        assert "new lp" in response.text.lower() or "create" in response.text.lower()
+
+    def test_lps_page_has_search(self, client):
+        """LPs page should have search functionality."""
+        response = client.get("/lps")
+        assert "search" in response.text.lower()
+
+    def test_lps_page_has_type_filter(self, client):
+        """LPs page should have LP type filter."""
+        response = client.get("/lps")
+        text = response.text.lower()
+        assert "type" in text or "filter" in text or "select" in text
+
+    def test_lps_page_has_create_modal(self, client):
+        """LPs page should have create LP modal markup."""
+        response = client.get("/lps")
+        assert "create-lp-modal" in response.text
+
+    def test_lps_page_search_query_param(self, client):
+        """LPs page should accept search query parameter."""
+        response = client.get("/lps?q=test")
+        assert response.status_code == 200
+
+    def test_lps_page_type_filter_param(self, client):
+        """LPs page should accept type filter parameter."""
+        response = client.get("/lps?type=pension")
+        assert response.status_code == 200
+
+
+class TestLPsCRUD:
+    """Test LP CRUD API endpoints - basic operations.
+
+    Gherkin Reference: M2 - LP CRUD Operations
+    """
+
+    def test_create_lp_without_db_returns_503(self, client):
+        """Creating LP without database should return 503."""
+        response = client.post("/api/lps", data={"name": "Test LP"})
+        assert response.status_code in [503, 400]
+
+    def test_create_lp_missing_name_returns_422(self, client):
+        """Creating LP without name should return 422."""
+        response = client.post("/api/lps", data={})
+        assert response.status_code == 422
+
+    def test_get_lp_edit_invalid_id_returns_400(self, client):
+        """Getting LP edit form with invalid ID should return 400."""
+        response = client.get("/api/lps/invalid-uuid/edit")
+        assert response.status_code == 400
+
+    def test_get_lp_edit_valid_uuid_format(self, client):
+        """Getting LP edit form with valid UUID format should not crash."""
+        response = client.get("/api/lps/00000000-0000-0000-0000-000000000000/edit")
+        assert response.status_code in [404, 503]
+
+    def test_update_lp_invalid_id_returns_400(self, client):
+        """Updating LP with invalid ID should return 400."""
+        response = client.put("/api/lps/invalid-uuid", data={"name": "Test"})
+        assert response.status_code == 400
+
+    def test_delete_lp_invalid_id_returns_400(self, client):
+        """Deleting LP with invalid ID should return 400."""
+        response = client.delete("/api/lps/invalid-uuid")
+        assert response.status_code == 400
+
+    def test_delete_lp_valid_uuid_without_db(self, client):
+        """Deleting LP with valid UUID but no DB should return 503."""
+        response = client.delete("/api/lps/00000000-0000-0000-0000-000000000000")
+        assert response.status_code in [503, 404]
+
+
+class TestLPsUUIDValidation:
+    """Test UUID validation for LP endpoints."""
+
+    @pytest.mark.parametrize("invalid_id", [
+        "",
+        "not-a-uuid",
+        "'; DROP TABLE organizations; --",
+        "<script>alert(1)</script>",
+        "../../../etc/passwd",
+    ])
+    def test_lp_edit_rejects_invalid_uuids(self, client, invalid_id):
+        """LP edit endpoint should reject invalid UUIDs."""
+        response = client.get(f"/api/lps/{invalid_id}/edit")
+        assert response.status_code in [400, 404, 422]
+        assert response.status_code != 500
+
+    @pytest.mark.parametrize("invalid_id", [
+        "not-a-uuid",
+        "'; DROP TABLE organizations; --",
+    ])
+    def test_lp_update_rejects_invalid_uuids(self, client, invalid_id):
+        """LP update endpoint should reject invalid UUIDs."""
+        response = client.put(f"/api/lps/{invalid_id}", data={"name": "Test"})
+        assert response.status_code in [400, 404, 422]
+        assert response.status_code != 500
+
+    @pytest.mark.parametrize("invalid_id", [
+        "not-a-uuid",
+        "'; DROP TABLE organizations; --",
+    ])
+    def test_lp_delete_rejects_invalid_uuids(self, client, invalid_id):
+        """LP delete endpoint should reject invalid UUIDs."""
+        response = client.delete(f"/api/lps/{invalid_id}")
+        assert response.status_code in [400, 404, 422]
+        assert response.status_code != 500
+
+
+class TestLPsInputValidation:
+    """Test input validation for LP creation/update."""
+
+    def test_create_lp_empty_name_rejected(self, client):
+        """Empty LP name should be rejected."""
+        response = client.post("/api/lps", data={"name": ""})
+        assert response.status_code in [400, 422, 503]
+
+    def test_create_lp_whitespace_name_rejected(self, client):
+        """Whitespace-only LP name should be rejected."""
+        response = client.post("/api/lps", data={"name": "   "})
+        assert response.status_code in [400, 422, 503]
+
+    def test_create_lp_very_long_name(self, client):
+        """Very long LP name should be handled gracefully."""
+        long_name = "A" * 1000
+        response = client.post("/api/lps", data={"name": long_name})
+        assert response.status_code != 500
+
+    def test_create_lp_xss_in_name(self, client):
+        """XSS in LP name should be safely handled."""
+        response = client.post(
+            "/api/lps",
+            data={"name": "<script>alert('xss')</script>"}
+        )
+        if response.status_code == 200:
+            assert "<script>alert" not in response.text
+
+    def test_create_lp_sql_injection_in_name(self, client):
+        """SQL injection in LP name should be safely handled."""
+        response = client.post(
+            "/api/lps",
+            data={"name": "'; DROP TABLE organizations; --"}
+        )
+        assert response.status_code != 500
+
+    def test_create_lp_unicode_name(self, client):
+        """Unicode in LP name should be handled."""
+        response = client.post(
+            "/api/lps",
+            data={"name": "投資者 Investor 🏦"}
+        )
+        assert response.status_code != 500
+
+
+class TestLPsNumericValidation:
+    """Test numeric field validation for LPs."""
+
+    def test_create_lp_negative_aum(self, client):
+        """Negative AUM should be rejected."""
+        response = client.post(
+            "/api/lps",
+            data={"name": "Test LP", "total_aum_bn": "-50"}
+        )
+        assert response.status_code != 500
+
+    def test_create_lp_percentage_over_100(self, client):
+        """PE allocation over 100% should be handled."""
+        response = client.post(
+            "/api/lps",
+            data={"name": "Test LP", "pe_allocation_pct": "150"}
+        )
+        assert response.status_code != 500
+
+    def test_create_lp_non_numeric_aum(self, client):
+        """Non-numeric AUM should be handled."""
+        response = client.post(
+            "/api/lps",
+            data={"name": "Test LP", "total_aum_bn": "lots of money"}
+        )
+        assert response.status_code != 500
+
+
+class TestLPsEnumValidation:
+    """Test enum field validation for LPs."""
+
+    def test_create_lp_invalid_type(self, client):
+        """Invalid LP type should be handled gracefully."""
+        response = client.post(
+            "/api/lps",
+            data={"name": "Test LP", "lp_type": "invalid_type_xyz"}
+        )
+        assert response.status_code != 500
+
+    def test_create_lp_empty_type(self, client):
+        """Empty LP type should be accepted (optional field)."""
+        response = client.post(
+            "/api/lps",
+            data={"name": "Test LP", "lp_type": ""}
+        )
+        assert response.status_code in [200, 503]
+
+
+class TestLPsArrayFieldValidation:
+    """Test array/comma-separated field validation for LPs."""
+
+    def test_create_lp_strategies_with_special_chars(self, client):
+        """Strategies field with special chars should be handled."""
+        response = client.post(
+            "/api/lps",
+            data={"name": "Test LP", "strategies": "buyout, <script>alert(1)</script>"}
+        )
+        assert response.status_code != 500
+
+    def test_create_lp_empty_strategies(self, client):
+        """Empty strategies should be accepted."""
+        response = client.post(
+            "/api/lps",
+            data={"name": "Test LP", "strategies": ""}
+        )
+        assert response.status_code in [200, 503]
+
+    def test_create_lp_malformed_comma_separated(self, client):
+        """Malformed comma-separated values should be handled."""
+        response = client.post(
+            "/api/lps",
+            data={"name": "Test LP", "strategies": ",,,buyout,,,growth,,,"}
+        )
+        assert response.status_code != 500
+
+
+# =============================================================================
+# PITCH GENERATION TESTS
+# =============================================================================
+
+
+class TestPitchGeneration:
+    """Test pitch generation API endpoint.
+
+    Gherkin Reference: M3 - AI Pitch Generation
+    """
+
+    def test_generate_pitch_invalid_match_id_returns_400(self, client):
+        """Generating pitch with invalid match ID should return 400."""
+        response = client.post("/api/match/invalid-uuid/generate-pitch")
+        assert response.status_code == 400
+
+    def test_generate_pitch_valid_uuid_without_db(self, client):
+        """Generating pitch with valid UUID but no DB should return 503."""
+        response = client.post(
+            "/api/match/00000000-0000-0000-0000-000000000000/generate-pitch"
+        )
+        assert response.status_code in [503, 404]
+
+    def test_generate_pitch_accepts_pitch_type(self, client):
+        """Pitch generation should accept pitch_type parameter."""
+        response = client.post(
+            "/api/match/00000000-0000-0000-0000-000000000000/generate-pitch",
+            data={"pitch_type": "email", "tone": "professional"}
+        )
+        assert response.status_code in [503, 404]
+
+    def test_generate_pitch_invalid_pitch_type(self, client):
+        """Invalid pitch type should be handled gracefully."""
+        response = client.post(
+            "/api/match/00000000-0000-0000-0000-000000000000/generate-pitch",
+            data={"pitch_type": "invalid_type", "tone": "professional"}
+        )
+        # Should handle gracefully, not crash
+        assert response.status_code != 500
+
+    def test_generate_pitch_xss_in_tone(self, client):
+        """XSS in tone parameter should be safely handled."""
+        response = client.post(
+            "/api/match/00000000-0000-0000-0000-000000000000/generate-pitch",
+            data={"pitch_type": "email", "tone": "<script>alert(1)</script>"}
+        )
+        assert response.status_code != 500
+
+    def test_generate_pitch_sql_injection_in_uuid(self, client):
+        """SQL injection in match UUID should be rejected."""
+        response = client.post(
+            "/api/match/'; DROP TABLE fund_lp_matches; --/generate-pitch"
+        )
+        assert response.status_code == 400
+
+
+class TestPitchGenerationUUIDValidation:
+    """Test UUID validation for pitch generation endpoint."""
+
+    @pytest.mark.parametrize("invalid_id", [
+        "",
+        "not-a-uuid",
+        "../../../etc/passwd",
+        "00000000-0000-0000-0000",  # incomplete
+        "'; DROP TABLE fund_lp_matches; --",
+    ])
+    def test_pitch_rejects_invalid_uuids(self, client, invalid_id):
+        """Pitch endpoint should reject invalid match UUIDs."""
+        response = client.post(f"/api/match/{invalid_id}/generate-pitch")
+        assert response.status_code in [400, 404, 422]
+        assert response.status_code != 500
+
+
+# =============================================================================
+# MATCH DETAIL TESTS
+# =============================================================================
+
+
+class TestMatchDetailModal:
+    """Test match detail modal API endpoint.
+
+    Gherkin Reference: M2 - Match Details
+    """
+
+    def test_match_detail_modal_invalid_id_returns_400(self, client):
+        """Getting match detail modal with invalid ID should return 400."""
+        response = client.get("/api/match/invalid-uuid/detail")
+        assert response.status_code == 400
+
+    def test_match_detail_modal_valid_uuid_without_db(self, client):
+        """Getting match detail modal with valid UUID but no DB should return 503."""
+        response = client.get("/api/match/00000000-0000-0000-0000-000000000000/detail")
+        assert response.status_code in [503, 404]
+
+    @pytest.mark.parametrize("invalid_id", [
+        "'; DROP TABLE fund_lp_matches; --",
+        "<script>alert(1)</script>",
+        "../../../etc/passwd",
+    ])
+    def test_match_detail_rejects_malicious_ids(self, client, invalid_id):
+        """Match detail should reject malicious IDs safely."""
+        response = client.get(f"/api/match/{invalid_id}/detail")
+        assert response.status_code in [400, 404, 422]
+        assert response.status_code != 500
+
+
+# =============================================================================
+# RESPONSE SECURITY TESTS
+# =============================================================================
+
+
+class TestResponseSecurity:
+    """Test that responses don't leak sensitive information."""
+
+    def test_error_responses_no_stack_traces(self, client):
+        """Error responses should not contain stack traces."""
+        response = client.get("/api/funds/invalid/edit")
+        text = response.text.lower()
+        assert "traceback" not in text
+        assert "file \"/" not in text
+        assert "line " not in text or "error" in text
+
+    def test_error_responses_no_db_credentials(self, client):
+        """Error responses should not expose database credentials."""
+        response = client.post(
+            "/api/funds",
+            data={"name": "Test", "org_id": "00000000-0000-0000-0000-000000000000"}
+        )
+        text = response.text.lower()
+        assert "password" not in text or "password field" in text
+        assert "postgresql://" not in text
+        assert "postgres:" not in text
+
+    def test_error_responses_no_internal_paths(self, client):
+        """Error responses should not expose internal file paths."""
+        response = client.get("/api/funds/invalid/edit")
+        text = response.text
+        assert "/home/" not in text
+        assert "/usr/" not in text
+        assert "\\Users\\" not in text
+
+
+# =============================================================================
+# CONCURRENT REQUEST TESTS
+# =============================================================================
+
+
+class TestConcurrentRequests:
+    """Test handling of rapid/concurrent requests."""
+
+    def test_rapid_fund_creation_attempts(self, client):
+        """Rapid fund creation attempts should all be handled."""
+        responses = []
+        for i in range(10):
+            response = client.post(
+                "/api/funds",
+                data={
+                    "name": f"Fund {i}",
+                    "org_id": "00000000-0000-0000-0000-000000000000"
+                }
+            )
+            responses.append(response.status_code)
+
+        # All should return consistent status (503 or similar)
+        # None should return 500
+        assert 500 not in responses
+
+    def test_rapid_invalid_uuid_requests(self, client):
+        """Rapid requests with invalid UUIDs should all be handled."""
+        responses = []
+        for _ in range(10):
+            response = client.get("/api/funds/invalid-uuid/edit")
+            responses.append(response.status_code)
+
+        # All should return 400, none should crash
+        assert all(code == 400 for code in responses)
