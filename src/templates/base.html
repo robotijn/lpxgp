@@ -132,10 +132,46 @@
                     {% block header_right %}
                     <a href="/login" class="btn-secondary text-sm">Sign In</a>
                     {% endblock %}
+                    <!-- Mobile menu button -->
+                    <button id="mobile-menu-button"
+                            class="md:hidden p-2 rounded-lg text-navy-600 hover:text-navy-900 hover:bg-navy-100"
+                            aria-label="Open navigation menu"
+                            aria-expanded="false"
+                            onclick="toggleMobileMenu()">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                        </svg>
+                    </button>
                 </div>
             </div>
         </div>
+        <!-- Mobile navigation menu -->
+        <div id="mobile-menu" class="hidden md:hidden border-t border-navy-200 bg-white">
+            <nav class="px-4 py-3 space-y-2">
+                {% block mobile_nav %}
+                <a href="/matches" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Matches</a>
+                <a href="/funds" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Funds</a>
+                <a href="/lps" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">LPs</a>
+                {% endblock %}
+            </nav>
+        </div>
     </header>
+
+    <script>
+    function toggleMobileMenu() {
+        const menu = document.getElementById('mobile-menu');
+        const button = document.getElementById('mobile-menu-button');
+        const isHidden = menu.classList.contains('hidden');
+
+        if (isHidden) {
+            menu.classList.remove('hidden');
+            button.setAttribute('aria-expanded', 'true');
+        } else {
+            menu.classList.add('hidden');
+            button.setAttribute('aria-expanded', 'false');
+        }
+    }
+    </script>
 
     <!-- Main Content -->
     <main>

@@ -86,15 +86,30 @@
             </div>
             {% endif %}
 
-            <div class="mt-4 pt-4 border-t border-navy-100 flex justify-between">
-                <a href="/matches?fund_id={{ fund.id }}" class="text-sm text-gold hover:text-gold/80 font-medium">
-                    View Matches
-                </a>
-                <button hx-get="/api/funds/{{ fund.id }}/edit"
-                        hx-target="#fund-edit-modal"
+            <div class="mt-4 pt-4 border-t border-navy-100">
+                <div class="flex justify-between items-center mb-2">
+                    <a href="/matches?fund_id={{ fund.id }}" class="text-sm text-gold hover:text-gold/80 font-medium">
+                        View Matches
+                    </a>
+                    <button hx-get="/api/funds/{{ fund.id }}/edit"
+                            hx-target="#fund-edit-modal"
+                            hx-swap="innerHTML"
+                            class="text-sm text-navy-500 hover:text-navy-700">
+                        Edit
+                    </button>
+                </div>
+                <button hx-post="/api/funds/{{ fund.id }}/generate-matches"
+                        hx-target="#generate-matches-modal"
                         hx-swap="innerHTML"
-                        class="text-sm text-navy-500 hover:text-navy-700">
-                    Edit
+                        hx-indicator="#generate-spinner-{{ fund.id }}"
+                        class="w-full mt-2 px-3 py-2 text-sm bg-gold/10 hover:bg-gold/20 text-gold rounded-lg font-medium flex items-center justify-center gap-2">
+                    <svg id="generate-spinner-{{ fund.id }}" class="htmx-indicator w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                    Generate AI Matches
                 </button>
             </div>
         </div>
@@ -122,7 +137,8 @@
         <div class="sticky top-0 bg-white border-b border-navy-100 px-6 py-4 flex items-center justify-between">
             <h2 class="text-xl font-bold text-navy-900">Create New Fund</h2>
             <button onclick="this.closest('#create-fund-modal').classList.add('hidden')"
-                    class="text-navy-400 hover:text-navy-600 p-1">
+                    class="text-navy-400 hover:text-navy-600 p-1"
+                    aria-label="Close modal">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                 </svg>
@@ -311,8 +327,25 @@ document.body.addEventListener('fundDeleted', function() {
         window.location.reload();
     }, 1500);
 });
+document.body.addEventListener('matchesGenerated', function() {
+    // Show modal and auto-close after delay
+    document.getElementById('generate-matches-modal').classList.remove('hidden');
+    setTimeout(() => {
+        document.getElementById('generate-matches-modal').classList.add('hidden');
+        window.location.reload();
+    }, 3000);
+});
 </script>
 
 <!-- Fund Edit Modal -->
 <div id="fund-edit-modal"></div>
+
+<!-- Generate Matches Modal -->
+<div id="generate-matches-modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+     onclick="if(event.target === this) this.classList.add('hidden')">
+    <div class="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 p-6"
+         onclick="event.stopPropagation()">
+        <!-- Content injected by HTMX -->
+    </div>
+</div>
 {% endblock %}

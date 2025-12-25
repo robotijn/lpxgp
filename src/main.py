@@ -762,6 +762,124 @@ async def delete_fund(request: Request, fund_id: str):
         conn.close()
 
 
+@app.post("/api/funds/{fund_id}/generate-matches", response_class=HTMLResponse)
+async def generate_matches_for_fund(request: Request, fund_id: str):
+    """Generate AI-powered matches for a fund against all LPs."""
+    from src.matching import calculate_match_score, generate_match_content
+    import json
+
+    if not is_valid_uuid(fund_id):
+        return HTMLResponse(
+            content="<p class='text-red-500'>Invalid fund ID</p>",
+            status_code=400
+        )
+
+    conn = get_db()
+    if not conn:
+        return HTMLResponse(
+            content="<p class='text-navy-500'>Database not configured</p>",
+            status_code=503
+        )
+
+    settings = get_settings()
+    matches_generated = 0
+    matches_skipped = 0
+
+    try:
+        with conn.cursor() as cur:
+            # Fetch fund details with GP info
+            cur.execute("""
+                SELECT f.*, o.name as gp_name
+                FROM funds f
+                JOIN organizations o ON o.id = f.org_id
+                WHERE f.id = %s
+            """, (fund_id,))
+            fund = cur.fetchone()
+
+            if not fund:
+                return HTMLResponse(
+                    content="<p class='text-red-500'>Fund not found</p>",
+                    status_code=404
+                )
+
+            # Fetch all LP profiles with organization info
+            cur.execute("""
+                SELECT lp.*, o.name, o.hq_city, o.hq_country
+                FROM lp_profiles lp
+                JOIN organizations o ON o.id = lp.org_id
+                WHERE o.is_lp = true
+            """)
+            lps = cur.fetchall()
+
+            for lp in lps:
+                # Calculate match score
+                result = calculate_match_score(dict(fund), dict(lp))
+
+                # Only create matches for scores above threshold
+                if result["score"] >= 50:
+                    # Generate LLM content
+                    content = await generate_match_content(
+                        dict(fund),
+                        dict(lp),
+                        result["score_breakdown"],
+                        ollama_base_url=settings.ollama_base_url,
+                        ollama_model=settings.ollama_model
+                    )
+
+                    # Upsert match
+                    cur.execute("""
+                        INSERT INTO fund_lp_matches
+                            (fund_id, lp_org_id, score, score_breakdown, explanation, talking_points, concerns, model_version)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                        ON CONFLICT (fund_id, lp_org_id)
+                        DO UPDATE SET
+                            score = EXCLUDED.score,
+                            score_breakdown = EXCLUDED.score_breakdown,
+                            explanation = EXCLUDED.explanation,
+                            talking_points = EXCLUDED.talking_points,
+                            concerns = EXCLUDED.concerns,
+                            model_version = EXCLUDED.model_version,
+                            created_at = NOW()
+                    """, (
+                        fund_id,
+                        lp["org_id"],
+                        result["score"],
+                        json.dumps(result["score_breakdown"]),
+                        content["explanation"],
+                        content["talking_points"],
+                        content["concerns"],
+                        settings.ollama_model
+                    ))
+                    matches_generated += 1
+                else:
+                    matches_skipped += 1
+
+            conn.commit()
+
+        return HTMLResponse(
+            content=f"""
+            <div class="text-center p-4">
+                <svg class="w-12 h-12 text-green-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                <h3 class="text-lg font-semibold text-navy-900 mb-2">Matches Generated</h3>
+                <p class="text-navy-500 mb-2">Found {matches_generated} matching LPs for {fund['name']}</p>
+                <p class="text-navy-400 text-sm">{matches_skipped} LPs did not meet criteria</p>
+            </div>
+            """,
+            headers={"HX-Trigger": "matchesGenerated"}
+        )
+    except Exception as e:
+        logger.error(f"Failed to generate matches: {e}")
+        conn.rollback()
+        return HTMLResponse(
+            content=f"<p class='text-red-500'>Failed to generate matches: {str(e)}</p>",
+            status_code=500
+        )
+    finally:
+        conn.close()
+
+
 # -----------------------------------------------------------------------------
 # LP CRUD Endpoints
 # -----------------------------------------------------------------------------

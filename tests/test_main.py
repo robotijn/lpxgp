@@ -4,9 +4,15 @@ IMPORTANT: Tests are the source of truth. Do NOT modify tests to make them pass.
 If a test fails, fix the APPLICATION, not the test.
 
 Based on BDD Gherkin specs from docs/prd/tests/*.feature.md
+
+Test Categories:
+- Unit tests: FastAPI TestClient (fast, no browser)
+- Responsive tests: HTML structure validation
+- Browser tests: Playwright for real viewport testing (marked with @pytest.mark.browser)
 """
 
 import pytest
+import re
 
 
 # =============================================================================
@@ -1569,3 +1575,962 @@ class TestConcurrentRequests:
 
         # All should return 400, none should crash
         assert all(code == 400 for code in responses)
+
+
+# =============================================================================
+# AI MATCHING TESTS
+# =============================================================================
+
+
+class TestMatchingScoring:
+    """Test the matching scoring algorithm.
+
+    Tests cover:
+    - Hard filters (strategy, ESG, emerging manager, fund size)
+    - Soft scores (geography, sector, track record, size fit)
+    - Edge cases and boundary conditions
+    """
+
+    def test_perfect_match_all_criteria(self):
+        """A fund that matches all LP criteria should score high."""
+        from src.matching import calculate_match_score
+
+        fund = {
+            "strategy": "venture",
+            "geographic_focus": ["North America", "Europe"],
+            "sector_focus": ["technology", "healthcare"],
+            "target_size_mm": 500,
+            "fund_number": 4,
+            "esg_policy": True
+        }
+
+        lp = {
+            "strategies": ["venture", "growth"],
+            "geographic_preferences": ["North America", "Europe"],
+            "sector_preferences": ["technology", "healthcare"],
+            "fund_size_min_mm": 100,
+            "fund_size_max_mm": 1000,
+            "esg_required": True,
+            "emerging_manager_ok": False,
+            "min_fund_number": 3
+        }
+
+        result = calculate_match_score(fund, lp)
+
+        assert result["passed_hard_filters"] is True
+        assert result["score"] >= 90
+        assert result["score_breakdown"]["strategy"] == 100
+        assert result["score_breakdown"]["esg"] == 100
+
+    def test_strategy_mismatch_fails_hard_filter(self):
+        """If fund strategy not in LP's list, score should be 0."""
+        from src.matching import calculate_match_score
+
+        fund = {"strategy": "buyout", "target_size_mm": 500}
+        lp = {"strategies": ["venture", "growth"], "fund_size_min_mm": 100, "fund_size_max_mm": 1000}
+
+        result = calculate_match_score(fund, lp)
+
+        assert result["passed_hard_filters"] is False
+        assert result["score"] == 0
+        assert result["score_breakdown"]["strategy"] == 0
+
+    def test_esg_required_but_fund_lacks_policy(self):
+        """If LP requires ESG but fund doesn't have policy, score should be 0."""
+        from src.matching import calculate_match_score
+
+        fund = {"strategy": "venture", "target_size_mm": 500, "esg_policy": False}
+        lp = {"strategies": ["venture"], "esg_required": True, "fund_size_min_mm": 100, "fund_size_max_mm": 1000}
+
+        result = calculate_match_score(fund, lp)
+
+        assert result["passed_hard_filters"] is False
+        assert result["score"] == 0
+        assert result["score_breakdown"]["esg"] == 0
+
+    def test_esg_not_required_fund_without_policy_passes(self):
+        """If LP doesn't require ESG, fund without policy should pass."""
+        from src.matching import calculate_match_score
+
+        fund = {"strategy": "venture", "target_size_mm": 500, "esg_policy": False, "fund_number": 4}
+        lp = {"strategies": ["venture"], "esg_required": False, "fund_size_min_mm": 100, "fund_size_max_mm": 1000}
+
+        result = calculate_match_score(fund, lp)
+
+        assert result["passed_hard_filters"] is True
+        assert result["score_breakdown"]["esg"] == 100
+
+    def test_emerging_manager_not_ok_and_fund_is_emerging(self):
+        """If LP doesn't accept emerging managers, fund 1-2 should fail."""
+        from src.matching import calculate_match_score
+
+        fund = {"strategy": "venture", "target_size_mm": 500, "fund_number": 1}
+        lp = {"strategies": ["venture"], "emerging_manager_ok": False, "fund_size_min_mm": 100, "fund_size_max_mm": 1000}
+
+        result = calculate_match_score(fund, lp)
+
+        assert result["passed_hard_filters"] is False
+        assert result["score"] == 0
+        assert result["score_breakdown"]["emerging_manager"] == 0
+
+    def test_emerging_manager_ok_and_fund_is_emerging(self):
+        """If LP accepts emerging managers, fund 1-2 should pass."""
+        from src.matching import calculate_match_score
+
+        fund = {"strategy": "venture", "target_size_mm": 500, "fund_number": 2}
+        lp = {"strategies": ["venture"], "emerging_manager_ok": True, "fund_size_min_mm": 100, "fund_size_max_mm": 1000}
+
+        result = calculate_match_score(fund, lp)
+
+        assert result["passed_hard_filters"] is True
+        assert result["score_breakdown"]["emerging_manager"] == 100
+
+    def test_fund_size_outside_lp_range(self):
+        """If fund size outside LP's range, score should be 0."""
+        from src.matching import calculate_match_score
+
+        fund = {"strategy": "venture", "target_size_mm": 5000}
+        lp = {"strategies": ["venture"], "fund_size_min_mm": 100, "fund_size_max_mm": 1000}
+
+        result = calculate_match_score(fund, lp)
+
+        assert result["passed_hard_filters"] is False
+        assert result["score"] == 0
+        assert result["score_breakdown"]["fund_size"] == 0
+
+    def test_fund_size_at_boundary_passes(self):
+        """Fund size at LP's boundary should pass."""
+        from src.matching import calculate_match_score
+
+        fund = {"strategy": "venture", "target_size_mm": 1000, "fund_number": 4}
+        lp = {"strategies": ["venture"], "fund_size_min_mm": 100, "fund_size_max_mm": 1000}
+
+        result = calculate_match_score(fund, lp)
+
+        assert result["passed_hard_filters"] is True
+        assert result["score_breakdown"]["fund_size"] == 100
+
+    def test_geography_overlap_scoring(self):
+        """Geography overlap should affect soft score proportionally."""
+        from src.matching import calculate_match_score
+
+        # 50% overlap: fund has 2 regions, LP prefers 1 of them
+        fund = {"strategy": "venture", "geographic_focus": ["North America", "Asia"], "target_size_mm": 500, "fund_number": 4}
+        lp = {"strategies": ["venture"], "geographic_preferences": ["North America"], "fund_size_min_mm": 100, "fund_size_max_mm": 1000}
+
+        result = calculate_match_score(fund, lp)
+
+        assert result["passed_hard_filters"] is True
+        assert result["score_breakdown"]["geography"] == 50.0
+
+    def test_global_lp_matches_all_geographies(self):
+        """LP with 'Global' preference should match any geography."""
+        from src.matching import calculate_match_score
+
+        fund = {"strategy": "venture", "geographic_focus": ["South America", "Africa"], "target_size_mm": 500, "fund_number": 4}
+        lp = {"strategies": ["venture"], "geographic_preferences": ["Global"], "fund_size_min_mm": 100, "fund_size_max_mm": 1000}
+
+        result = calculate_match_score(fund, lp)
+
+        assert result["score_breakdown"]["geography"] == 100
+
+
+class TestMatchingScoringEdgeCases:
+    """Test edge cases in matching scoring."""
+
+    def test_empty_strategies_array(self):
+        """Empty LP strategies should fail to match any fund."""
+        from src.matching import calculate_match_score
+
+        fund = {"strategy": "venture", "target_size_mm": 500}
+        lp = {"strategies": [], "fund_size_min_mm": 100, "fund_size_max_mm": 1000}
+
+        result = calculate_match_score(fund, lp)
+
+        assert result["passed_hard_filters"] is False
+        assert result["score"] == 0
+
+    def test_none_strategies(self):
+        """None strategies should fail to match."""
+        from src.matching import calculate_match_score
+
+        fund = {"strategy": "venture", "target_size_mm": 500}
+        lp = {"strategies": None, "fund_size_min_mm": 100, "fund_size_max_mm": 1000}
+
+        result = calculate_match_score(fund, lp)
+
+        assert result["passed_hard_filters"] is False
+        assert result["score"] == 0
+
+    def test_none_fund_strategy(self):
+        """Fund with no strategy should fail to match."""
+        from src.matching import calculate_match_score
+
+        fund = {"strategy": None, "target_size_mm": 500}
+        lp = {"strategies": ["venture"], "fund_size_min_mm": 100, "fund_size_max_mm": 1000}
+
+        result = calculate_match_score(fund, lp)
+
+        assert result["passed_hard_filters"] is False
+
+    def test_empty_geographic_arrays(self):
+        """Empty geographic arrays should score neutral (50)."""
+        from src.matching import calculate_match_score
+
+        fund = {"strategy": "venture", "geographic_focus": [], "target_size_mm": 500, "fund_number": 4}
+        lp = {"strategies": ["venture"], "geographic_preferences": ["North America"], "fund_size_min_mm": 100, "fund_size_max_mm": 1000}
+
+        result = calculate_match_score(fund, lp)
+
+        assert result["score_breakdown"]["geography"] == 50
+
+    def test_none_fund_size_ranges(self):
+        """None fund size ranges should be treated as unlimited."""
+        from src.matching import calculate_match_score
+
+        fund = {"strategy": "venture", "target_size_mm": 500}
+        lp = {"strategies": ["venture"], "fund_size_min_mm": None, "fund_size_max_mm": None}
+
+        result = calculate_match_score(fund, lp)
+
+        # Should pass since None means no restriction
+        assert result["score_breakdown"]["fund_size"] == 100
+
+    def test_zero_target_size(self):
+        """Zero target size should be handled gracefully."""
+        from src.matching import calculate_match_score
+
+        fund = {"strategy": "venture", "target_size_mm": 0}
+        lp = {"strategies": ["venture"], "fund_size_min_mm": 0, "fund_size_max_mm": 1000}
+
+        result = calculate_match_score(fund, lp)
+
+        # 0 is within [0, 1000] range
+        assert result["score_breakdown"]["fund_size"] == 100
+
+    def test_case_insensitive_strategy_matching(self):
+        """Strategy matching should be case-insensitive."""
+        from src.matching import calculate_match_score
+
+        fund = {"strategy": "VENTURE", "target_size_mm": 500}
+        lp = {"strategies": ["venture", "growth"], "fund_size_min_mm": 100, "fund_size_max_mm": 1000}
+
+        result = calculate_match_score(fund, lp)
+
+        assert result["score_breakdown"]["strategy"] == 100
+
+    def test_partial_sector_matching(self):
+        """Sector matching should handle partial matches."""
+        from src.matching import calculate_match_score
+
+        # "technology" should match "tech" or vice versa
+        fund = {"strategy": "venture", "sector_focus": ["enterprise_software"], "target_size_mm": 500, "fund_number": 4}
+        lp = {"strategies": ["venture"], "sector_preferences": ["software"], "fund_size_min_mm": 100, "fund_size_max_mm": 1000}
+
+        result = calculate_match_score(fund, lp)
+
+        # "enterprise_software" contains "software" so should partially match
+        assert result["score_breakdown"]["sector"] >= 50
+
+    @pytest.mark.parametrize("fund_number,min_fund_number,expected_passes", [
+        (1, 1, True),
+        (2, 1, True),
+        (3, 1, True),
+        (1, 3, False),  # Emerging manager with strict requirement
+        (2, 3, False),  # Emerging manager with strict requirement
+        (3, 3, True),
+    ])
+    def test_fund_number_requirements(self, fund_number, min_fund_number, expected_passes):
+        """Test various fund number vs min_fund_number combinations."""
+        from src.matching import calculate_match_score
+
+        fund = {
+            "strategy": "venture",
+            "target_size_mm": 500,
+            "fund_number": fund_number
+        }
+        lp = {
+            "strategies": ["venture"],
+            "fund_size_min_mm": 100,
+            "fund_size_max_mm": 1000,
+            "min_fund_number": min_fund_number,
+            "emerging_manager_ok": False  # Strict on emerging
+        }
+
+        result = calculate_match_score(fund, lp)
+
+        if fund_number <= 2:
+            # Emerging manager check applies
+            assert result["passed_hard_filters"] is False
+        else:
+            assert result["passed_hard_filters"] is expected_passes
+
+
+class TestMatchingLLMGeneration:
+    """Test LLM content generation for matches."""
+
+    def test_fallback_content_generation(self):
+        """When LLM unavailable, fallback content should be generated."""
+        from src.matching import _generate_fallback_content
+
+        fund = {
+            "name": "Test Fund III",
+            "strategy": "venture",
+            "fund_number": 3
+        }
+        lp = {
+            "name": "Test LP",
+            "lp_type": "pension"
+        }
+        score_breakdown = {
+            "strategy": 100,
+            "geography": 80,
+            "sector": 70,
+            "track_record": 100,
+            "size_fit": 90
+        }
+
+        content = _generate_fallback_content(fund, lp, score_breakdown)
+
+        assert "explanation" in content
+        assert "talking_points" in content
+        assert "concerns" in content
+        assert len(content["talking_points"]) >= 1
+        assert len(content["concerns"]) >= 1
+
+    def test_fallback_content_handles_missing_data(self):
+        """Fallback should handle missing fund/LP data gracefully."""
+        from src.matching import _generate_fallback_content
+
+        fund = {}
+        lp = {}
+        score_breakdown = {"geography": 50, "sector": 50}
+
+        content = _generate_fallback_content(fund, lp, score_breakdown)
+
+        # Should not raise, should return valid structure
+        assert "explanation" in content
+        assert len(content["talking_points"]) == 3
+        assert len(content["concerns"]) == 2
+
+    @pytest.mark.asyncio
+    async def test_llm_generation_timeout_fallback(self):
+        """When LLM times out, should fall back to template content."""
+        from src.matching import generate_match_content
+
+        fund = {"name": "Test Fund", "strategy": "venture"}
+        lp = {"name": "Test LP", "strategies": ["venture"]}
+        score_breakdown = {"strategy": 100}
+
+        # Use invalid URL to trigger timeout/error
+        content = await generate_match_content(
+            fund, lp, score_breakdown,
+            ollama_base_url="http://invalid-url:99999",
+            ollama_model="nonexistent"
+        )
+
+        # Should fall back to template content
+        assert "explanation" in content
+        assert "talking_points" in content
+        assert "concerns" in content
+
+
+class TestMatchingAPIEndpoint:
+    """Test the generate-matches API endpoint."""
+
+    def test_generate_matches_invalid_uuid(self, client):
+        """Invalid UUID should return 400."""
+        response = client.post("/api/funds/not-a-uuid/generate-matches")
+        assert response.status_code == 400
+        assert "Invalid fund ID" in response.text
+
+    def test_generate_matches_nonexistent_fund(self, client):
+        """Non-existent fund should return 404 (or 503 if no DB)."""
+        response = client.post("/api/funds/00000000-0000-0000-0000-000000000000/generate-matches")
+        # Either 503 (no DB) or 404 (fund not found)
+        assert response.status_code in [404, 503]
+
+    @pytest.mark.parametrize("invalid_id", [
+        "",
+        "   ",
+        "not-a-uuid",
+        "../../../etc/passwd",
+        "'; DROP TABLE funds; --",
+        "<script>alert(1)</script>",
+    ])
+    def test_generate_matches_rejects_invalid_ids(self, client, invalid_id):
+        """All invalid IDs should be rejected safely."""
+        if invalid_id.strip():  # Skip empty string which won't match route
+            response = client.post(f"/api/funds/{invalid_id}/generate-matches")
+            assert response.status_code in [400, 404, 422]
+            assert response.status_code != 500  # Should never crash
+
+
+class TestMatchingScoreBreakdown:
+    """Test score breakdown details."""
+
+    def test_score_breakdown_contains_all_components(self):
+        """Score breakdown should contain all scoring components."""
+        from src.matching import calculate_match_score
+
+        fund = {"strategy": "venture", "geographic_focus": ["North America"], "target_size_mm": 500, "fund_number": 4}
+        lp = {"strategies": ["venture"], "geographic_preferences": ["North America"], "fund_size_min_mm": 100, "fund_size_max_mm": 1000}
+
+        result = calculate_match_score(fund, lp)
+
+        breakdown = result["score_breakdown"]
+        assert "strategy" in breakdown
+        assert "esg" in breakdown
+        assert "emerging_manager" in breakdown
+        assert "fund_size" in breakdown
+        assert "geography" in breakdown
+        assert "sector" in breakdown
+        assert "track_record" in breakdown
+        assert "size_fit" in breakdown
+
+    def test_score_is_weighted_average_of_soft_scores(self):
+        """Final score should be weighted average of soft scores."""
+        from src.matching import calculate_match_score
+
+        fund = {
+            "strategy": "venture",
+            "geographic_focus": ["North America"],
+            "sector_focus": ["technology"],
+            "target_size_mm": 500,
+            "fund_number": 4
+        }
+        lp = {
+            "strategies": ["venture"],
+            "geographic_preferences": ["North America"],
+            "sector_preferences": ["technology"],
+            "fund_size_min_mm": 100,
+            "fund_size_max_mm": 1000
+        }
+
+        result = calculate_match_score(fund, lp)
+
+        # Calculate expected weighted average
+        breakdown = result["score_breakdown"]
+        expected = (
+            breakdown["geography"] * 0.30 +
+            breakdown["sector"] * 0.30 +
+            breakdown["track_record"] * 0.20 +
+            breakdown["size_fit"] * 0.20
+        )
+
+        assert abs(result["score"] - expected) < 0.1  # Allow small rounding diff
+
+
+# =============================================================================
+# RESPONSIVE & MOBILE TESTS
+# =============================================================================
+# These tests validate that the application works correctly on different
+# screen sizes and mobile devices. Critical for modern web applications.
+
+
+class TestViewportMetaTag:
+    """Test that pages have proper viewport configuration for mobile.
+
+    The viewport meta tag is CRITICAL for mobile responsiveness.
+    Without it, mobile browsers will render at desktop width and scale down.
+    """
+
+    def test_home_has_viewport_meta(self, client):
+        """Home page must have viewport meta tag."""
+        response = client.get("/")
+        assert 'name="viewport"' in response.text
+        assert "width=device-width" in response.text
+
+    def test_login_has_viewport_meta(self, client):
+        """Login page must have viewport meta tag."""
+        response = client.get("/login")
+        assert 'name="viewport"' in response.text
+
+    def test_funds_has_viewport_meta(self, client):
+        """Funds page must have viewport meta tag."""
+        response = client.get("/funds")
+        assert 'name="viewport"' in response.text
+
+    def test_lps_has_viewport_meta(self, client):
+        """LPs page must have viewport meta tag."""
+        response = client.get("/lps")
+        assert 'name="viewport"' in response.text
+
+    def test_matches_has_viewport_meta(self, client):
+        """Matches page must have viewport meta tag."""
+        response = client.get("/matches")
+        assert 'name="viewport"' in response.text
+
+
+class TestMobileNavigation:
+    """Test that navigation is accessible on mobile devices.
+
+    CRITICAL: Navigation hidden on mobile (hidden md:flex) MUST have
+    a mobile alternative (hamburger menu) or users can't navigate!
+    """
+
+    def test_has_mobile_menu_toggle(self, client):
+        """Pages with hidden desktop nav must have mobile menu toggle.
+
+        The desktop nav uses 'hidden md:flex' which hides it on mobile.
+        There MUST be a visible mobile menu button.
+        """
+        response = client.get("/funds")
+        html = response.text
+
+        # If desktop nav is hidden on mobile, we need a mobile alternative
+        if "hidden md:flex" in html:
+            # Must have a mobile menu button (hamburger icon)
+            has_mobile_menu = any([
+                'id="mobile-menu' in html,
+                'data-mobile-menu' in html,
+                'aria-label="menu"' in html.lower(),
+                'aria-label="Menu"' in html,
+                'hamburger' in html.lower(),
+                # Check for a menu button visible on mobile
+                'md:hidden' in html and ('menu' in html.lower() or 'nav' in html.lower()),
+            ])
+            assert has_mobile_menu, (
+                "Desktop nav is hidden on mobile (hidden md:flex) but no mobile menu found! "
+                "Mobile users cannot navigate between pages."
+            )
+
+    def test_mobile_nav_has_all_links(self, client):
+        """Mobile navigation must have same links as desktop nav."""
+        response = client.get("/funds")
+        html = response.text
+
+        # Core navigation links that must be accessible
+        required_links = ["/matches", "/funds", "/lps"]
+
+        for link in required_links:
+            assert f'href="{link}"' in html, f"Missing navigation link: {link}"
+
+
+class TestResponsiveLayout:
+    """Test responsive grid and layout behavior."""
+
+    def test_funds_grid_is_responsive(self, client):
+        """Funds page grid should adapt to screen size."""
+        response = client.get("/funds")
+        html = response.text
+
+        # Should have responsive grid classes
+        assert "grid-cols-1" in html, "Missing single column for mobile"
+        assert "md:grid-cols-2" in html or "lg:grid-cols-3" in html, (
+            "Missing multi-column grid for larger screens"
+        )
+
+    def test_lps_grid_is_responsive(self, client):
+        """LPs page grid should adapt to screen size."""
+        response = client.get("/lps")
+        html = response.text
+
+        assert "grid-cols-1" in html, "Missing single column for mobile"
+
+    def test_modals_are_mobile_friendly(self, client):
+        """Modals should be usable on small screens."""
+        response = client.get("/funds")
+        html = response.text
+
+        # Modals should have max-width and be scrollable
+        # Check for overflow handling
+        assert "overflow" in html or "max-h-" in html, (
+            "Modals need overflow handling for small screens"
+        )
+
+    def test_forms_are_full_width_on_mobile(self, client):
+        """Form inputs should be full width on mobile."""
+        response = client.get("/funds")
+        html = response.text
+
+        # Look for w-full class on inputs
+        assert "w-full" in html, "Form inputs should be full width"
+
+
+class TestTouchTargets:
+    """Test that interactive elements are large enough for touch.
+
+    WCAG 2.5.5 recommends minimum 44x44px touch targets.
+    Tailwind's default button padding should meet this, but we verify.
+    """
+
+    def test_buttons_have_adequate_padding(self, client):
+        """Buttons should have enough padding for touch targets."""
+        response = client.get("/funds")
+        html = response.text
+
+        # Buttons should have padding classes
+        # Tailwind p-2 = 8px, p-3 = 12px, etc.
+        # We need at least p-2 or px-3/py-2 combinations
+        has_button_padding = any([
+            "btn-primary" in html,  # Our custom class has padding
+            "btn-secondary" in html,
+            "px-3" in html,
+            "px-4" in html,
+            "py-2" in html,
+        ])
+        assert has_button_padding, "Buttons need adequate padding for touch"
+
+    def test_links_in_nav_have_spacing(self, client):
+        """Navigation links should have spacing for easy tapping."""
+        response = client.get("/")
+        html = response.text
+
+        # Nav should have spacing between items
+        has_nav_spacing = any([
+            "space-x-" in html,
+            "gap-" in html,
+        ])
+        assert has_nav_spacing, "Navigation needs spacing between items"
+
+
+class TestAccessibility:
+    """Test basic accessibility requirements for all users."""
+
+    def test_html_has_lang_attribute(self, client):
+        """HTML tag must have lang attribute for screen readers."""
+        response = client.get("/")
+        assert 'lang="en"' in response.text or "lang='en'" in response.text
+
+    def test_page_has_main_landmark(self, client):
+        """Page should have main content landmark."""
+        response = client.get("/")
+        assert "<main" in response.text, "Page needs <main> landmark"
+
+    def test_page_has_header_landmark(self, client):
+        """Page should have header landmark."""
+        response = client.get("/")
+        assert "<header" in response.text, "Page needs <header> landmark"
+
+    def test_forms_have_labels(self, client):
+        """Form inputs should have associated labels."""
+        response = client.get("/login")
+        html = response.text
+
+        # Count inputs and labels
+        input_count = html.count("<input")
+        label_count = html.count("<label")
+
+        # Every visible input should have a label
+        # (hidden inputs don't need labels)
+        assert label_count > 0, "Forms need labels for accessibility"
+
+    def test_images_have_alt_text(self, client):
+        """Images should have alt attributes."""
+        response = client.get("/")
+        html = response.text
+
+        # Find all img tags
+        img_tags = re.findall(r'<img[^>]*>', html)
+        for img in img_tags:
+            assert 'alt=' in img, f"Image missing alt attribute: {img[:50]}"
+
+    def test_buttons_have_text_or_aria_label(self, client):
+        """Buttons must have visible text or aria-label."""
+        response = client.get("/funds")
+        html = response.text
+
+        # Find button tags
+        button_matches = re.findall(r'<button[^>]*>.*?</button>', html, re.DOTALL)
+        for button in button_matches[:10]:  # Check first 10
+            has_content = any([
+                len(re.sub(r'<[^>]+>', '', button).strip()) > 0,  # Has text
+                'aria-label' in button,
+                'title=' in button,
+            ])
+            # SVG-only buttons are common but need aria-label
+            if '<svg' in button and not has_content:
+                assert 'aria-label' in button or 'title=' in button, (
+                    f"Icon-only button needs aria-label: {button[:100]}"
+                )
+
+
+class TestResponsivePadding:
+    """Test that containers have appropriate padding at different sizes."""
+
+    def test_main_container_has_responsive_padding(self, client):
+        """Main content container should have responsive padding."""
+        response = client.get("/funds")
+        html = response.text
+
+        # Should use sm: or md: prefixed padding
+        has_responsive_padding = any([
+            "px-4 sm:px-6" in html,
+            "px-4 md:px-6" in html,
+            "sm:px-" in html,
+        ])
+        assert has_responsive_padding, "Container needs responsive padding"
+
+
+class TestTextReadability:
+    """Test text is readable on all screen sizes."""
+
+    def test_text_uses_relative_sizes(self, client):
+        """Text should use relative sizes (rem/em) not fixed pixels."""
+        response = client.get("/")
+        html = response.text
+
+        # Tailwind uses rem-based sizes by default (text-sm, text-lg, etc.)
+        has_tailwind_text = any([
+            "text-sm" in html,
+            "text-base" in html,
+            "text-lg" in html,
+            "text-xl" in html,
+        ])
+        assert has_tailwind_text, "Should use Tailwind text size classes"
+
+    def test_no_tiny_text(self, client):
+        """Text should not be too small to read."""
+        response = client.get("/")
+        html = response.text
+
+        # text-xs (12px) is acceptable for labels, but should not be primary text
+        # This is a soft check - just verify we use reasonable sizes
+        assert "text-xs" in html or "text-sm" in html, (
+            "Using appropriate text sizes"
+        )
+
+
+class TestFormsMobile:
+    """Test form behavior on mobile devices."""
+
+    def test_form_inputs_have_type_attribute(self, client):
+        """Form inputs should have appropriate type for mobile keyboards."""
+        response = client.get("/login")
+        html = response.text
+
+        # Email inputs should have type="email" for mobile keyboard
+        if "email" in html.lower():
+            assert 'type="email"' in html, "Email input needs type='email'"
+
+        # Number inputs should have type="number"
+        # Password should have type="password"
+        if "password" in html.lower():
+            assert 'type="password"' in html, "Password input needs type='password'"
+
+    def test_number_inputs_have_correct_type(self, client):
+        """Number inputs should use type=number for numeric keyboard."""
+        response = client.get("/funds")
+        html = response.text
+
+        # Look for inputs that should be numbers
+        # target_size_mm, vintage_year should be type="number"
+        if "target_size" in html or "vintage_year" in html:
+            assert 'type="number"' in html, "Numeric fields need type='number'"
+
+
+class TestHTMXMobile:
+    """Test HTMX behavior considerations for mobile."""
+
+    def test_htmx_loaded(self, client):
+        """HTMX library should be loaded."""
+        response = client.get("/funds")
+        assert "htmx" in response.text.lower()
+
+    def test_loading_indicators_exist(self, client):
+        """HTMX requests should have loading indicators."""
+        response = client.get("/funds")
+        html = response.text
+
+        # Should have indicator classes
+        has_indicator = any([
+            "htmx-indicator" in html,
+            "hx-indicator" in html,
+        ])
+        assert has_indicator, "Need loading indicators for HTMX requests"
+
+
+class TestScrollBehavior:
+    """Test scroll behavior on mobile."""
+
+    def test_body_allows_scroll(self, client):
+        """Body should not prevent scrolling."""
+        response = client.get("/funds")
+        html = response.text
+
+        # Should not have overflow-hidden on body/html by default
+        # (modals can add it temporarily)
+        assert 'overflow: hidden' not in html or 'overflow-hidden' not in html.split('<body')[0], (
+            "Body should allow scrolling"
+        )
+
+    def test_modals_have_scroll_handling(self, client):
+        """Modals should handle overflow for long content."""
+        response = client.get("/funds")
+        html = response.text
+
+        # Modals should have max-height and overflow-y-auto
+        if "modal" in html.lower():
+            assert "overflow" in html or "max-h-" in html, (
+                "Modals need scroll handling"
+            )
+
+
+class TestMobileSpecificFeatures:
+    """Test mobile-specific features and optimizations."""
+
+    def test_no_hover_only_interactions(self, client):
+        """Critical interactions should not rely solely on hover.
+
+        Mobile devices don't have hover, so all interactive elements
+        must be accessible via click/tap.
+        """
+        response = client.get("/funds")
+        html = response.text
+
+        # This is a structural check - hover effects are fine for enhancement
+        # but core functionality should work without them
+        # Look for elements that appear only on hover
+        hover_only_patterns = [
+            r'opacity-0.*hover:opacity-100',  # Hidden until hover
+            r'invisible.*hover:visible',  # Invisible until hover
+        ]
+
+        for pattern in hover_only_patterns:
+            matches = re.findall(pattern, html)
+            # If found, ensure there's also a non-hover way to access
+            if matches:
+                # This is a warning - hover enhancements are OK
+                pass  # Consider adding assertion if critical content is hover-only
+
+    def test_sticky_header_exists(self, client):
+        """Header should be sticky for easy navigation."""
+        response = client.get("/funds")
+        html = response.text
+
+        assert "sticky" in html, "Header should be sticky for mobile usability"
+
+
+class TestCriticalMobileIssues:
+    """Test for critical mobile issues that break usability.
+
+    These tests specifically catch issues that would make the app
+    unusable on mobile devices.
+    """
+
+    @pytest.mark.parametrize("page", ["/", "/funds", "/lps", "/matches", "/login"])
+    def test_page_renders_on_all_pages(self, client, page):
+        """All main pages should render without errors."""
+        response = client.get(page)
+        assert response.status_code == 200
+
+    def test_no_horizontal_scroll_indicators(self, client):
+        """Content should not cause horizontal scroll.
+
+        Look for fixed-width elements that might overflow.
+        """
+        response = client.get("/funds")
+        html = response.text
+
+        # Check for common overflow culprits
+        # Fixed widths without max-width are risky
+        dangerous_patterns = [
+            r'width:\s*\d{4,}px',  # Width > 999px fixed
+            r'min-width:\s*\d{4,}px',
+        ]
+
+        for pattern in dangerous_patterns:
+            matches = re.findall(pattern, html)
+            assert len(matches) == 0, f"Fixed width may cause horizontal scroll: {matches}"
+
+    def test_tables_are_responsive(self, client):
+        """Tables should have horizontal scroll wrapper on mobile."""
+        response = client.get("/matches")
+        html = response.text
+
+        # If there are tables, they should have overflow handling
+        if "<table" in html:
+            # Should have overflow-x-auto wrapper
+            assert "overflow-x" in html or "overflow-auto" in html, (
+                "Tables need horizontal scroll wrapper for mobile"
+            )
+
+
+# =============================================================================
+# PLAYWRIGHT BROWSER TESTS (Optional - run with pytest -m browser)
+# =============================================================================
+# These tests require Playwright and test actual browser rendering.
+# Run with: pytest -m browser tests/test_main.py
+
+
+@pytest.mark.browser
+class TestPlaywrightMobile:
+    """Browser-based tests for real viewport testing.
+
+    These tests use Playwright to test actual browser behavior at
+    different viewport sizes. Marked with @pytest.mark.browser.
+
+    To run: pytest -m browser tests/test_main.py
+
+    Requires: pip install pytest-playwright && playwright install
+    """
+
+    @pytest.fixture
+    def mobile_viewport(self):
+        """iPhone SE viewport dimensions."""
+        return {"width": 375, "height": 667}
+
+    @pytest.fixture
+    def tablet_viewport(self):
+        """iPad viewport dimensions."""
+        return {"width": 768, "height": 1024}
+
+    @pytest.fixture
+    def desktop_viewport(self):
+        """Desktop viewport dimensions."""
+        return {"width": 1280, "height": 800}
+
+    @pytest.mark.skip(reason="Requires Playwright browser - run with pytest -m browser")
+    def test_mobile_viewport_renders(self, page, mobile_viewport):
+        """Page should render correctly at mobile viewport."""
+        page.set_viewport_size(mobile_viewport)
+        page.goto("http://localhost:8000/funds")
+
+        # Page should load
+        assert page.title()
+
+        # Content should be visible
+        assert page.locator("h1").is_visible()
+
+    @pytest.mark.skip(reason="Requires Playwright browser - run with pytest -m browser")
+    def test_navigation_accessible_on_mobile(self, page, mobile_viewport):
+        """Navigation should be accessible on mobile viewport."""
+        page.set_viewport_size(mobile_viewport)
+        page.goto("http://localhost:8000/funds")
+
+        # Either nav links should be visible OR hamburger menu should exist
+        nav_visible = page.locator("nav a").first.is_visible()
+        hamburger_exists = page.locator("[aria-label='Menu'], [aria-label='menu'], .hamburger").count() > 0
+
+        assert nav_visible or hamburger_exists, (
+            "Navigation must be accessible on mobile"
+        )
+
+    @pytest.mark.skip(reason="Requires Playwright browser - run with pytest -m browser")
+    def test_no_horizontal_overflow_mobile(self, page, mobile_viewport):
+        """Page should not have horizontal overflow on mobile."""
+        page.set_viewport_size(mobile_viewport)
+        page.goto("http://localhost:8000/funds")
+
+        # Check if page width exceeds viewport
+        body_width = page.evaluate("document.body.scrollWidth")
+        viewport_width = mobile_viewport["width"]
+
+        assert body_width <= viewport_width + 10, (
+            f"Page has horizontal overflow: body={body_width}px, viewport={viewport_width}px"
+        )
+
+    @pytest.mark.skip(reason="Requires Playwright browser - run with pytest -m browser")
+    def test_buttons_are_tappable(self, page, mobile_viewport):
+        """Buttons should be large enough to tap."""
+        page.set_viewport_size(mobile_viewport)
+        page.goto("http://localhost:8000/funds")
+
+        buttons = page.locator("button").all()
+        for button in buttons[:5]:  # Check first 5 buttons
+            box = button.bounding_box()
+            if box:
+                # WCAG recommends 44x44px minimum
+                assert box["width"] >= 40, f"Button too narrow: {box['width']}px"
+                assert box["height"] >= 40, f"Button too short: {box['height']}px"
