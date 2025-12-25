@@ -3,18 +3,18 @@ name = "lpxgp"
 version = "0.1.0"
 description = "AI-powered platform helping GPs find and engage LPs"
 readme = "README.md"
-requires-python = ">=3.12,<3.15"
+requires-python = ">=3.12,<3.13"
 dependencies = [
-    # Core - flexible versions for Python 3.14 compatibility
+    # Core
     "fastapi>=0.115.6",
     "uvicorn[standard]>=0.32.1",
     "jinja2>=3.1.4",
-    "pydantic>=2.12.0",  # 2.12+ has Python 3.14 support via pydantic-core
+    "pydantic>=2.10.0",
     "pydantic-settings>=2.6.1",
-    "supabase>=2.10.0",
-    # httpx version managed by supabase
+    # Database - psycopg3 with connection pooling (sync + async)
+    "psycopg[binary,pool]>=3.2.0",
     "python-multipart>=0.0.17",  # File uploads
-    "orjson>=3.11.0",  # Fast JSON serialization (3.11+ has Python 3.14 wheels)
+    "orjson>=3.11.0",  # Fast JSON serialization
     "email-validator>=2.2.0",  # Email validation for Pydantic
     # Semantic search (M2)
     "voyageai>=0.3.1",
@@ -43,7 +43,7 @@ dev = [
 
 [tool.ruff]
 line-length = 100
-target-version = "py314"
+target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP"]

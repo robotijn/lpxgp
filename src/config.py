@@ -25,10 +25,11 @@ class Settings(BaseSettings):
     # Required Settings (fail fast if missing)
     # -------------------------------------------------------------------------
 
-    # Supabase (optional in development for basic testing)
-    supabase_url: str | None = Field(default=None, description="Supabase project URL")
-    supabase_anon_key: str | None = Field(default=None, description="Supabase anon/public key")
-    supabase_service_role_key: str | None = Field(default=None, description="Supabase service role key (for admin ops)")
+    # Database (PostgreSQL via psycopg)
+    database_url: str | None = Field(
+        default=None,
+        description="PostgreSQL connection URL (e.g., postgresql://user:pass@host:port/db)"
+    )
 
     # -------------------------------------------------------------------------
     # Optional Settings with Defaults
@@ -44,6 +45,10 @@ class Settings(BaseSettings):
     # API Keys (required for specific features)
     openrouter_api_key: str | None = Field(default=None, description="OpenRouter API key (M3+)")
     voyage_api_key: str | None = Field(default=None, description="Voyage AI API key (M2+)")
+
+    # Ollama (local development for M3+ agents)
+    ollama_base_url: str = Field(default="http://localhost:11434", description="Ollama API base URL")
+    ollama_model: str = Field(default="deepseek-r1:8b", description="Default Ollama model for agents")
 
     # Langfuse (M3+ agent monitoring)
     langfuse_public_key: str | None = Field(default=None)
@@ -134,32 +139,20 @@ class Settings(BaseSettings):
     # Validators
     # -------------------------------------------------------------------------
 
-    @field_validator("supabase_url")
+    @field_validator("database_url")
     @classmethod
-    def validate_supabase_url(cls, v: str | None) -> str | None:
-        """Validate Supabase URL format."""
-        if v is None:
+    def validate_database_url(cls, v: str | None) -> str | None:
+        """Validate PostgreSQL database URL format."""
+        if v is None or v.strip() == "":
             return None
-        if not v.startswith("https://"):
-            raise ValueError("Supabase URL must start with https://")
-        if ".supabase.co" not in v and "localhost" not in v:
-            raise ValueError("Invalid Supabase URL format")
-        return v
-
-    @field_validator("supabase_anon_key", "supabase_service_role_key")
-    @classmethod
-    def validate_supabase_key(cls, v: str | None) -> str | None:
-        """Validate Supabase key format."""
-        if v is None:
-            return None
-        if len(v) < 100:
-            raise ValueError("Invalid Supabase key (too short)")
+        if not v.startswith(("postgresql://", "postgres://")):
+            raise ValueError("Database URL must start with postgresql:// or postgres://")
         return v
 
     @property
-    def supabase_configured(self) -> bool:
-        """Check if Supabase is fully configured."""
-        return all([self.supabase_url, self.supabase_anon_key, self.supabase_service_role_key])
+    def database_configured(self) -> bool:
+        """Check if database is configured."""
+        return self.database_url is not None
 
     @field_validator("cors_origins")
     @classmethod

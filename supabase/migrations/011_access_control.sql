@@ -40,16 +40,10 @@ CREATE TABLE IF NOT EXISTS login_attempts (
 );
 
 -- Index for rate limiting and lockout queries
-CREATE INDEX idx_login_attempts_email ON login_attempts(email, attempted_at DESC);
-CREATE INDEX idx_login_attempts_ip ON login_attempts(ip_address, attempted_at DESC);
+CREATE INDEX IF NOT EXISTS idx_login_attempts_email ON login_attempts(email, attempted_at DESC);
+CREATE INDEX IF NOT EXISTS idx_login_attempts_ip ON login_attempts(ip_address, attempted_at DESC);
 
--- Cleanup old entries (90 day retention)
-CREATE OR REPLACE FUNCTION cleanup_old_login_attempts()
-RETURNS void AS $$
-BEGIN
-    DELETE FROM login_attempts WHERE attempted_at < NOW() - INTERVAL '90 days';
-END;
-$$ LANGUAGE plpgsql;
+-- NOTE: cleanup_old_login_attempts() already defined in 009_security_features.sql
 
 COMMENT ON TABLE login_attempts IS 'Failed login tracking for account lockout. Retention: 90 days.';
 
@@ -192,21 +186,27 @@ ALTER TABLE login_attempts ENABLE ROW LEVEL SECURITY;
 -- 9. UPDATE RLS POLICIES FOR PRIVILEGED ACCESS
 -- =============================================================================
 
--- Organizations: FA can read all, write for onboarding
+-- Organizations: FA can read all, users see their own org and LPs
 DROP POLICY IF EXISTS "organizations_user_read" ON organizations;
 CREATE POLICY "organizations_privileged_access" ON organizations
     FOR ALL USING (
-        org_id = current_user_org_id()
-        OR is_privileged_user()
+        id = current_user_org_id()  -- User's own org
+        OR is_lp = TRUE             -- All LP orgs are visible
+        OR is_privileged_user()     -- FA/SA see everything
     );
 
--- People: FA can manage all
+-- People: FA can manage all, users see own record and colleagues
 DROP POLICY IF EXISTS "people_user_access" ON people;
 CREATE POLICY "people_privileged_access" ON people
     FOR ALL USING (
-        id = auth.uid()
-        OR org_id = current_user_org_id()
-        OR is_privileged_user()
+        auth_user_id = auth.uid()   -- Own record
+        OR id IN (                   -- Colleagues (same org via employment)
+            SELECT e2.person_id FROM employment e1
+            JOIN employment e2 ON e1.org_id = e2.org_id
+            JOIN people p ON p.id = e1.person_id
+            WHERE p.auth_user_id = auth.uid() AND e1.is_current = TRUE
+        )
+        OR is_privileged_user()     -- FA/SA see everyone
     );
 
 -- =============================================================================

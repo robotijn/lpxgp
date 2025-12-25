@@ -6,19 +6,7 @@
 -- A GP organization cannot match their own LP (if they are both GP and LP)
 --------------------------------------------------------------------------------
 
--- Add constraint to fund_lp_matches
-ALTER TABLE fund_lp_matches
-DROP CONSTRAINT IF EXISTS no_self_match;
-
-ALTER TABLE fund_lp_matches
-ADD CONSTRAINT no_self_match
-CHECK (
-    -- Fund's org_id must not equal the LP's org_id
-    fund_id IS NULL OR lp_org_id IS NULL OR
-    (SELECT org_id FROM funds WHERE id = fund_id) != lp_org_id
-);
-
--- Alternative: Use a trigger for more complex validation
+-- Use a trigger for self-match validation (CHECK constraints can't use subqueries)
 CREATE OR REPLACE FUNCTION check_no_self_match()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -86,24 +74,24 @@ ALTER TABLE lp_profiles
 DROP CONSTRAINT IF EXISTS non_negative_pe_allocation;
 ALTER TABLE lp_profiles
 ADD CONSTRAINT non_negative_pe_allocation
-CHECK (pe_allocation_bn IS NULL OR pe_allocation_bn >= 0);
+CHECK (pe_allocation_pct IS NULL OR pe_allocation_pct >= 0);
 
 -- Percentage constraints (0-100)
 ALTER TABLE lp_profiles
-DROP CONSTRAINT IF EXISTS valid_pe_target_pct;
+DROP CONSTRAINT IF EXISTS valid_pe_allocation_pct;
 ALTER TABLE lp_profiles
-ADD CONSTRAINT valid_pe_target_pct
-CHECK (pe_target_pct IS NULL OR (pe_target_pct >= 0 AND pe_target_pct <= 100));
+ADD CONSTRAINT valid_pe_allocation_pct
+CHECK (pe_allocation_pct IS NULL OR (pe_allocation_pct >= 0 AND pe_allocation_pct <= 100));
 
 --------------------------------------------------------------------------------
 -- Investment Amount Constraints
 --------------------------------------------------------------------------------
 
 ALTER TABLE investments
-DROP CONSTRAINT IF EXISTS non_negative_amount;
+DROP CONSTRAINT IF EXISTS non_negative_commitment;
 ALTER TABLE investments
-ADD CONSTRAINT non_negative_amount
-CHECK (amount_mm IS NULL OR amount_mm >= 0);
+ADD CONSTRAINT non_negative_commitment
+CHECK (commitment_mm IS NULL OR commitment_mm >= 0);
 
 --------------------------------------------------------------------------------
 -- Valid Check Size Range
@@ -165,30 +153,12 @@ CHECK (pipeline_stage IN (
 -- Score Range Constraints
 --------------------------------------------------------------------------------
 
--- Match scores should be 0-100
+-- Match score should be 0-100
 ALTER TABLE fund_lp_matches
-DROP CONSTRAINT IF EXISTS valid_overall_score;
+DROP CONSTRAINT IF EXISTS valid_score;
 ALTER TABLE fund_lp_matches
-ADD CONSTRAINT valid_overall_score
-CHECK (overall_score IS NULL OR (overall_score >= 0 AND overall_score <= 100));
-
-ALTER TABLE fund_lp_matches
-DROP CONSTRAINT IF EXISTS valid_strategy_score;
-ALTER TABLE fund_lp_matches
-ADD CONSTRAINT valid_strategy_score
-CHECK (strategy_score IS NULL OR (strategy_score >= 0 AND strategy_score <= 100));
-
-ALTER TABLE fund_lp_matches
-DROP CONSTRAINT IF EXISTS valid_geography_score;
-ALTER TABLE fund_lp_matches
-ADD CONSTRAINT valid_geography_score
-CHECK (geography_score IS NULL OR (geography_score >= 0 AND geography_score <= 100));
-
-ALTER TABLE fund_lp_matches
-DROP CONSTRAINT IF EXISTS valid_size_score;
-ALTER TABLE fund_lp_matches
-ADD CONSTRAINT valid_size_score
-CHECK (size_score IS NULL OR (size_score >= 0 AND size_score <= 100));
+ADD CONSTRAINT valid_score
+CHECK (score >= 0 AND score <= 100);
 
 --------------------------------------------------------------------------------
 -- Email Format Validation (basic)
@@ -234,13 +204,13 @@ CHECK (allocation_pct IS NULL OR (allocation_pct >= 0 AND allocation_pct <= 100)
 
 /*
 Business Rules Enforced:
-1. no_self_match - GP cannot match their own LP org
+1. trg_no_self_match - GP cannot match their own LP org (trigger-based)
 2. unique_fund_name_per_org - No duplicate fund names within org
-3. non_negative_* - Financial amounts must be >= 0
-4. valid_*_pct - Percentages must be 0-100
+3. non_negative_* - Financial amounts must be >= 0 (target_size_mm, hard_cap_mm, commitment_mm, total_aum_bn)
+4. valid_*_pct - Percentages must be 0-100 (pe_allocation_pct, allocation_pct)
 5. valid_check_size_range - Min <= Max for check sizes
 6. valid_pipeline_stage - Only allowed stage values
-7. valid_*_score - Match scores must be 0-100
+7. valid_score - Match score must be 0-100
 8. valid_email_format - Basic email validation
 9. idx_one_pending_invitation_per_email - One pending invite per email
 */

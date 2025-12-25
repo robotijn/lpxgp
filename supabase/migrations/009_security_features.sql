@@ -4,6 +4,21 @@
 -- ============================================================================
 
 -- ============================================================================
+-- 0. Helper Functions (needed for RLS policies below)
+-- ============================================================================
+
+-- Get user's effective role (accounts for super_admin flag)
+CREATE OR REPLACE FUNCTION get_user_org_role()
+RETURNS TEXT AS $$
+    SELECT CASE
+        WHEN (SELECT is_super_admin FROM people WHERE auth_user_id = auth.uid()) THEN 'super_admin'
+        ELSE (SELECT role FROM people WHERE auth_user_id = auth.uid())
+    END
+$$ LANGUAGE sql SECURITY DEFINER;
+
+COMMENT ON FUNCTION get_user_org_role IS 'Get user effective role (super_admin if is_super_admin flag set, otherwise role field)';
+
+-- ============================================================================
 -- 1. Login Attempts Table (Account Lockout)
 -- ============================================================================
 
