@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block nav %}
+<nav class="hidden md:flex ml-10 space-x-8">
+    <a href="/admin" class="text-navy-600 hover:text-navy-900 text-sm">Overview</a>
+    <a href="/admin/users" class="text-navy-600 hover:text-navy-900 text-sm">Users</a>
+    <a href="/admin/health" class="text-gold font-medium text-sm">Health</a>
+    <a href="/dashboard" class="text-navy-600 hover:text-navy-900 text-sm">Back to App</a>
+</nav>
+{% endblock %}
+
+{% block mobile_nav %}
+<a href="/admin" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Overview</a>
+<a href="/admin/users" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Users</a>
+<a href="/admin/health" class="block py-2 px-3 rounded-lg bg-gold/10 text-gold font-medium">Health</a>
+<a href="/dashboard" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Back to App</a>
+{% endblock %}
+
+{% block header_right %}
+<div class="flex items-center space-x-4">
+    <span class="px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-800 rounded">Admin</span>
+    <a href="/settings" class="text-gold font-medium text-sm hidden md:inline">
+        {{ user.name }}
+    </a>
+    <a href="/logout" class="btn-secondary text-sm">Sign Out</a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 py-8">
+    <!-- Page Header -->
+    <div class="mb-8">
+        <h1 class="text-2xl font-bold text-navy-900">System Health</h1>
+        <p class="text-navy-500 mt-1">Monitor platform services and status</p>
+    </div>
+
+    <!-- Health Checks -->
+    <div class="card divide-y divide-navy-100">
+        {% for check in health_checks %}
+        <div class="p-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    {% if check.status == 'healthy' %}
+                    <div class="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center mr-4">
+                        <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                    </div>
+                    {% elif check.status == 'unhealthy' %}
+                    <div class="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center mr-4">
+                        <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </div>
+                    {% elif check.status == 'unconfigured' %}
+                    <div class="w-10 h-10 rounded-full bg-yellow-50 flex items-center justify-center mr-4">
+                        <svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    {% else %}
+                    <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center mr-4">
+                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    {% endif %}
+                    <div>
+                        <p class="text-sm font-medium text-navy-900">{{ check.name }}</p>
+                        <p class="text-sm text-navy-500">{{ check.message }}</p>
+                    </div>
+                </div>
+                <span class="px-2 py-1 text-xs font-medium rounded-full
+                    {% if check.status == 'healthy' %}bg-green-100 text-green-800
+                    {% elif check.status == 'unhealthy' %}bg-red-100 text-red-800
+                    {% elif check.status == 'unconfigured' %}bg-yellow-100 text-yellow-800
+                    {% else %}bg-blue-100 text-blue-800{% endif %}">
+                    {{ check.status|title }}
+                </span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- API Health Endpoint -->
+    <div class="card p-6 mt-6">
+        <h2 class="text-lg font-semibold text-navy-900 mb-4">API Health Endpoint</h2>
+        <div class="bg-navy-50 rounded-lg p-4">
+            <code class="text-sm text-navy-700">GET /health</code>
+            <p class="text-sm text-navy-500 mt-2">
+                Use this endpoint for load balancer health checks and external monitoring.
+            </p>
+        </div>
+    </div>
+
+    <!-- Back Link -->
+    <div class="mt-8">
+        <a href="/admin" class="text-gold hover:text-gold-600 text-sm font-medium">
+            &larr; Back to Admin Dashboard
+        </a>
+    </div>
+</div>
+{% endblock %}

@@ -219,7 +219,6 @@
     "deprecated_tables": [
       "matches",
       "lp_commitments",
-      "lp_fund_matches",
       "lp_contacts"
     ]
   },

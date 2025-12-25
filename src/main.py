@@ -26,6 +26,7 @@ from __future__ import annotations
 
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from datetime import UTC
 from pathlib import Path
 from typing import Any, cast
 from uuid import UUID
@@ -37,10 +38,106 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Resp
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from psycopg.rows import dict_row
+from pydantic import BaseModel, Field
 
 from src import auth
 from src.config import get_settings, validate_settings_on_startup
 from src.logging_config import get_logger
+
+# =============================================================================
+# User Preferences Data Model
+# =============================================================================
+
+
+class UserPreferences(BaseModel):
+    """User notification and display preferences.
+
+    Attributes:
+        email_new_matches: Email about new LP matches.
+        email_weekly_summary: Weekly summary of fund activity.
+        email_marketing: Marketing and product updates.
+    """
+
+    email_new_matches: bool = True
+    email_weekly_summary: bool = True
+    email_marketing: bool = False
+
+
+# In-memory preferences storage: user_id -> UserPreferences
+_user_preferences: dict[str, UserPreferences] = {}
+
+
+def get_user_preferences(user_id: str) -> UserPreferences:
+    """Get preferences for a user, creating defaults if needed.
+
+    Args:
+        user_id: The user's unique identifier.
+
+    Returns:
+        UserPreferences object with current settings.
+    """
+    if user_id not in _user_preferences:
+        _user_preferences[user_id] = UserPreferences()
+    return _user_preferences[user_id]
+
+
+def update_user_preferences(
+    user_id: str, preferences: UserPreferences
+) -> UserPreferences:
+    """Update a user's preferences.
+
+    Args:
+        user_id: The user's unique identifier.
+        preferences: The new preferences to set.
+
+    Returns:
+        Updated UserPreferences object.
+    """
+    _user_preferences[user_id] = preferences
+    return preferences
+
+
+# =============================================================================
+# Shortlist Data Model
+# =============================================================================
+
+
+class ShortlistItem(BaseModel):
+    """Represents an LP saved to a user's shortlist.
+
+    Attributes:
+        lp_id: The unique identifier of the LP organization.
+        fund_id: Optional fund context for this shortlist entry.
+        notes: User notes about why this LP was shortlisted.
+        added_at: ISO timestamp when the LP was added.
+        priority: Priority level (1=high, 2=medium, 3=low).
+    """
+
+    lp_id: str
+    fund_id: str | None = None
+    notes: str = ""
+    added_at: str = Field(default_factory=lambda: "")
+    priority: int = Field(default=2, ge=1, le=3)
+
+
+class ShortlistAddRequest(BaseModel):
+    """Request body for adding an LP to shortlist."""
+
+    lp_id: str
+    fund_id: str | None = None
+    notes: str = ""
+    priority: int = Field(default=2, ge=1, le=3)
+
+
+class ShortlistUpdateRequest(BaseModel):
+    """Request body for updating a shortlist entry."""
+
+    notes: str | None = None
+    priority: int | None = Field(default=None, ge=1, le=3)
+
+
+# In-memory shortlist storage: user_id -> list of ShortlistItems
+_shortlists: dict[str, list[ShortlistItem]] = {}
 
 # =============================================================================
 # Utility Functions
@@ -399,7 +496,7 @@ async def dashboard_page(request: Request) -> HTMLResponse | RedirectResponse:
                 result = cur.fetchone()
                 stats["total_funds"] = result["count"] if result else 0
 
-                cur.execute("SELECT COUNT(*) FROM lps")
+                cur.execute("SELECT COUNT(*) FROM organizations WHERE is_lp = TRUE")
                 result = cur.fetchone()
                 stats["total_lps"] = result["count"] if result else 0
 
@@ -426,7 +523,8 @@ async def dashboard_page(request: Request) -> HTMLResponse | RedirectResponse:
 async def settings_page(request: Request) -> HTMLResponse | RedirectResponse:
     """Render the user settings page (protected route).
 
-    Requires authentication.
+    Requires authentication. Displays user profile info and
+    notification preferences.
 
     Args:
         request: FastAPI request object.
@@ -438,22 +536,27 @@ async def settings_page(request: Request) -> HTMLResponse | RedirectResponse:
     if not user:
         return RedirectResponse(url="/login", status_code=303)
 
+    preferences = get_user_preferences(user["id"])
+
     return templates.TemplateResponse(
         request,
         "pages/settings.html",
         {
             "title": "Settings - LPxGP",
             "user": user,
+            "preferences": preferences,
         },
     )
 
 
-@app.get("/matches", response_class=HTMLResponse)
+@app.get("/matches", response_class=HTMLResponse, response_model=None)
 async def matches_page(
     request: Request,
     fund_id: str | None = Query(None),
-) -> HTMLResponse:
+) -> HTMLResponse | RedirectResponse:
     """Render the matches page showing AI-recommended LP matches.
+
+    Requires authentication.
 
     Displays scored LP-Fund matches with filtering by fund and
     statistics including high score count, average score, and
@@ -466,6 +569,10 @@ async def matches_page(
     Returns:
         Matches page HTML with match data and statistics.
     """
+    user = auth.get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+
     # Validate fund_id if provided - ignore invalid UUIDs to prevent crashes
     validated_fund_id: str | None = None
     if fund_id and is_valid_uuid(fund_id):
@@ -474,6 +581,7 @@ async def matches_page(
     # Default empty state
     empty_response: dict[str, Any] = {
         "title": "Matches - LPxGP",
+        "user": user,
         "matches": [],
         "funds": [],
         "high_score_count": 0,
@@ -540,11 +648,19 @@ async def matches_page(
         conn.close()
 
 
-@app.get("/funds", response_class=HTMLResponse)
-async def funds_page(request: Request):
-    """Funds page listing GP fund profiles."""
+@app.get("/funds", response_class=HTMLResponse, response_model=None)
+async def funds_page(request: Request) -> HTMLResponse | RedirectResponse:
+    """Funds page listing GP fund profiles.
+
+    Requires authentication.
+    """
+    user = auth.get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+
     empty_response = {
         "title": "Funds - LPxGP",
+        "user": user,
         "funds": [],
         "gp_orgs": [],
         "total_target": 0,
@@ -599,15 +715,23 @@ async def funds_page(request: Request):
         conn.close()
 
 
-@app.get("/lps", response_class=HTMLResponse)
+@app.get("/lps", response_class=HTMLResponse, response_model=None)
 async def lps_page(
     request: Request,
     search: str | None = Query(None),
     lp_type: str | None = Query(None),
-):
-    """LPs page for browsing and searching LP profiles."""
+) -> HTMLResponse | RedirectResponse:
+    """LPs page for browsing and searching LP profiles.
+
+    Requires authentication.
+    """
+    user = auth.get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+
     empty_response = {
         "title": "LPs - LPxGP",
+        "user": user,
         "lps": [],
         "total_aum": 0,
         "search": search or "",
@@ -1620,6 +1744,854 @@ Match score: {match['score']}%"""
         )
     finally:
         conn.close()
+
+
+# =============================================================================
+# Shortlist Endpoints
+# =============================================================================
+
+
+def get_user_shortlist(user_id: str) -> list[ShortlistItem]:
+    """Get the shortlist for a user.
+
+    Args:
+        user_id: The user's unique identifier.
+
+    Returns:
+        List of ShortlistItem objects for this user.
+    """
+    return _shortlists.get(user_id, [])
+
+
+def add_to_shortlist(user_id: str, item: ShortlistItem) -> ShortlistItem:
+    """Add an LP to a user's shortlist.
+
+    Args:
+        user_id: The user's unique identifier.
+        item: The ShortlistItem to add.
+
+    Returns:
+        The added ShortlistItem with timestamp set.
+
+    Raises:
+        ValueError: If LP is already in shortlist.
+    """
+    from datetime import datetime
+
+    if user_id not in _shortlists:
+        _shortlists[user_id] = []
+
+    # Check if already exists
+    for existing in _shortlists[user_id]:
+        if existing.lp_id == item.lp_id and existing.fund_id == item.fund_id:
+            raise ValueError("LP already in shortlist")
+
+    # Set timestamp
+    item.added_at = datetime.now(UTC).isoformat()
+    _shortlists[user_id].append(item)
+    return item
+
+
+def remove_from_shortlist(user_id: str, lp_id: str, fund_id: str | None = None) -> bool:
+    """Remove an LP from a user's shortlist.
+
+    Args:
+        user_id: The user's unique identifier.
+        lp_id: The LP organization ID to remove.
+        fund_id: Optional fund context to match.
+
+    Returns:
+        True if item was removed, False if not found.
+    """
+    if user_id not in _shortlists:
+        return False
+
+    original_len = len(_shortlists[user_id])
+    _shortlists[user_id] = [
+        item
+        for item in _shortlists[user_id]
+        if not (item.lp_id == lp_id and item.fund_id == fund_id)
+    ]
+    return len(_shortlists[user_id]) < original_len
+
+
+def update_shortlist_item(
+    user_id: str, lp_id: str, updates: ShortlistUpdateRequest
+) -> ShortlistItem | None:
+    """Update a shortlist item's notes or priority.
+
+    Args:
+        user_id: The user's unique identifier.
+        lp_id: The LP organization ID to update.
+        updates: The fields to update.
+
+    Returns:
+        Updated ShortlistItem or None if not found.
+    """
+    if user_id not in _shortlists:
+        return None
+
+    for item in _shortlists[user_id]:
+        if item.lp_id == lp_id:
+            if updates.notes is not None:
+                item.notes = updates.notes
+            if updates.priority is not None:
+                item.priority = updates.priority
+            return item
+    return None
+
+
+def is_in_shortlist(user_id: str, lp_id: str) -> bool:
+    """Check if an LP is in the user's shortlist.
+
+    Args:
+        user_id: The user's unique identifier.
+        lp_id: The LP organization ID to check.
+
+    Returns:
+        True if LP is in shortlist, False otherwise.
+    """
+    if user_id not in _shortlists:
+        return False
+    return any(item.lp_id == lp_id for item in _shortlists[user_id])
+
+
+def clear_user_shortlist(user_id: str) -> int:
+    """Clear all items from a user's shortlist.
+
+    Args:
+        user_id: The user's unique identifier.
+
+    Returns:
+        Number of items that were cleared.
+    """
+    if user_id not in _shortlists:
+        return 0
+    count = len(_shortlists[user_id])
+    _shortlists[user_id] = []
+    return count
+
+
+@app.get("/shortlist", response_class=HTMLResponse, response_model=None)
+async def shortlist_page(request: Request) -> HTMLResponse | RedirectResponse:
+    """Shortlist page showing saved LPs.
+
+    Displays the user's shortlisted LPs with their details,
+    notes, and priority levels.
+    """
+    user = auth.get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    shortlist = get_user_shortlist(user["id"])
+
+    # Enrich shortlist items with LP details from database
+    enriched_items = []
+    conn = get_db()
+
+    if conn and shortlist:
+        try:
+            with conn.cursor() as cur:
+                for item in shortlist:
+                    if is_valid_uuid(item.lp_id):
+                        cur.execute(
+                            """
+                            SELECT o.id, o.name, lp.lp_type, o.hq_city, o.hq_country,
+                                   lp.total_aum_bn, lp.pe_allocation_pct,
+                                   lp.check_size_min_mm, lp.check_size_max_mm
+                            FROM organizations o
+                            LEFT JOIN lp_profiles lp ON lp.org_id = o.id
+                            WHERE o.id = %s AND o.is_lp = TRUE
+                            """,
+                            (item.lp_id,),
+                        )
+                        lp_data = cur.fetchone()
+                        if lp_data:
+                            enriched_items.append(
+                                {
+                                    "item": item,
+                                    "lp": lp_data,
+                                }
+                            )
+        except psycopg.Error as e:
+            logger.error(f"Database error fetching shortlist LPs: {e}")
+        finally:
+            conn.close()
+    elif shortlist:
+        # No database - just show basic info
+        for item in shortlist:
+            enriched_items.append(
+                {
+                    "item": item,
+                    "lp": {"id": item.lp_id, "name": f"LP {item.lp_id[:8]}..."},
+                }
+            )
+
+    # Calculate stats
+    stats = {
+        "total": len(shortlist),
+        "high_priority": sum(1 for item in shortlist if item.priority == 1),
+        "with_notes": sum(1 for item in shortlist if item.notes),
+    }
+
+    return templates.TemplateResponse(
+        request,
+        "pages/shortlist.html",
+        {
+            "title": "Shortlist - LPxGP",
+            "user": user,
+            "items": enriched_items,
+            "stats": stats,
+        },
+    )
+
+
+@app.post("/api/shortlist", response_class=JSONResponse)
+async def api_add_to_shortlist(
+    request: Request,
+    body: ShortlistAddRequest,
+) -> JSONResponse:
+    """Add an LP to the user's shortlist.
+
+    Args:
+        request: FastAPI request object.
+        body: Shortlist add request with lp_id and optional notes/priority.
+
+    Returns:
+        JSON response with success status and the added item.
+    """
+    user = auth.get_current_user(request)
+    if not user:
+        return JSONResponse(
+            status_code=401,
+            content={"error": "Authentication required"},
+        )
+
+    if not body.lp_id or not is_valid_uuid(body.lp_id):
+        return JSONResponse(
+            status_code=400,
+            content={"error": "Invalid LP ID"},
+        )
+
+    try:
+        item = ShortlistItem(
+            lp_id=body.lp_id,
+            fund_id=body.fund_id,
+            notes=body.notes,
+            priority=body.priority,
+        )
+        added_item = add_to_shortlist(user["id"], item)
+        return JSONResponse(
+            status_code=201,
+            content={
+                "success": True,
+                "message": "LP added to shortlist",
+                "item": added_item.model_dump(),
+            },
+        )
+    except ValueError as e:
+        return JSONResponse(
+            status_code=409,
+            content={"error": str(e)},
+        )
+
+
+@app.delete("/api/shortlist/{lp_id}", response_class=JSONResponse)
+async def api_remove_from_shortlist(
+    request: Request,
+    lp_id: str,
+) -> JSONResponse:
+    """Remove an LP from the user's shortlist.
+
+    Args:
+        request: FastAPI request object.
+        lp_id: The LP organization ID to remove.
+
+    Returns:
+        JSON response with success status.
+    """
+    user = auth.get_current_user(request)
+    if not user:
+        return JSONResponse(
+            status_code=401,
+            content={"error": "Authentication required"},
+        )
+
+    if not is_valid_uuid(lp_id):
+        return JSONResponse(
+            status_code=400,
+            content={"error": "Invalid LP ID"},
+        )
+
+    removed = remove_from_shortlist(user["id"], lp_id)
+    if removed:
+        return JSONResponse(
+            content={"success": True, "message": "LP removed from shortlist"},
+        )
+    else:
+        return JSONResponse(
+            status_code=404,
+            content={"error": "LP not found in shortlist"},
+        )
+
+
+@app.patch("/api/shortlist/{lp_id}", response_class=JSONResponse)
+async def api_update_shortlist_item(
+    request: Request,
+    lp_id: str,
+    body: ShortlistUpdateRequest,
+) -> JSONResponse:
+    """Update a shortlist item's notes or priority.
+
+    Args:
+        request: FastAPI request object.
+        lp_id: The LP organization ID to update.
+        body: Update request with optional notes and priority.
+
+    Returns:
+        JSON response with updated item.
+    """
+    user = auth.get_current_user(request)
+    if not user:
+        return JSONResponse(
+            status_code=401,
+            content={"error": "Authentication required"},
+        )
+
+    if not is_valid_uuid(lp_id):
+        return JSONResponse(
+            status_code=400,
+            content={"error": "Invalid LP ID"},
+        )
+
+    updated = update_shortlist_item(user["id"], lp_id, body)
+    if updated:
+        return JSONResponse(
+            content={
+                "success": True,
+                "message": "Shortlist item updated",
+                "item": updated.model_dump(),
+            },
+        )
+    else:
+        return JSONResponse(
+            status_code=404,
+            content={"error": "LP not found in shortlist"},
+        )
+
+
+@app.get("/api/shortlist", response_class=JSONResponse)
+async def api_get_shortlist(request: Request) -> JSONResponse:
+    """Get the current user's shortlist.
+
+    Args:
+        request: FastAPI request object.
+
+    Returns:
+        JSON response with list of shortlisted LPs.
+    """
+    user = auth.get_current_user(request)
+    if not user:
+        return JSONResponse(
+            status_code=401,
+            content={"error": "Authentication required"},
+        )
+
+    shortlist = get_user_shortlist(user["id"])
+    return JSONResponse(
+        content={
+            "success": True,
+            "count": len(shortlist),
+            "items": [item.model_dump() for item in shortlist],
+        },
+    )
+
+
+@app.get("/api/shortlist/check/{lp_id}", response_class=JSONResponse)
+async def api_check_shortlist(request: Request, lp_id: str) -> JSONResponse:
+    """Check if an LP is in the user's shortlist.
+
+    Args:
+        request: FastAPI request object.
+        lp_id: The LP organization ID to check.
+
+    Returns:
+        JSON response with in_shortlist boolean.
+    """
+    user = auth.get_current_user(request)
+    if not user:
+        return JSONResponse(
+            status_code=401,
+            content={"error": "Authentication required"},
+        )
+
+    in_shortlist = is_in_shortlist(user["id"], lp_id)
+    return JSONResponse(
+        content={"in_shortlist": in_shortlist, "lp_id": lp_id},
+    )
+
+
+@app.delete("/api/shortlist", response_class=JSONResponse)
+async def api_clear_shortlist(request: Request) -> JSONResponse:
+    """Clear all items from the user's shortlist.
+
+    Args:
+        request: FastAPI request object.
+
+    Returns:
+        JSON response with count of cleared items.
+    """
+    user = auth.get_current_user(request)
+    if not user:
+        return JSONResponse(
+            status_code=401,
+            content={"error": "Authentication required"},
+        )
+
+    count = clear_user_shortlist(user["id"])
+    return JSONResponse(
+        content={
+            "success": True,
+            "message": f"Cleared {count} items from shortlist",
+            "cleared_count": count,
+        },
+    )
+
+
+# HTMX partials for shortlist buttons
+@app.post("/api/shortlist/{lp_id}/toggle", response_class=HTMLResponse)
+async def api_toggle_shortlist(request: Request, lp_id: str) -> HTMLResponse:
+    """Toggle an LP's shortlist status and return updated button HTML.
+
+    This endpoint is designed for HTMX to swap the shortlist button
+    after a user clicks it.
+
+    Args:
+        request: FastAPI request object.
+        lp_id: The LP organization ID to toggle.
+
+    Returns:
+        HTML partial with updated shortlist button.
+    """
+    user = auth.get_current_user(request)
+    if not user:
+        return HTMLResponse(
+            content='<span class="text-red-500 text-sm">Login required</span>',
+            status_code=401,
+        )
+
+    if not is_valid_uuid(lp_id):
+        return HTMLResponse(
+            content='<span class="text-red-500 text-sm">Invalid LP</span>',
+            status_code=400,
+        )
+
+    if is_in_shortlist(user["id"], lp_id):
+        # Remove from shortlist
+        remove_from_shortlist(user["id"], lp_id)
+        is_saved = False
+    else:
+        # Add to shortlist
+        item = ShortlistItem(lp_id=lp_id)
+        try:
+            add_to_shortlist(user["id"], item)
+            is_saved = True
+        except ValueError:
+            is_saved = True  # Already exists
+
+    # Return updated button HTML
+    if is_saved:
+        button_html = f'''
+        <button hx-post="/api/shortlist/{lp_id}/toggle"
+                hx-swap="outerHTML"
+                class="flex items-center gap-1 text-sm text-gold hover:text-gold-600"
+                title="Remove from shortlist">
+            <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+            Saved
+        </button>
+        '''
+    else:
+        button_html = f'''
+        <button hx-post="/api/shortlist/{lp_id}/toggle"
+                hx-swap="outerHTML"
+                class="flex items-center gap-1 text-sm text-navy-500 hover:text-gold"
+                title="Add to shortlist">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+            </svg>
+            Save
+        </button>
+        '''
+
+    return HTMLResponse(content=button_html.strip())
+
+
+# =============================================================================
+# User Preferences Endpoints
+# =============================================================================
+
+
+@app.get("/api/settings/preferences", response_class=JSONResponse)
+async def api_get_preferences(request: Request) -> JSONResponse:
+    """Get current user's preferences.
+
+    Args:
+        request: FastAPI request object.
+
+    Returns:
+        JSON response with user preferences.
+    """
+    user = auth.get_current_user(request)
+    if not user:
+        return JSONResponse(
+            status_code=401,
+            content={"error": "Authentication required"},
+        )
+
+    preferences = get_user_preferences(user["id"])
+    return JSONResponse(
+        content={
+            "success": True,
+            "preferences": preferences.model_dump(),
+        },
+    )
+
+
+@app.put("/api/settings/preferences", response_class=JSONResponse)
+async def api_update_preferences(
+    request: Request,
+    body: UserPreferences,
+) -> JSONResponse:
+    """Update user preferences.
+
+    Args:
+        request: FastAPI request object.
+        body: New preferences.
+
+    Returns:
+        JSON response with updated preferences.
+    """
+    user = auth.get_current_user(request)
+    if not user:
+        return JSONResponse(
+            status_code=401,
+            content={"error": "Authentication required"},
+        )
+
+    updated = update_user_preferences(user["id"], body)
+    return JSONResponse(
+        content={
+            "success": True,
+            "message": "Preferences updated",
+            "preferences": updated.model_dump(),
+        },
+    )
+
+
+@app.post("/api/settings/preferences/toggle/{pref_name}", response_class=HTMLResponse)
+async def api_toggle_preference(
+    request: Request,
+    pref_name: str,
+) -> HTMLResponse:
+    """Toggle a single preference setting via HTMX.
+
+    Args:
+        request: FastAPI request object.
+        pref_name: The preference to toggle (email_new_matches, etc.).
+
+    Returns:
+        HTML partial with updated checkbox.
+    """
+    user = auth.get_current_user(request)
+    if not user:
+        return HTMLResponse(
+            content='<span class="text-red-500 text-sm">Login required</span>',
+            status_code=401,
+        )
+
+    valid_prefs = ["email_new_matches", "email_weekly_summary", "email_marketing"]
+    if pref_name not in valid_prefs:
+        return HTMLResponse(
+            content='<span class="text-red-500 text-sm">Invalid preference</span>',
+            status_code=400,
+        )
+
+    preferences = get_user_preferences(user["id"])
+    current_value = getattr(preferences, pref_name)
+    new_value = not current_value
+    setattr(preferences, pref_name, new_value)
+    update_user_preferences(user["id"], preferences)
+
+    # Return updated checkbox HTML
+    checked = "checked" if new_value else ""
+    checkbox_html = f'''
+    <input type="checkbox" {checked}
+           hx-post="/api/settings/preferences/toggle/{pref_name}"
+           hx-swap="outerHTML"
+           class="rounded border-navy-300 text-gold focus:ring-gold">
+    '''
+
+    return HTMLResponse(content=checkbox_html.strip())
+
+
+# =============================================================================
+# Admin Dashboard Endpoints
+# =============================================================================
+
+
+def is_admin(user: auth.CurrentUser | None) -> bool:
+    """Check if user has admin role.
+
+    Args:
+        user: The current user or None.
+
+    Returns:
+        True if user is admin, False otherwise.
+    """
+    if not user:
+        return False
+    return user.get("role") == "admin"
+
+
+@app.get("/admin", response_class=HTMLResponse, response_model=None)
+async def admin_dashboard(request: Request) -> HTMLResponse | RedirectResponse:
+    """Admin dashboard showing platform overview.
+
+    Requires admin role. Shows platform stats, pending actions,
+    and system health.
+
+    Args:
+        request: FastAPI request object.
+
+    Returns:
+        Admin dashboard HTML or redirect to login/dashboard.
+    """
+    user = auth.get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    if not is_admin(user):
+        return RedirectResponse(url="/dashboard", status_code=303)
+
+    # Platform stats
+    stats = {
+        "companies": 0,
+        "users": 0,
+        "lps": 0,
+        "matches": 0,
+    }
+
+    conn = get_db()
+    if conn:
+        try:
+            with conn.cursor() as cur:
+                cur.execute("SELECT COUNT(*) FROM organizations WHERE is_gp = TRUE")
+                result = cur.fetchone()
+                stats["companies"] = result["count"] if result else 0
+
+                cur.execute("SELECT COUNT(*) FROM organizations WHERE is_lp = TRUE")
+                result = cur.fetchone()
+                stats["lps"] = result["count"] if result else 0
+
+                cur.execute("SELECT COUNT(*) FROM fund_lp_matches")
+                result = cur.fetchone()
+                stats["matches"] = result["count"] if result else 0
+        except Exception:
+            pass
+        finally:
+            conn.close()
+
+    # Count registered users (from in-memory store)
+    stats["users"] = len(auth._mock_users)
+
+    # System health checks
+    health = {
+        "database": conn is not None,
+        "auth": True,  # Always true if we got here
+    }
+
+    return templates.TemplateResponse(
+        request,
+        "pages/admin/dashboard.html",
+        {
+            "title": "Admin Dashboard - LPxGP",
+            "user": user,
+            "stats": stats,
+            "health": health,
+        },
+    )
+
+
+@app.get("/admin/users", response_class=HTMLResponse, response_model=None)
+async def admin_users_page(request: Request) -> HTMLResponse | RedirectResponse:
+    """Admin users management page.
+
+    Requires admin role. Shows list of registered users.
+
+    Args:
+        request: FastAPI request object.
+
+    Returns:
+        Admin users page HTML or redirect.
+    """
+    user = auth.get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    if not is_admin(user):
+        return RedirectResponse(url="/dashboard", status_code=303)
+
+    # Get users from in-memory store (masked passwords)
+    users = []
+    for email, user_data in auth._mock_users.items():
+        users.append({
+            "id": user_data["id"],
+            "email": email,
+            "name": user_data["name"],
+            "role": user_data["role"],
+        })
+
+    return templates.TemplateResponse(
+        request,
+        "pages/admin/users.html",
+        {
+            "title": "Users - Admin - LPxGP",
+            "user": user,
+            "users": users,
+            "total_users": len(users),
+        },
+    )
+
+
+@app.get("/admin/health", response_class=HTMLResponse, response_model=None)
+async def admin_health_page(request: Request) -> HTMLResponse | RedirectResponse:
+    """Admin system health page.
+
+    Requires admin role. Shows detailed system health information.
+
+    Args:
+        request: FastAPI request object.
+
+    Returns:
+        Admin health page HTML or redirect.
+    """
+    user = auth.get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    if not is_admin(user):
+        return RedirectResponse(url="/dashboard", status_code=303)
+
+    settings = get_settings()
+
+    # Detailed health checks
+    health_checks = []
+
+    # Database check
+    conn = get_db()
+    if conn:
+        try:
+            with conn.cursor() as cur:
+                cur.execute("SELECT 1")
+            health_checks.append({
+                "name": "Database",
+                "status": "healthy",
+                "message": "Connection successful",
+            })
+        except Exception as e:
+            health_checks.append({
+                "name": "Database",
+                "status": "unhealthy",
+                "message": str(e),
+            })
+        finally:
+            conn.close()
+    else:
+        health_checks.append({
+            "name": "Database",
+            "status": "unconfigured",
+            "message": "Database not configured",
+        })
+
+    # Auth check
+    health_checks.append({
+        "name": "Authentication",
+        "status": "healthy",
+        "message": f"{len(auth._mock_users)} users registered",
+    })
+
+    # Environment info
+    health_checks.append({
+        "name": "Environment",
+        "status": "info",
+        "message": settings.environment,
+    })
+
+    return templates.TemplateResponse(
+        request,
+        "pages/admin/health.html",
+        {
+            "title": "System Health - Admin - LPxGP",
+            "user": user,
+            "health_checks": health_checks,
+        },
+    )
+
+
+@app.get("/api/admin/stats", response_class=JSONResponse)
+async def api_admin_stats(request: Request) -> JSONResponse:
+    """Get platform statistics for admin dashboard.
+
+    Args:
+        request: FastAPI request object.
+
+    Returns:
+        JSON response with platform stats.
+    """
+    user = auth.get_current_user(request)
+    if not user:
+        return JSONResponse(
+            status_code=401,
+            content={"error": "Authentication required"},
+        )
+
+    if not is_admin(user):
+        return JSONResponse(
+            status_code=403,
+            content={"error": "Admin access required"},
+        )
+
+    stats = {
+        "companies": 0,
+        "users": len(auth._mock_users),
+        "lps": 0,
+        "matches": 0,
+    }
+
+    conn = get_db()
+    if conn:
+        try:
+            with conn.cursor() as cur:
+                cur.execute("SELECT COUNT(*) FROM organizations WHERE is_gp = TRUE")
+                result = cur.fetchone()
+                stats["companies"] = result["count"] if result else 0
+
+                cur.execute("SELECT COUNT(*) FROM organizations WHERE is_lp = TRUE")
+                result = cur.fetchone()
+                stats["lps"] = result["count"] if result else 0
+
+                cur.execute("SELECT COUNT(*) FROM fund_lp_matches")
+                result = cur.fetchone()
+                stats["matches"] = result["count"] if result else 0
+        except Exception:
+            pass
+        finally:
+            conn.close()
+
+    return JSONResponse(content={"success": True, "stats": stats})
 
 
 # -----------------------------------------------------------------------------

@@ -23,7 +23,25 @@ from unittest.mock import MagicMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
-from src.main import app
+from src.main import _shortlists, _user_preferences, app
+
+
+@pytest.fixture(autouse=True)
+def reset_in_memory_state() -> Generator[None, None, None]:
+    """Reset in-memory state between tests.
+
+    This fixture runs automatically before each test to ensure
+    a clean state for shortlists and user preferences.
+    """
+    # Clear before test
+    _shortlists.clear()
+    _user_preferences.clear()
+
+    yield
+
+    # Clear after test
+    _shortlists.clear()
+    _user_preferences.clear()
 
 # =============================================================================
 # Core Application Fixtures
@@ -545,3 +563,29 @@ def csv_with_formula_injection() -> str:
 CalPERS,Public Pension,=1+1
 Evil LP,Family Office,+cmd|' /C calc'!A0
 Another LP,Endowment,-2+2"""
+
+
+# =============================================================================
+# Authenticated Client Fixture
+# =============================================================================
+
+
+@pytest.fixture
+def authenticated_client() -> Generator[TestClient, None, None]:
+    """Create a test client with mocked authentication.
+
+    Use this fixture when testing endpoints that require authentication
+    (e.g., /funds, /lps, /matches).
+
+    Yields:
+        TestClient that appears authenticated.
+    """
+    mock_user = {
+        "id": "test-user-id",
+        "email": "test@example.com",
+        "role": "gp_user",
+        "org_id": "c0000001-0000-0000-0000-000000000001",
+    }
+    with patch("src.main.get_db", return_value=None):
+        with patch("src.auth.get_current_user", return_value=mock_user):
+            yield TestClient(app)

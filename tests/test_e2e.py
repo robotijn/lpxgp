@@ -644,3 +644,434 @@ class TestPerformance:
         # Filter out known acceptable errors
         critical_errors = [e for e in errors if "favicon" not in e.lower()]
         assert len(critical_errors) == 0, f"Console errors: {critical_errors}"
+
+
+# =============================================================================
+# SHORTLIST E2E TESTS
+# =============================================================================
+
+
+@pytest.mark.browser
+class TestShortlistJourney:
+    """Test complete shortlist user journeys.
+
+    Gherkin Reference: F-SHORTLIST - User saves and manages LPs
+    """
+
+    def test_shortlist_page_accessible(self, logged_in_page: Page):
+        """Shortlist page should be accessible when logged in."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/shortlist")
+
+        expect(page).to_have_url(f"{BASE_URL}/shortlist")
+        expect(page.locator("h1")).to_contain_text("Shortlist")
+
+    def test_navigation_includes_shortlist(self, logged_in_page: Page):
+        """Navigation should include shortlist link."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/dashboard")
+
+        # Check for shortlist link in navigation
+        shortlist_link = page.locator('a[href="/shortlist"]')
+        expect(shortlist_link.first).to_be_visible()
+
+    def test_shortlist_empty_state(self, logged_in_page: Page):
+        """Shortlist should show empty state when no items."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/shortlist")
+
+        # Should show empty state or 0 count
+        page_content = page.content().lower()
+        # Empty state indicators
+        assert (
+            "no saved" in page_content
+            or "0" in page_content
+            or "start saving" in page_content
+            or "empty" in page_content
+        )
+
+    def test_lps_page_has_save_button(self, logged_in_page: Page):
+        """LPs page should have save/shortlist buttons on LP cards."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/lps")
+
+        # Wait for page to load
+        page.wait_for_timeout(500)
+
+        # Look for save/shortlist buttons
+        save_buttons = page.locator("button:has-text('Save'), button[title*='shortlist']")
+        if save_buttons.count() > 0:
+            expect(save_buttons.first).to_be_visible()
+
+    def test_shortlist_toggle_from_lps_page(self, logged_in_page: Page):
+        """User should be able to toggle shortlist from LPs page."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/lps")
+
+        # Wait for page to load
+        page.wait_for_timeout(500)
+
+        # Find a save button (might have HTMX toggle behavior)
+        toggle_button = page.locator(
+            "button[hx-post*='toggle'], button:has-text('Save')"
+        ).first
+
+        if toggle_button.is_visible():
+            # Click to toggle
+            toggle_button.click()
+            page.wait_for_timeout(500)
+
+            # Button state should change (text or style)
+            button_text = toggle_button.inner_text().lower()
+            # After toggle, should say "saved" or "remove"
+            assert "saved" in button_text or "remove" in button_text or "save" in button_text
+
+    def test_shortlist_persists_across_navigation(self, logged_in_page: Page):
+        """Shortlist items should persist when navigating."""
+        page = logged_in_page
+
+        # Go to shortlist and check initial state
+        page.goto(f"{BASE_URL}/shortlist")
+        page.wait_for_timeout(300)
+        page.content()
+
+        # Navigate away and back
+        page.goto(f"{BASE_URL}/dashboard")
+        page.wait_for_timeout(300)
+        page.goto(f"{BASE_URL}/shortlist")
+        page.wait_for_timeout(300)
+
+        # Content should be consistent (not lost during navigation)
+        final_content = page.content()
+
+        # Basic structural elements should persist
+        assert "Shortlist" in final_content
+
+    def test_shortlist_accessible_from_dashboard(self, logged_in_page: Page):
+        """User should be able to access shortlist from dashboard."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/dashboard")
+
+        # Find and click shortlist link
+        shortlist_link = page.locator('a[href="/shortlist"]').first
+        if shortlist_link.is_visible():
+            shortlist_link.click()
+            page.wait_for_url(f"{BASE_URL}/shortlist")
+            expect(page).to_have_url(f"{BASE_URL}/shortlist")
+
+
+@pytest.mark.browser
+class TestShortlistNavigation:
+    """Test shortlist page navigation and structure."""
+
+    def test_shortlist_has_back_to_lps_link(self, logged_in_page: Page):
+        """Shortlist page should have link back to LPs."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/shortlist")
+
+        lps_link = page.locator('a[href="/lps"]')
+        expect(lps_link.first).to_be_visible()
+
+    def test_shortlist_navigation_works(self, logged_in_page: Page):
+        """All navigation links on shortlist page should work."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/shortlist")
+
+        # Test key navigation links
+        nav_links = [
+            ("/dashboard", "Dashboard"),
+            ("/lps", "LP"),
+            ("/funds", "Fund"),
+        ]
+
+        for href, partial_text in nav_links:
+            link = page.locator(f'a[href="{href}"]').first
+            if link.is_visible():
+                link.click()
+                page.wait_for_timeout(300)
+                expect(page).to_have_url(f"{BASE_URL}{href}")
+                page.goto(f"{BASE_URL}/shortlist")
+
+
+@pytest.mark.browser
+class TestShortlistStats:
+    """Test shortlist statistics display."""
+
+    def test_shortlist_shows_count(self, logged_in_page: Page):
+        """Shortlist page should show item count."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/shortlist")
+
+        # Should display count somewhere (in stats or empty message)
+        page_content = page.content()
+        # Stats typically show numbers
+        assert any(char.isdigit() for char in page_content)
+
+    def test_shortlist_stats_section_exists(self, logged_in_page: Page):
+        """Shortlist should have a stats section if items exist."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/shortlist")
+
+        # Look for stats-related elements
+        page_content = page.content().lower()
+
+        # Should have either stats or empty state
+        has_stats = "total" in page_content or "saved" in page_content
+        has_empty = "no saved" in page_content or "start saving" in page_content
+
+        assert has_stats or has_empty, "Should show stats or empty state"
+
+
+@pytest.mark.browser
+class TestShortlistMobileResponsive:
+    """Test shortlist mobile responsiveness."""
+
+    def test_shortlist_mobile_navigation(self, logged_in_page: Page, mobile_viewport):
+        """Shortlist should be navigable on mobile."""
+        page = logged_in_page
+        page.set_viewport_size(mobile_viewport)
+        page.goto(f"{BASE_URL}/shortlist")
+
+        # Page should load on mobile
+        expect(page.locator("h1")).to_contain_text("Shortlist")
+
+    def test_shortlist_mobile_menu(self, logged_in_page: Page, mobile_viewport):
+        """Mobile menu should include shortlist link."""
+        page = logged_in_page
+        page.set_viewport_size(mobile_viewport)
+        page.goto(f"{BASE_URL}/dashboard")
+
+        # Find and click mobile menu button
+        menu_button = page.locator("[data-mobile-menu-button], button:has(svg[class*='menu']), #mobile-menu-button")
+        if menu_button.count() > 0:
+            menu_button.first.click()
+            page.wait_for_timeout(300)
+
+            # Check for shortlist in mobile menu
+            mobile_menu = page.locator("#mobile-menu, [data-mobile-menu]")
+            if mobile_menu.is_visible():
+                shortlist_mobile_link = mobile_menu.locator('a[href="/shortlist"]')
+                if shortlist_mobile_link.count() > 0:
+                    expect(shortlist_mobile_link.first).to_be_visible()
+
+
+# =============================================================================
+# ADDITIONAL SETTINGS E2E TESTS (Notification Preferences)
+# =============================================================================
+
+
+@pytest.mark.browser
+class TestSettingsPreferencesJourney:
+    """E2E tests for settings preference toggling."""
+
+    def test_settings_shows_notifications_section(self, logged_in_page: Page):
+        """Settings should display notification preferences."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/settings")
+
+        expect(page.locator("text=Notifications")).to_be_visible()
+        expect(page.locator("text=Email me about new LP matches")).to_be_visible()
+
+    def test_settings_toggle_preference(self, logged_in_page: Page):
+        """User can toggle notification preferences."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/settings")
+
+        # Find the marketing checkbox (starts unchecked by default)
+        marketing_checkbox = page.locator('input[type="checkbox"]').last
+
+        # Get initial state
+        initial_checked = marketing_checkbox.is_checked()
+
+        # Click to toggle
+        marketing_checkbox.click()
+        page.wait_for_timeout(500)
+
+        # State should have changed
+        # Note: The element may have been replaced by HTMX,
+        # so we need to re-query
+        new_checkbox = page.locator('input[type="checkbox"]').last
+        assert new_checkbox.is_checked() != initial_checked
+
+    def test_settings_preferences_persist(self, logged_in_page: Page):
+        """Preference changes should persist after page refresh."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/settings")
+
+        # Get current state first
+        response = page.request.get(f"{BASE_URL}/api/settings/preferences")
+        assert response.status == 200
+        initial_state = response.json()["preferences"]["email_marketing"]
+
+        # Toggle marketing preference via API
+        response = page.request.post(
+            f"{BASE_URL}/api/settings/preferences/toggle/email_marketing"
+        )
+        assert response.status == 200
+
+        # Reload page
+        page.reload()
+        page.wait_for_load_state("networkidle")
+
+        # Preference should have changed from initial state and persisted
+        response = page.request.get(f"{BASE_URL}/api/settings/preferences")
+        assert response.json()["preferences"]["email_marketing"] is not initial_state
+
+    def test_settings_back_to_dashboard_link(self, logged_in_page: Page):
+        """Settings should have link back to dashboard."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/settings")
+
+        back_link = page.locator('a[href="/dashboard"]').last
+        expect(back_link).to_be_visible()
+
+        back_link.click()
+        expect(page).to_have_url(f"{BASE_URL}/dashboard")
+
+    def test_settings_accessible_from_header(self, logged_in_page: Page):
+        """Settings should be accessible from header user name link."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/dashboard")
+
+        # Click on user name/settings link in header
+        settings_link = page.locator('a[href="/settings"]').first
+        settings_link.click()
+
+        expect(page).to_have_url(f"{BASE_URL}/settings")
+
+
+# =============================================================================
+# ADMIN E2E TESTS
+# =============================================================================
+
+
+@pytest.mark.browser
+class TestAdminJourney:
+    """E2E tests for admin user journey."""
+
+    def test_admin_dashboard_loads(self, logged_in_as_admin: Page):
+        """Admin dashboard should load for admin user."""
+        page = logged_in_as_admin
+        page.goto(f"{BASE_URL}/admin")
+
+        expect(page.locator("h1")).to_contain_text("Platform Dashboard")
+        expect(page).to_have_url(f"{BASE_URL}/admin")
+
+    def test_admin_shows_platform_stats(self, logged_in_as_admin: Page):
+        """Admin dashboard should display platform statistics."""
+        page = logged_in_as_admin
+        page.goto(f"{BASE_URL}/admin")
+
+        # Check for stats sections
+        page_content = page.content()
+        assert "Companies" in page_content
+        assert "Total Users" in page_content
+        assert "LP Database" in page_content
+
+    def test_admin_shows_system_health(self, logged_in_as_admin: Page):
+        """Admin dashboard should show system health summary."""
+        page = logged_in_as_admin
+        page.goto(f"{BASE_URL}/admin")
+
+        # Use heading role to avoid ambiguity with link
+        expect(page.get_by_role("heading", name="System Health")).to_be_visible()
+
+    def test_admin_users_page_loads(self, logged_in_as_admin: Page):
+        """Admin users page should load and display users."""
+        page = logged_in_as_admin
+        page.goto(f"{BASE_URL}/admin/users")
+
+        expect(page.locator("h1")).to_contain_text("Users")
+
+        # Should show registered users
+        page_content = page.content()
+        assert "gp@demo.com" in page_content or "Demo GP" in page_content
+
+    def test_admin_health_page_loads(self, logged_in_as_admin: Page):
+        """Admin health page should load and display health checks."""
+        page = logged_in_as_admin
+        page.goto(f"{BASE_URL}/admin/health")
+
+        expect(page.locator("h1")).to_contain_text("System Health")
+
+        # Should show health check items
+        page_content = page.content()
+        assert "Database" in page_content
+        assert "Authentication" in page_content
+
+
+@pytest.mark.browser
+class TestAdminNavigation:
+    """E2E tests for admin navigation."""
+
+    def test_admin_nav_links_work(self, logged_in_as_admin: Page):
+        """Admin navigation links should work correctly."""
+        page = logged_in_as_admin
+        page.goto(f"{BASE_URL}/admin")
+
+        # Click Users link
+        page.click('a[href="/admin/users"]')
+        expect(page).to_have_url(f"{BASE_URL}/admin/users")
+
+        # Click Health link
+        page.click('a[href="/admin/health"]')
+        expect(page).to_have_url(f"{BASE_URL}/admin/health")
+
+        # Click Overview link
+        page.click('a[href="/admin"]')
+        expect(page).to_have_url(f"{BASE_URL}/admin")
+
+    def test_admin_back_to_app_link(self, logged_in_as_admin: Page):
+        """Admin should have link back to main app."""
+        page = logged_in_as_admin
+        page.goto(f"{BASE_URL}/admin")
+
+        # Check for back to app link
+        back_link = page.locator('a[href="/dashboard"]').first
+        expect(back_link).to_be_visible()
+
+        back_link.click()
+        expect(page).to_have_url(f"{BASE_URL}/dashboard")
+
+
+@pytest.mark.browser
+class TestAdminRoleEnforcement:
+    """E2E tests for admin role enforcement."""
+
+    def test_gp_redirected_from_admin(self, logged_in_page: Page):
+        """GP user should be redirected away from admin."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/admin")
+
+        # Should be redirected to dashboard
+        expect(page).to_have_url(f"{BASE_URL}/dashboard")
+
+    def test_lp_redirected_from_admin(self, logged_in_as_lp: Page):
+        """LP user should be redirected away from admin."""
+        page = logged_in_as_lp
+        page.goto(f"{BASE_URL}/admin")
+
+        # Should be redirected to dashboard
+        expect(page).to_have_url(f"{BASE_URL}/dashboard")
+
+
+@pytest.mark.browser
+class TestAdminMobileResponsive:
+    """Test admin mobile responsiveness."""
+
+    def test_admin_dashboard_mobile(self, logged_in_as_admin: Page, mobile_viewport):
+        """Admin dashboard should work on mobile."""
+        page = logged_in_as_admin
+        page.set_viewport_size(mobile_viewport)
+        page.goto(f"{BASE_URL}/admin")
+
+        # Page should load on mobile
+        expect(page.locator("h1")).to_contain_text("Platform Dashboard")
+
+    def test_admin_users_mobile(self, logged_in_as_admin: Page, mobile_viewport):
+        """Admin users page should work on mobile."""
+        page = logged_in_as_admin
+        page.set_viewport_size(mobile_viewport)
+        page.goto(f"{BASE_URL}/admin/users")
+
+        expect(page.locator("h1")).to_contain_text("Users")

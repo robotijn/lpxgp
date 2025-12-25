@@ -50,7 +50,7 @@ Focus summary on: what changed, why, and what's next.
 
 | Layer | Technology |
 |-------|------------|
-| **Backend** | Python 3.14 (uv), FastAPI |
+| **Backend** | Python 3.12 (uv), FastAPI |
 | **Frontend** | Jinja2 templates + HTMX + Tailwind CSS (CDN, no npm build) |
 | **Database** | Supabase Cloud (PostgreSQL + pgvector + Auth) |
 | **AI/LLM** | OpenRouter (Claude, free models, etc.) |
@@ -216,11 +216,21 @@ LLM-generated content (via OpenRouter):
 
 ## Testing Approach
 
+**CRITICAL: ALWAYS RUN ALL TESTS - NEVER SKIP ANY**
+
+When running tests, always run the full test suite including browser tests:
+```bash
+uv run pytest tests/ -v --tb=short
+```
+
+Do NOT skip browser tests (Playwright) - they catch real issues that unit tests miss.
+
 TDD workflow:
 1. Write test first (see docs/prd/test-specifications.md)
 2. Run `uv run pytest` - should fail
 3. Implement minimum code to pass
 4. Refactor while green
+5. Run ALL tests before considering work complete
 
 ## Learning Approach
 

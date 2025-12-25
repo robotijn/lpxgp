@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block nav %}
+<nav class="hidden md:flex ml-10 space-x-8">
+    <a href="/admin" class="text-navy-600 hover:text-navy-900 text-sm">Overview</a>
+    <a href="/admin/users" class="text-gold font-medium text-sm">Users</a>
+    <a href="/admin/health" class="text-navy-600 hover:text-navy-900 text-sm">Health</a>
+    <a href="/dashboard" class="text-navy-600 hover:text-navy-900 text-sm">Back to App</a>
+</nav>
+{% endblock %}
+
+{% block mobile_nav %}
+<a href="/admin" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Overview</a>
+<a href="/admin/users" class="block py-2 px-3 rounded-lg bg-gold/10 text-gold font-medium">Users</a>
+<a href="/admin/health" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Health</a>
+<a href="/dashboard" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Back to App</a>
+{% endblock %}
+
+{% block header_right %}
+<div class="flex items-center space-x-4">
+    <span class="px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-800 rounded">Admin</span>
+    <a href="/settings" class="text-gold font-medium text-sm hidden md:inline">
+        {{ user.name }}
+    </a>
+    <a href="/logout" class="btn-secondary text-sm">Sign Out</a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+    <!-- Page Header -->
+    <div class="flex justify-between items-center mb-8">
+        <div>
+            <h1 class="text-2xl font-bold text-navy-900">Users</h1>
+            <p class="text-navy-500 mt-1">Manage platform users ({{ total_users }} total)</p>
+        </div>
+    </div>
+
+    <!-- Users Table -->
+    <div class="card overflow-hidden">
+        <table class="min-w-full divide-y divide-navy-200">
+            <thead class="bg-navy-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-navy-500 uppercase tracking-wider">
+                        User
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-navy-500 uppercase tracking-wider">
+                        Email
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-navy-500 uppercase tracking-wider">
+                        Role
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-navy-100">
+                {% for u in users %}
+                <tr class="hover:bg-navy-50">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-navy-100 to-navy-200 flex items-center justify-center">
+                                <span class="text-sm font-semibold text-navy-700">
+                                    {{ u.name[0]|upper }}{{ u.name.split()[1][0]|upper if u.name.split()|length > 1 else '' }}
+                                </span>
+                            </div>
+                            <div class="ml-4">
+                                <div class="text-sm font-medium text-navy-900">{{ u.name }}</div>
+                                <div class="text-sm text-navy-500">{{ u.id[:8] }}...</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-navy-900">{{ u.email }}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        {% if u.role == 'admin' %}
+                        <span class="px-2 py-1 text-xs font-medium rounded-full bg-amber-100 text-amber-800">
+                            Admin
+                        </span>
+                        {% elif u.role == 'gp' %}
+                        <span class="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                            GP
+                        </span>
+                        {% else %}
+                        <span class="px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800">
+                            LP
+                        </span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="3" class="px-6 py-8 text-center text-navy-500">
+                        No users registered yet.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Back Link -->
+    <div class="mt-8">
+        <a href="/admin" class="text-gold hover:text-gold-600 text-sm font-medium">
+            &larr; Back to Admin Dashboard
+        </a>
+    </div>
+</div>
+{% endblock %}

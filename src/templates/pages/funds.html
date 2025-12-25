@@ -2,10 +2,20 @@
 
 {% block nav %}
 <nav class="hidden md:flex ml-10 space-x-8">
+    <a href="/dashboard" class="text-navy-600 hover:text-navy-900 text-sm">Dashboard</a>
     <a href="/matches" class="text-navy-600 hover:text-navy-900 text-sm">Matches</a>
     <a href="/funds" class="text-gold font-medium text-sm">Funds</a>
     <a href="/lps" class="text-navy-600 hover:text-navy-900 text-sm">LPs</a>
+    <a href="/shortlist" class="text-navy-600 hover:text-navy-900 text-sm">Shortlist</a>
 </nav>
+{% endblock %}
+
+{% block mobile_nav %}
+<a href="/dashboard" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Dashboard</a>
+<a href="/matches" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Matches</a>
+<a href="/funds" class="block py-2 px-3 rounded-lg bg-gold/10 text-gold font-medium">Funds</a>
+<a href="/lps" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">LPs</a>
+<a href="/shortlist" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Shortlist</a>
 {% endblock %}
 
 {% block content %}
