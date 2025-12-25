@@ -1,17 +1,94 @@
-"""Application configuration with validation."""
+"""Application configuration with validation.
 
-import os
+This module provides centralized configuration management for the LPxGP
+application using Pydantic Settings. Configuration values are loaded from
+environment variables and .env files with full type validation.
+
+Features:
+    - Environment-based configuration (development, staging, production)
+    - Automatic .env file loading
+    - Type validation and coercion
+    - Computed properties for derived settings
+    - Startup validation with fail-fast behavior
+
+Example:
+    Basic usage::
+
+        from src.config import get_settings
+
+        settings = get_settings()
+        if settings.database_configured:
+            # Use database connection
+            conn = connect(settings.database_url)
+
+Environment Variables:
+    DATABASE_URL: PostgreSQL connection string
+    ENVIRONMENT: One of 'development', 'staging', 'production'
+    DEBUG: Enable debug mode (default: False)
+    OPENROUTER_API_KEY: API key for OpenRouter LLM service
+    VOYAGE_API_KEY: API key for Voyage AI embeddings
+
+Note:
+    Settings are cached via lru_cache. Call get_settings.cache_clear()
+    if you need to reload settings at runtime (testing only).
+"""
+
+from __future__ import annotations
+
 from functools import lru_cache
 from typing import Literal
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+# =============================================================================
+# Type Aliases
+# =============================================================================
+
+Environment = Literal["development", "staging", "production"]
+"""Valid environment names for deployment."""
+
+
+# =============================================================================
+# Settings Class
+# =============================================================================
+
 
 class Settings(BaseSettings):
     """Application settings with validation.
 
-    All required settings will raise an error on startup if not configured.
+    Loads configuration from environment variables and .env files.
+    All fields have sensible defaults for local development.
+
+    Attributes:
+        database_url: PostgreSQL connection URL. None means no database.
+        environment: Deployment environment (development/staging/production).
+        debug: Enable debug mode. Must be False in production.
+        openrouter_api_key: API key for OpenRouter LLM calls.
+        voyage_api_key: API key for Voyage AI embeddings.
+        ollama_base_url: Base URL for local Ollama instance.
+        ollama_model: Default Ollama model for AI agents.
+        langfuse_public_key: Langfuse public key for monitoring.
+        langfuse_secret_key: Langfuse secret key for monitoring.
+        langfuse_host: Langfuse API host URL.
+        sentry_dsn: Sentry DSN for error tracking.
+        cors_origins: List of allowed CORS origins.
+        rate_limit_default: Default rate limit string (e.g., "100/minute").
+        session_timeout_minutes: Session expiration time in minutes.
+        max_login_attempts: Failed login attempts before lockout.
+        lockout_duration_minutes: Account lockout duration.
+        max_file_upload_mb: Maximum file upload size in megabytes.
+        allowed_upload_extensions: Allowed file extensions for uploads.
+        max_export_rows: Maximum rows in CSV exports.
+        enable_semantic_search: Feature flag for semantic search.
+        enable_agent_matching: Feature flag for AI agent matching.
+
+    Example:
+        >>> settings = Settings()
+        >>> print(settings.environment)
+        'development'
+        >>> print(settings.is_production)
+        False
     """
 
     model_config = SettingsConfigDict(
@@ -21,84 +98,139 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    # -------------------------------------------------------------------------
-    # Required Settings (fail fast if missing)
-    # -------------------------------------------------------------------------
+    # =========================================================================
+    # Required Settings (fail fast if missing in production)
+    # =========================================================================
 
-    # Database (PostgreSQL via psycopg)
     database_url: str | None = Field(
         default=None,
-        description="PostgreSQL connection URL (e.g., postgresql://user:pass@host:port/db)"
+        description="PostgreSQL connection URL (e.g., postgresql://user:pass@host:port/db)",
     )
+    """PostgreSQL database connection URL. None disables database features."""
 
-    # -------------------------------------------------------------------------
-    # Optional Settings with Defaults
-    # -------------------------------------------------------------------------
+    # =========================================================================
+    # Environment Settings
+    # =========================================================================
 
-    # Environment
-    environment: Literal["development", "staging", "production"] = Field(
+    environment: Environment = Field(
         default="development",
         description="Deployment environment",
     )
-    debug: bool = Field(default=False, description="Enable debug mode")
+    """Current deployment environment. Controls security and feature settings."""
 
-    # API Keys (required for specific features)
-    openrouter_api_key: str | None = Field(default=None, description="OpenRouter API key (M3+)")
-    voyage_api_key: str | None = Field(default=None, description="Voyage AI API key (M2+)")
+    debug: bool = Field(
+        default=False,
+        description="Enable debug mode",
+    )
+    """Debug mode flag. Must be False in production."""
 
-    # Ollama (local development for M3+ agents)
-    ollama_base_url: str = Field(default="http://localhost:11434", description="Ollama API base URL")
-    ollama_model: str = Field(default="deepseek-r1:8b", description="Default Ollama model for agents")
+    # =========================================================================
+    # API Keys
+    # =========================================================================
 
-    # Langfuse (M3+ agent monitoring)
-    langfuse_public_key: str | None = Field(default=None)
-    langfuse_secret_key: str | None = Field(default=None)
-    langfuse_host: str = Field(default="https://cloud.langfuse.com")
+    openrouter_api_key: str | None = Field(
+        default=None,
+        description="OpenRouter API key (M3+)",
+    )
+    """API key for OpenRouter LLM service. Required for AI agent features."""
 
-    # Sentry (error tracking)
-    sentry_dsn: str | None = Field(default=None, description="Sentry DSN for error tracking")
+    voyage_api_key: str | None = Field(
+        default=None,
+        description="Voyage AI API key (M2+)",
+    )
+    """API key for Voyage AI embeddings. Required for semantic search."""
 
-    # -------------------------------------------------------------------------
+    # =========================================================================
+    # Ollama Configuration (Local Development)
+    # =========================================================================
+
+    ollama_base_url: str = Field(
+        default="http://localhost:11434",
+        description="Ollama API base URL",
+    )
+    """Base URL for local Ollama instance."""
+
+    ollama_model: str = Field(
+        default="deepseek-r1:8b",
+        description="Default Ollama model for agents",
+    )
+    """Default model to use for Ollama-based AI features."""
+
+    # =========================================================================
+    # Langfuse Monitoring (M3+)
+    # =========================================================================
+
+    langfuse_public_key: str | None = Field(
+        default=None,
+        description="Langfuse public key for monitoring",
+    )
+    """Langfuse public key for LLM observability."""
+
+    langfuse_secret_key: str | None = Field(
+        default=None,
+        description="Langfuse secret key for monitoring",
+    )
+    """Langfuse secret key for LLM observability."""
+
+    langfuse_host: str = Field(
+        default="https://cloud.langfuse.com",
+        description="Langfuse API host",
+    )
+    """Langfuse API host URL."""
+
+    # =========================================================================
+    # Error Tracking
+    # =========================================================================
+
+    sentry_dsn: str | None = Field(
+        default=None,
+        description="Sentry DSN for error tracking",
+    )
+    """Sentry DSN for error tracking. Recommended for production."""
+
+    # =========================================================================
     # Security Settings
-    # -------------------------------------------------------------------------
+    # =========================================================================
 
-    # CORS
     cors_origins: list[str] = Field(
         default=["https://lpxgp.com", "https://www.lpxgp.com"],
         description="Allowed CORS origins",
     )
+    """List of allowed CORS origins. Add localhost for development."""
 
-    # Rate Limiting
     rate_limit_default: str = Field(
         default="100/minute",
         description="Default rate limit (requests/period)",
     )
+    """Default rate limit string in format 'count/period'."""
 
-    # Session
     session_timeout_minutes: int = Field(
         default=60,
         ge=5,
         le=1440,
         description="Session timeout in minutes",
     )
+    """Session expiration time. Range: 5-1440 minutes."""
 
-    # Account Lockout
     max_login_attempts: int = Field(
         default=5,
         ge=3,
         le=10,
         description="Max failed login attempts before lockout",
     )
+    """Number of failed login attempts before account lockout."""
+
     lockout_duration_minutes: int = Field(
         default=30,
         ge=5,
         le=1440,
         description="Account lockout duration in minutes",
     )
+    """Duration of account lockout after max failed attempts."""
 
-    # -------------------------------------------------------------------------
+    # =========================================================================
     # File Upload Settings
-    # -------------------------------------------------------------------------
+    # =========================================================================
 
     max_file_upload_mb: int = Field(
         default=50,
@@ -106,14 +238,17 @@ class Settings(BaseSettings):
         le=100,
         description="Maximum file upload size in MB",
     )
+    """Maximum allowed file upload size in megabytes."""
+
     allowed_upload_extensions: list[str] = Field(
         default=[".pdf", ".pptx", ".ppt"],
         description="Allowed file extensions for uploads",
     )
+    """List of allowed file extensions for uploads."""
 
-    # -------------------------------------------------------------------------
+    # =========================================================================
     # Export Settings
-    # -------------------------------------------------------------------------
+    # =========================================================================
 
     max_export_rows: int = Field(
         default=500,
@@ -121,98 +256,179 @@ class Settings(BaseSettings):
         le=10000,
         description="Maximum rows in CSV export",
     )
+    """Maximum number of rows allowed in CSV exports."""
 
-    # -------------------------------------------------------------------------
+    # =========================================================================
     # Feature Flags
-    # -------------------------------------------------------------------------
+    # =========================================================================
 
     enable_semantic_search: bool = Field(
         default=False,
         description="Enable semantic search (requires Voyage AI key)",
     )
+    """Feature flag for semantic search. Requires voyage_api_key."""
+
     enable_agent_matching: bool = Field(
         default=False,
         description="Enable AI agent matching (requires OpenRouter key)",
     )
+    """Feature flag for AI agent matching. Requires openrouter_api_key."""
 
-    # -------------------------------------------------------------------------
+    # =========================================================================
     # Validators
-    # -------------------------------------------------------------------------
+    # =========================================================================
 
     @field_validator("database_url")
     @classmethod
     def validate_database_url(cls, v: str | None) -> str | None:
-        """Validate PostgreSQL database URL format."""
+        """Validate PostgreSQL database URL format.
+
+        Args:
+            v: Database URL string or None.
+
+        Returns:
+            Validated URL or None.
+
+        Raises:
+            ValueError: If URL doesn't start with postgresql:// or postgres://
+        """
         if v is None or v.strip() == "":
             return None
         if not v.startswith(("postgresql://", "postgres://")):
-            raise ValueError("Database URL must start with postgresql:// or postgres://")
+            raise ValueError(
+                "Database URL must start with postgresql:// or postgres://"
+            )
         return v
-
-    @property
-    def database_configured(self) -> bool:
-        """Check if database is configured."""
-        return self.database_url is not None
 
     @field_validator("cors_origins")
     @classmethod
     def validate_cors_origins(cls, v: list[str]) -> list[str]:
-        """Validate CORS origins."""
+        """Validate CORS origins have valid URL schemes.
+
+        Args:
+            v: List of CORS origin URLs.
+
+        Returns:
+            Validated list of origins.
+
+        Raises:
+            ValueError: If any origin doesn't start with http:// or https://
+        """
         for origin in v:
             if not origin.startswith(("http://", "https://")):
                 raise ValueError(f"Invalid CORS origin: {origin}")
         return v
 
-    # -------------------------------------------------------------------------
+    # =========================================================================
     # Computed Properties
-    # -------------------------------------------------------------------------
+    # =========================================================================
+
+    @property
+    def database_configured(self) -> bool:
+        """Check if database is configured.
+
+        Returns:
+            True if database_url is set, False otherwise.
+        """
+        return self.database_url is not None
 
     @property
     def is_production(self) -> bool:
-        """Check if running in production."""
+        """Check if running in production environment.
+
+        Returns:
+            True if environment is 'production', False otherwise.
+        """
         return self.environment == "production"
 
     @property
     def max_file_upload_bytes(self) -> int:
-        """Get max file upload size in bytes."""
+        """Get maximum file upload size in bytes.
+
+        Returns:
+            max_file_upload_mb converted to bytes.
+        """
         return self.max_file_upload_mb * 1024 * 1024
+
+
+# =============================================================================
+# Settings Factory
+# =============================================================================
 
 
 @lru_cache
 def get_settings() -> Settings:
     """Get cached settings instance.
 
-    Raises ValueError on startup if required settings are missing.
+    Settings are loaded once and cached for performance.
+    Use get_settings.cache_clear() to reload settings (testing only).
+
+    Returns:
+        Cached Settings instance.
+
+    Example:
+        >>> settings = get_settings()
+        >>> print(settings.environment)
+        'development'
     """
     return Settings()
+
+
+# =============================================================================
+# Startup Validation
+# =============================================================================
 
 
 def validate_settings_on_startup() -> None:
     """Validate all settings on application startup.
 
-    Call this in your main.py to fail fast if configuration is invalid.
+    Performs additional validation beyond Pydantic's built-in validation:
+        - Production requires Sentry DSN (warning if missing)
+        - Production requires debug=False
+        - Production cannot have localhost in CORS origins
+        - Feature flags require corresponding API keys
+
+    Call this function early in your main.py to fail fast if
+    configuration is invalid.
+
+    Raises:
+        ValueError: If configuration is invalid for the environment.
+
+    Example:
+        >>> # In main.py
+        >>> from src.config import validate_settings_on_startup
+        >>> validate_settings_on_startup()
+        Configuration validated for environment: development
     """
     try:
         settings = get_settings()
 
-        # Additional startup validations
+        # Production-specific validations
         if settings.is_production:
-            # In production, certain settings must be configured
+            # Warn about missing Sentry
             if not settings.sentry_dsn:
                 print("WARNING: Sentry DSN not configured for production")
 
+            # Debug must be disabled
             if settings.debug:
                 raise ValueError("Debug mode must be disabled in production")
 
+            # No localhost in CORS
             if "localhost" in str(settings.cors_origins):
-                raise ValueError("localhost not allowed in CORS origins for production")
+                raise ValueError(
+                    "localhost not allowed in CORS origins for production"
+                )
 
-        # Validate feature flag dependencies
+        # Feature flag dependency validation
         if settings.enable_semantic_search and not settings.voyage_api_key:
-            raise ValueError("Voyage AI key required when semantic search is enabled")
+            raise ValueError(
+                "Voyage AI key required when semantic search is enabled"
+            )
 
         if settings.enable_agent_matching and not settings.openrouter_api_key:
-            raise ValueError("OpenRouter key required when agent matching is enabled")
+            raise ValueError(
+                "OpenRouter key required when agent matching is enabled"
+            )
 
         print(f"Configuration validated for environment: {settings.environment}")
 

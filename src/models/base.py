@@ -8,7 +8,6 @@ from uuid import UUID
 from pydantic import BaseModel as PydanticBaseModel
 from pydantic import ConfigDict, Field, field_validator
 
-
 # Custom types with validation
 PositiveDecimal = Annotated[Decimal, Field(ge=0)]
 Percentage = Annotated[Decimal, Field(ge=0, le=100)]

@@ -7,7 +7,6 @@ from pydantic import Field
 
 from src.models.base import BaseModel, BaseResponse, MediumText, Percentage, ShortText
 
-
 # Pipeline stages
 PipelineStage = Literal[
     "recommended",

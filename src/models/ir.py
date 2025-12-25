@@ -8,7 +8,6 @@ from pydantic import Field, field_validator
 
 from src.models.base import BaseModel, BaseResponse, LongText, MediumText, ShortText
 
-
 # Event types
 EventType = Literal[
     "conference",

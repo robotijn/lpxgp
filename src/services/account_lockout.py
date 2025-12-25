@@ -5,8 +5,7 @@ Uses Supabase for persistence so lockouts survive server restarts.
 """
 
 import logging
-from datetime import datetime, timedelta, timezone
-from uuid import UUID
+from datetime import UTC, datetime, timedelta
 
 from src.config import get_settings
 
@@ -74,7 +73,7 @@ class AccountLockoutService:
                     "email": email.lower().strip(),
                     "ip_address": ip_address,
                     "success": success,
-                    "attempted_at": datetime.now(timezone.utc).isoformat(),
+                    "attempted_at": datetime.now(UTC).isoformat(),
                 }
             ).execute()
 
@@ -102,7 +101,7 @@ class AccountLockoutService:
             - seconds_remaining: Seconds until lockout expires (None if not locked)
         """
         max_attempts, lockout_minutes = get_lockout_config()
-        lockout_window = datetime.now(timezone.utc) - timedelta(minutes=lockout_minutes)
+        lockout_window = datetime.now(UTC) - timedelta(minutes=lockout_minutes)
 
         try:
             # Count recent failed attempts for this email
@@ -135,7 +134,7 @@ class AccountLockoutService:
                         recent.data[0]["attempted_at"].replace("Z", "+00:00")
                     )
                     lockout_expires = last_attempt + timedelta(minutes=lockout_minutes)
-                    now = datetime.now(timezone.utc)
+                    now = datetime.now(UTC)
 
                     if lockout_expires > now:
                         remaining = int((lockout_expires - now).total_seconds())
@@ -167,7 +166,7 @@ class AccountLockoutService:
         Returns:
             List of login attempt records
         """
-        since = datetime.now(timezone.utc) - timedelta(hours=hours)
+        since = datetime.now(UTC) - timedelta(hours=hours)
 
         try:
             query = (

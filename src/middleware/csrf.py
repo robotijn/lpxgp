@@ -4,14 +4,12 @@ This implementation is designed to work well with HTMX which can send
 CSRF tokens via headers on every request.
 """
 
-import hashlib
 import hmac
 import secrets
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 from typing import Callable
 
 from fastapi import FastAPI, HTTPException, Request, Response, status
-
 
 # ---------------------------------------------------------------------------
 # Configuration

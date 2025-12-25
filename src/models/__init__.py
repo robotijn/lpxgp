@@ -1,22 +1,32 @@
 """LPxGP Pydantic Models - Request/Response validation."""
 
-from src.models.base import BaseModel, BaseResponse
 from src.models.auth import (
-    LoginRequest,
-    InvitationRequest,
     InvitationAcceptRequest,
+    InvitationRequest,
+    LoginRequest,
     PasswordResetRequest,
 )
+from src.models.base import BaseModel, BaseResponse
 from src.models.funds import (
     FundCreate,
-    FundUpdate,
     FundResponse,
     FundTeamMemberCreate,
+    FundUpdate,
+)
+from src.models.ir import (
+    EventCreate,
+    EventResponse,
+    EventUpdate,
+    TaskCreate,
+    TaskResponse,
+    TaskUpdate,
+    TouchpointCreate,
+    TouchpointResponse,
 )
 from src.models.lp import (
-    LPSearchRequest,
     LPProfileResponse,
     LPProfileUpdate,
+    LPSearchRequest,
 )
 from src.models.matching import (
     MatchGenerateRequest,
@@ -24,24 +34,14 @@ from src.models.matching import (
     MatchStatusUpdate,
 )
 from src.models.pitch import (
+    PitchFeedback,
     PitchGenerateRequest,
     PitchResponse,
-    PitchFeedback,
-)
-from src.models.ir import (
-    EventCreate,
-    EventUpdate,
-    EventResponse,
-    TouchpointCreate,
-    TouchpointResponse,
-    TaskCreate,
-    TaskUpdate,
-    TaskResponse,
 )
 from src.models.responses import (
     APIResponse,
-    PaginatedResponse,
     ErrorResponse,
+    PaginatedResponse,
 )
 
 __all__ = [

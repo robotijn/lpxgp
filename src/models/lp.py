@@ -10,12 +10,10 @@ from src.models.base import (
     BaseResponse,
     FinancialAmountMM,
     LongText,
-    MediumText,
     Percentage,
     PositiveDecimal,
     ShortText,
 )
-
 
 # LP Type enum
 LPType = Literal[

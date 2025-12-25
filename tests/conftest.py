@@ -2,9 +2,21 @@
 
 This module provides test fixtures for the LPxGP application.
 Fixtures follow BDD/Gherkin patterns from docs/prd/tests/*.feature.md
+
+Fixtures:
+    client: Test client without database connection.
+    client_with_db: Test client with mocked database.
+    mock_db_connection: Mock psycopg connection.
+    sample_*: Sample data for testing.
+    sql_injection_payloads: Security test payloads.
+    xss_payloads: XSS test payloads.
+    unicode_test_strings: Internationalization test data.
 """
 
+from __future__ import annotations
+
 import os
+from collections.abc import Generator
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -13,14 +25,13 @@ from fastapi.testclient import TestClient
 
 from src.main import app
 
-
 # =============================================================================
 # Core Application Fixtures
 # =============================================================================
 
 
 @pytest.fixture
-def client():
+def client() -> Generator[TestClient, None, None]:
     """Create a test client for the FastAPI app.
 
     Provides a TestClient instance for making HTTP requests to the app.
@@ -28,16 +39,25 @@ def client():
 
     By default, mocks get_db() to return None so tests don't hit real database.
     Use client_with_db fixture when you need mocked database data.
+
+    Yields:
+        TestClient for making requests to the app.
     """
     with patch("src.main.get_db", return_value=None):
         yield TestClient(app)
 
 
 @pytest.fixture
-def client_with_db(mock_db_connection):
+def client_with_db(mock_db_connection: MagicMock) -> Generator[TestClient, None, None]:
     """Create a test client with mocked database connection.
 
     Use this fixture when testing endpoints that require database access.
+
+    Args:
+        mock_db_connection: Mock database connection fixture.
+
+    Yields:
+        TestClient with mocked database.
     """
     with patch("src.main.get_db", return_value=mock_db_connection):
         yield TestClient(app)
@@ -49,11 +69,14 @@ def client_with_db(mock_db_connection):
 
 
 @pytest.fixture
-def mock_db_connection():
+def mock_db_connection() -> MagicMock:
     """Create a mock psycopg database connection for testing.
 
     Returns a MagicMock that simulates psycopg connection behavior.
     Use this to test database interactions without actual DB connection.
+
+    Returns:
+        Mock connection with cursor context manager configured.
     """
     mock_conn = MagicMock()
     mock_cursor = MagicMock()
@@ -70,10 +93,24 @@ def mock_db_connection():
 
 
 @pytest.fixture
-def mock_db_with_data(sample_organizations, sample_funds, sample_lp_profiles, sample_matches):
+def mock_db_with_data(
+    sample_organizations: list[dict[str, Any]],
+    sample_funds: list[dict[str, Any]],
+    sample_lp_profiles: list[dict[str, Any]],
+    sample_matches: list[dict[str, Any]],
+) -> MagicMock:
     """Database connection with pre-configured test data.
 
     Returns a mock that returns sample data when queried.
+
+    Args:
+        sample_organizations: Sample organization data.
+        sample_funds: Sample fund data.
+        sample_lp_profiles: Sample LP profile data.
+        sample_matches: Sample match data.
+
+    Returns:
+        Mock connection configured to return sample data.
     """
     mock_conn = MagicMock()
     mock_cursor = MagicMock()
@@ -94,10 +131,13 @@ def mock_db_with_data(sample_organizations, sample_funds, sample_lp_profiles, sa
 
 
 @pytest.fixture
-def sample_organizations():
+def sample_organizations() -> list[dict[str, Any]]:
     """Sample organization data for testing.
 
     Includes GP and LP organizations matching seed data patterns.
+
+    Returns:
+        List of organization dictionaries.
     """
     return [
         {
@@ -128,8 +168,12 @@ def sample_organizations():
 
 
 @pytest.fixture
-def sample_funds():
-    """Sample fund data for testing."""
+def sample_funds() -> list[dict[str, Any]]:
+    """Sample fund data for testing.
+
+    Returns:
+        List of fund dictionaries.
+    """
     return [
         {
             "id": "0f000001-0000-0000-0000-000000000001",
@@ -153,8 +197,12 @@ def sample_funds():
 
 
 @pytest.fixture
-def sample_lp_profiles():
-    """Sample LP profile data for testing."""
+def sample_lp_profiles() -> list[dict[str, Any]]:
+    """Sample LP profile data for testing.
+
+    Returns:
+        List of LP profile dictionaries.
+    """
     return [
         {
             "id": "1a000001-0000-0000-0000-000000000001",
@@ -178,8 +226,12 @@ def sample_lp_profiles():
 
 
 @pytest.fixture
-def sample_matches():
-    """Sample fund-LP match data for testing."""
+def sample_matches() -> list[dict[str, Any]]:
+    """Sample fund-LP match data for testing.
+
+    Returns:
+        List of match dictionaries with scores and AI content.
+    """
     return [
         {
             "id": "2a000001-0000-0000-0000-000000000001",
@@ -225,8 +277,12 @@ def sample_matches():
 
 
 @pytest.fixture
-def sample_pipeline_statuses():
-    """Sample pipeline status data for testing."""
+def sample_pipeline_statuses() -> list[dict[str, Any]]:
+    """Sample pipeline status data for testing.
+
+    Returns:
+        List of pipeline status dictionaries.
+    """
     return [
         {
             "fund_id": "0f000001-0000-0000-0000-000000000001",
@@ -243,10 +299,13 @@ def sample_pipeline_statuses():
 
 
 @pytest.fixture
-def clean_env():
+def clean_env() -> Generator[None, None, None]:
     """Fixture that provides a clean environment without Supabase config.
 
     Removes Supabase environment variables to test unconfigured state.
+
+    Yields:
+        None, after removing Supabase env vars.
     """
     env_vars = [
         "SUPABASE_URL",
@@ -268,8 +327,12 @@ def clean_env():
 
 
 @pytest.fixture
-def production_env():
-    """Fixture that sets production environment configuration."""
+def production_env() -> Generator[None, None, None]:
+    """Fixture that sets production environment configuration.
+
+    Yields:
+        None, after setting ENVIRONMENT to 'production'.
+    """
     original_env = os.environ.get("ENVIRONMENT")
     os.environ["ENVIRONMENT"] = "production"
 
@@ -287,10 +350,13 @@ def production_env():
 
 
 @pytest.fixture
-def sql_injection_payloads():
+def sql_injection_payloads() -> list[str]:
     """Common SQL injection payloads for security testing.
 
     Based on Gherkin scenario: Sanitize SQL injection in name
+
+    Returns:
+        List of SQL injection attack strings.
     """
     return [
         "'; DROP TABLE organizations; --",
@@ -302,10 +368,13 @@ def sql_injection_payloads():
 
 
 @pytest.fixture
-def xss_payloads():
+def xss_payloads() -> list[str]:
     """Common XSS payloads for security testing.
 
     Based on Gherkin scenario: Sanitize XSS in name
+
+    Returns:
+        List of XSS attack strings.
     """
     return [
         "<script>alert('xss')</script>",
@@ -322,10 +391,13 @@ def xss_payloads():
 
 
 @pytest.fixture
-def unicode_test_strings():
+def unicode_test_strings() -> list[str]:
     """Unicode strings for internationalization testing.
 
     Based on Gherkin scenario: Handle unicode in LP name
+
+    Returns:
+        List of Unicode strings from various languages.
     """
     return [
         "北京投资基金",  # Chinese
@@ -338,10 +410,13 @@ def unicode_test_strings():
 
 
 @pytest.fixture
-def emoji_test_strings():
+def emoji_test_strings() -> list[str]:
     """Emoji strings for testing.
 
     Based on Gherkin scenario: Handle emojis in notes
+
+    Returns:
+        List of strings containing emojis.
     """
     return [
         "Great partner 👍🏼",
@@ -357,10 +432,13 @@ def emoji_test_strings():
 
 
 @pytest.fixture
-def invalid_email_formats():
+def invalid_email_formats() -> list[str]:
     """Invalid email formats for validation testing.
 
     Based on Gherkin scenario: Reject invalid email formats (variations)
+
+    Returns:
+        List of invalid email address strings.
     """
     return [
         "@example.com",
@@ -375,10 +453,13 @@ def invalid_email_formats():
 
 
 @pytest.fixture
-def valid_email_formats():
+def valid_email_formats() -> list[str]:
     """Valid email formats including edge cases.
 
     Based on Gherkin scenario: Accept valid email edge cases
+
+    Returns:
+        List of valid email address strings.
     """
     return [
         "user+tag@example.com",
@@ -389,8 +470,12 @@ def valid_email_formats():
 
 
 @pytest.fixture
-def invalid_phone_formats():
-    """Invalid phone number formats for validation testing."""
+def invalid_phone_formats() -> list[str]:
+    """Invalid phone number formats for validation testing.
+
+    Returns:
+        List of invalid phone number strings.
+    """
     return [
         "abc123",
         "12345",
@@ -400,10 +485,13 @@ def invalid_phone_formats():
 
 
 @pytest.fixture
-def valid_phone_formats():
+def valid_phone_formats() -> list[str]:
     """Valid phone number formats.
 
     Based on Gherkin scenario: Handle international phone formats
+
+    Returns:
+        List of valid international phone number strings.
     """
     return [
         "+1 (555) 123-4567",
@@ -418,8 +506,12 @@ def valid_phone_formats():
 
 
 @pytest.fixture
-def valid_csv_content():
-    """Valid CSV content for import testing."""
+def valid_csv_content() -> str:
+    """Valid CSV content for import testing.
+
+    Returns:
+        Well-formed CSV string with LP data.
+    """
     return """name,type,aum_bn,headquarters
 CalPERS,Public Pension,450,Sacramento
 Yale Endowment,Endowment,41.4,New Haven
@@ -427,10 +519,13 @@ Stanford Endowment,Endowment,37.8,Stanford"""
 
 
 @pytest.fixture
-def malformed_csv_content():
+def malformed_csv_content() -> str:
     """Malformed CSV content for error testing.
 
     Based on Gherkin scenario: Reject malformed CSV
+
+    Returns:
+        Malformed CSV string with inconsistent columns.
     """
     return """name,type,aum_bn
 CalPERS,Public Pension,450,Extra Column
@@ -438,10 +533,13 @@ Yale Endowment"""
 
 
 @pytest.fixture
-def csv_with_formula_injection():
+def csv_with_formula_injection() -> str:
     """CSV with potential formula injection.
 
     Based on Gherkin scenario: Scan for formula injection
+
+    Returns:
+        CSV string with Excel formula injection attempts.
     """
     return """name,type,notes
 CalPERS,Public Pension,=1+1

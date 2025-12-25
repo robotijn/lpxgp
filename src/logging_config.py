@@ -1,8 +1,37 @@
 """Structured logging configuration with sensitive field redaction.
 
-Uses structlog for structured logging with automatic redaction of
-sensitive fields to prevent information leakage in logs.
+This module provides centralized logging configuration for the LPxGP
+application using structlog. It includes automatic redaction of sensitive
+fields to prevent information leakage in logs.
+
+Features:
+    - Structured logging with JSON or console output
+    - Automatic redaction of sensitive fields (passwords, API keys, tokens)
+    - Partial masking of PII fields (email, phone)
+    - Application context injection
+    - Exception sanitization to remove sensitive data
+
+Example:
+    Basic usage::
+
+        from src.logging_config import get_logger, configure_logging
+
+        # Configure at startup
+        configure_logging(log_level="INFO", json_logs=False)
+
+        # Get a logger
+        logger = get_logger(__name__)
+
+        # Log with automatic redaction
+        logger.info("User login", email="user@example.com", password="secret")
+        # Output: ... email="***@example.com" password="[REDACTED]" ...
+
+Note:
+    Configure logging early in application startup before other modules
+    are imported to ensure consistent log formatting.
 """
+
+from __future__ import annotations
 
 import logging
 import sys
@@ -10,13 +39,11 @@ from typing import Any
 
 import structlog
 
-
-# ---------------------------------------------------------------------------
+# =============================================================================
 # Sensitive Field Patterns
-# ---------------------------------------------------------------------------
+# =============================================================================
 
-# Fields that should be completely redacted
-REDACT_FIELDS = {
+REDACT_FIELDS: set[str] = {
     "password",
     "secret",
     "token",
@@ -41,21 +68,25 @@ REDACT_FIELDS = {
     "langfuse_secret_key",
     "sentry_dsn",
 }
+"""Fields that should be completely redacted with [REDACTED]."""
 
-# Fields to partially mask (show last 4 chars)
-MASK_FIELDS = {
+MASK_FIELDS: set[str] = {
     "email",
     "phone",
     "ip_address",
 }
+"""Fields to partially mask, showing only last 4 characters."""
 
-REDACTED = "[REDACTED]"
-MASKED_PREFIX = "***"
+REDACTED: str = "[REDACTED]"
+"""Replacement string for fully redacted fields."""
+
+MASKED_PREFIX: str = "***"
+"""Prefix for partially masked fields (e.g., ***@example.com)."""
 
 
-# ---------------------------------------------------------------------------
+# =============================================================================
 # Redaction Processor
-# ---------------------------------------------------------------------------
+# =============================================================================
 
 
 def redact_sensitive_fields(
@@ -65,12 +96,34 @@ def redact_sensitive_fields(
 ) -> dict[str, Any]:
     """Redact sensitive fields from log events.
 
-    This processor recursively searches through the event dict
-    and redacts any fields matching sensitive patterns.
+    This structlog processor recursively searches through the event dict
+    and redacts any fields matching sensitive patterns. It handles nested
+    dictionaries and lists.
+
+    Args:
+        logger: The logger instance (required by structlog processor interface).
+        method_name: The log method name (required by structlog processor interface).
+        event_dict: The event dictionary containing log data.
+
+    Returns:
+        Modified event dictionary with sensitive fields redacted.
+
+    Example:
+        >>> event = {"password": "secret123", "email": "user@example.com"}
+        >>> redact_sensitive_fields(None, "", event)
+        {'password': '[REDACTED]', 'email': '***@example.com'}
     """
 
     def redact_value(key: str, value: Any) -> Any:
-        """Redact a single value based on its key."""
+        """Redact a single value based on its key.
+
+        Args:
+            key: The field name to check against redaction patterns.
+            value: The value to potentially redact.
+
+        Returns:
+            Redacted value if key matches a sensitive pattern, otherwise original.
+        """
         key_lower = key.lower()
 
         # Check for exact match on redact fields
@@ -88,9 +141,16 @@ def redact_sensitive_fields(
 
         return value
 
-    def redact_dict(d: dict) -> dict:
-        """Recursively redact sensitive fields in a dictionary."""
-        result = {}
+    def redact_dict(d: dict[str, Any]) -> dict[str, Any]:
+        """Recursively redact sensitive fields in a dictionary.
+
+        Args:
+            d: Dictionary to process.
+
+        Returns:
+            New dictionary with sensitive fields redacted.
+        """
+        result: dict[str, Any] = {}
         for key, value in d.items():
             if isinstance(value, dict):
                 result[key] = redact_dict(value)
@@ -106,9 +166,9 @@ def redact_sensitive_fields(
     return redact_dict(event_dict)
 
 
-# ---------------------------------------------------------------------------
+# =============================================================================
 # Additional Processors
-# ---------------------------------------------------------------------------
+# =============================================================================
 
 
 def add_app_context(
@@ -116,7 +176,19 @@ def add_app_context(
     method_name: str,
     event_dict: dict[str, Any],
 ) -> dict[str, Any]:
-    """Add application context to all log events."""
+    """Add application context to all log events.
+
+    Injects the current environment (development/staging/production)
+    into every log event for filtering and correlation.
+
+    Args:
+        logger: The logger instance (required by structlog processor interface).
+        method_name: The log method name (required by structlog processor interface).
+        event_dict: The event dictionary containing log data.
+
+    Returns:
+        Modified event dictionary with 'environment' field added.
+    """
     from src.config import get_settings
 
     try:
@@ -133,7 +205,23 @@ def sanitize_exception(
     method_name: str,
     event_dict: dict[str, Any],
 ) -> dict[str, Any]:
-    """Sanitize exception information to remove sensitive data from stack traces."""
+    """Sanitize exception information to remove sensitive data from stack traces.
+
+    Checks exception text for sensitive patterns and replaces the entire
+    exception with a generic message if any are found.
+
+    Args:
+        logger: The logger instance (required by structlog processor interface).
+        method_name: The log method name (required by structlog processor interface).
+        event_dict: The event dictionary containing log data.
+
+    Returns:
+        Modified event dictionary with sanitized exception info.
+
+    Note:
+        This is a security measure to prevent accidental logging of
+        credentials that might appear in exception messages.
+    """
     if "exception" in event_dict:
         exc_info = event_dict["exception"]
         if isinstance(exc_info, str):
@@ -147,9 +235,9 @@ def sanitize_exception(
     return event_dict
 
 
-# ---------------------------------------------------------------------------
+# =============================================================================
 # Configure Logging
-# ---------------------------------------------------------------------------
+# =============================================================================
 
 
 def configure_logging(
@@ -158,9 +246,26 @@ def configure_logging(
 ) -> None:
     """Configure structured logging for the application.
 
+    Sets up structlog with appropriate processors for the environment.
+    Should be called once at application startup, before any logging.
+
     Args:
-        log_level: Logging level (DEBUG, INFO, WARNING, ERROR)
-        json_logs: If True, output JSON logs (for production). Otherwise, colored console output.
+        log_level: Logging level - one of 'DEBUG', 'INFO', 'WARNING', 'ERROR'.
+            Defaults to 'INFO'.
+        json_logs: If True, output JSON logs suitable for log aggregation
+            (production). If False, use colored console output for
+            development. Defaults to False.
+
+    Example:
+        >>> # In main.py startup
+        >>> configure_logging(log_level="DEBUG", json_logs=False)
+
+        >>> # In production
+        >>> configure_logging(log_level="INFO", json_logs=True)
+
+    Note:
+        This also configures the standard library logging module and
+        suppresses noisy third-party loggers (httpx, supabase).
     """
     # Determine renderer based on environment
     if json_logs:
@@ -215,28 +320,19 @@ def configure_logging(
 def get_logger(name: str) -> structlog.stdlib.BoundLogger:
     """Get a configured logger instance.
 
+    Creates a structlog logger that automatically applies all configured
+    processors including redaction, context injection, and formatting.
+
     Args:
-        name: Logger name (typically __name__)
+        name: Logger name, typically ``__name__`` for module-level loggers.
 
     Returns:
-        Configured structlog logger
+        Configured structlog BoundLogger instance.
+
+    Example:
+        >>> from src.logging_config import get_logger
+        >>> logger = get_logger(__name__)
+        >>> logger.info("Processing started", user_id="123")
+        >>> logger.error("Operation failed", error="timeout")
     """
     return structlog.get_logger(name)
-
-
-# ---------------------------------------------------------------------------
-# Usage Example
-# ---------------------------------------------------------------------------
-
-# In your code:
-#
-#     from src.logging_config import get_logger
-#
-#     logger = get_logger(__name__)
-#
-#     # Sensitive fields are automatically redacted:
-#     logger.info("User login attempt", email="user@example.com", password="secret123")
-#     # Output: ... email="***@example.com" password="[REDACTED]" ...
-#
-#     logger.error("API call failed", api_key="sk-1234567890", error="timeout")
-#     # Output: ... api_key="[REDACTED]" error="timeout" ...

@@ -1,6 +1,5 @@
 """Fund-related Pydantic models."""
 
-from datetime import date
 from typing import Literal
 from uuid import UUID
 
@@ -15,7 +14,6 @@ from src.models.base import (
     Percentage,
     ShortText,
 )
-
 
 # Enum types for fund fields
 FundStrategy = Literal[

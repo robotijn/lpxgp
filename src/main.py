@@ -1,24 +1,50 @@
 """LPxGP FastAPI Application.
 
-AI-powered platform helping GPs find and engage LPs.
+This module provides the main FastAPI application for the LPxGP platform,
+an AI-powered tool helping General Partners (GPs) find and engage
+Limited Partners (LPs) for fund investments.
+
+Features:
+    - Health and status endpoints for monitoring
+    - Authentication with session-based login
+    - CRUD operations for funds and LPs
+    - AI-powered match generation and pitch creation
+    - HTMX-based dynamic UI with Jinja2 templates
+
+Example:
+    Running the development server::
+
+        uv run uvicorn src.main:app --reload
+
+Attributes:
+    app: The FastAPI application instance.
+    templates: Jinja2Templates instance for rendering HTML.
+    logger: Structured logger for this module.
 """
 
+from __future__ import annotations
+
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Optional
+from typing import Any
 from uuid import UUID
-import httpx
 
+import httpx
 import psycopg
-from psycopg.rows import dict_row
-from fastapi import FastAPI, Request, Query, Form
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi import FastAPI, Form, Query, Request
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from psycopg.rows import dict_row
 
+from src import auth
 from src.config import get_settings, validate_settings_on_startup
 from src.logging_config import get_logger
-from src import auth
+
+# =============================================================================
+# Utility Functions
+# =============================================================================
 
 
 def is_valid_uuid(value: str) -> bool:
@@ -26,6 +52,18 @@ def is_valid_uuid(value: str) -> bool:
 
     Used to validate user input before database queries to prevent
     crashes and potential injection attacks.
+
+    Args:
+        value: String to validate as UUID.
+
+    Returns:
+        True if the string is a valid UUID, False otherwise.
+
+    Example:
+        >>> is_valid_uuid("550e8400-e29b-41d4-a716-446655440000")
+        True
+        >>> is_valid_uuid("not-a-uuid")
+        False
     """
     if not value:
         return False
@@ -36,32 +74,66 @@ def is_valid_uuid(value: str) -> bool:
         return False
 
 
-def get_db() -> Optional[psycopg.Connection]:
+def get_db() -> psycopg.Connection[dict[str, Any]] | None:
     """Get database connection if configured.
 
-    Returns a psycopg connection with dict_row factory for easy data access.
-    Caller is responsible for closing the connection.
+    Creates a new psycopg connection with dict_row factory for easy
+    data access. The caller is responsible for closing the connection.
+
+    Returns:
+        psycopg Connection with dict_row factory if database is configured,
+        None otherwise.
+
+    Note:
+        Always use with try/finally to ensure connection is closed::
+
+            conn = get_db()
+            if conn:
+                try:
+                    # ... use connection
+                finally:
+                    conn.close()
     """
     settings = get_settings()
     if settings.database_configured:
         return psycopg.connect(settings.database_url, row_factory=dict_row)
     return None
 
-# -----------------------------------------------------------------------------
+# =============================================================================
 # Application Setup
-# -----------------------------------------------------------------------------
+# =============================================================================
 
 logger = get_logger(__name__)
+"""Module-level logger with automatic redaction of sensitive fields."""
 
 # Paths
-BASE_DIR = Path(__file__).parent
-TEMPLATES_DIR = BASE_DIR / "templates"
-STATIC_DIR = BASE_DIR / "static"
+BASE_DIR: Path = Path(__file__).parent
+"""Base directory for the src package."""
+
+TEMPLATES_DIR: Path = BASE_DIR / "templates"
+"""Directory containing Jinja2 templates."""
+
+STATIC_DIR: Path = BASE_DIR / "static"
+"""Directory containing static files (images, etc.)."""
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Application lifespan handler."""
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    """Application lifespan handler for startup and shutdown events.
+
+    Handles application lifecycle events:
+    - Startup: Validates configuration, initializes resources
+    - Shutdown: Cleans up resources
+
+    Args:
+        app: The FastAPI application instance.
+
+    Yields:
+        None during the application's active lifetime.
+
+    Raises:
+        Exception: If configuration validation fails on startup.
+    """
     # Startup
     logger.info("Starting LPxGP application")
     try:
@@ -92,15 +164,20 @@ app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
 
-# -----------------------------------------------------------------------------
+# =============================================================================
 # Health & Status Endpoints
-# -----------------------------------------------------------------------------
+# =============================================================================
+
 
 @app.api_route("/health", methods=["GET", "HEAD"], response_class=JSONResponse)
-async def health_check():
+async def health_check() -> dict[str, str]:
     """Health check endpoint for load balancers and monitoring.
 
-    Supports both GET and HEAD methods for efficient health checking.
+    Returns basic application health status. Supports both GET and HEAD
+    methods for efficient health checking by load balancers.
+
+    Returns:
+        JSON object with 'status' and 'version' fields.
     """
     return {
         "status": "healthy",
@@ -109,8 +186,15 @@ async def health_check():
 
 
 @app.get("/api/status", response_class=JSONResponse)
-async def api_status():
-    """API status with configuration info (non-sensitive)."""
+async def api_status() -> dict[str, Any]:
+    """API status with non-sensitive configuration info.
+
+    Returns current environment and feature flag status. Does not expose
+    any sensitive configuration values like API keys.
+
+    Returns:
+        JSON object with status, environment, and feature flags.
+    """
     settings = get_settings()
     return {
         "status": "ok",
@@ -122,13 +206,21 @@ async def api_status():
     }
 
 
-# -----------------------------------------------------------------------------
+# =============================================================================
 # Page Routes
-# -----------------------------------------------------------------------------
+# =============================================================================
+
 
 @app.get("/", response_class=HTMLResponse)
-async def home(request: Request):
-    """Home page."""
+async def home(request: Request) -> HTMLResponse:
+    """Render the home page.
+
+    Args:
+        request: FastAPI request object.
+
+    Returns:
+        Rendered home page HTML.
+    """
     return templates.TemplateResponse(
         request,
         "pages/home.html",
@@ -136,13 +228,20 @@ async def home(request: Request):
     )
 
 
-@app.get("/login", response_class=HTMLResponse)
-async def login_page(request: Request):
-    """Login page."""
-    # Redirect to dashboard if already logged in
+@app.get("/login", response_class=HTMLResponse, response_model=None)
+async def login_page(request: Request) -> HTMLResponse | RedirectResponse:
+    """Render the login page.
+
+    Redirects authenticated users to the dashboard.
+
+    Args:
+        request: FastAPI request object.
+
+    Returns:
+        Login page HTML or redirect to dashboard if already authenticated.
+    """
     user = auth.get_current_user(request)
     if user:
-        from fastapi.responses import RedirectResponse
         return RedirectResponse(url="/dashboard", status_code=303)
 
     return templates.TemplateResponse(
@@ -152,13 +251,20 @@ async def login_page(request: Request):
     )
 
 
-@app.get("/register", response_class=HTMLResponse)
-async def register_page(request: Request):
-    """Registration page."""
-    # Redirect to dashboard if already logged in
+@app.get("/register", response_class=HTMLResponse, response_model=None)
+async def register_page(request: Request) -> HTMLResponse | RedirectResponse:
+    """Render the registration page.
+
+    Redirects authenticated users to the dashboard.
+
+    Args:
+        request: FastAPI request object.
+
+    Returns:
+        Registration page HTML or redirect to dashboard if already authenticated.
+    """
     user = auth.get_current_user(request)
     if user:
-        from fastapi.responses import RedirectResponse
         return RedirectResponse(url="/dashboard", status_code=303)
 
     return templates.TemplateResponse(
@@ -168,13 +274,25 @@ async def register_page(request: Request):
     )
 
 
-@app.post("/api/auth/login")
+@app.post("/api/auth/login", response_model=None)
 async def api_login(
     request: Request,
     email: str = Form(...),
     password: str = Form(...),
-):
-    """Handle login form submission."""
+) -> HTMLResponse | RedirectResponse:
+    """Handle login form submission via HTMX.
+
+    Authenticates the user and either redirects to dashboard on success
+    or returns an error partial for HTMX to display.
+
+    Args:
+        request: FastAPI request object.
+        email: User's email address from form.
+        password: User's password from form.
+
+    Returns:
+        Redirect to dashboard on success, or error HTML partial on failure.
+    """
     user = auth.authenticate_user(email, password)
 
     if not user:
@@ -188,15 +306,28 @@ async def api_login(
     return auth.login_response(user, redirect_to="/dashboard")
 
 
-@app.post("/api/auth/register")
+@app.post("/api/auth/register", response_model=None)
 async def api_register(
     request: Request,
     email: str = Form(...),
     password: str = Form(...),
     name: str = Form(...),
     role: str = Form(default="gp"),
-):
-    """Handle registration form submission."""
+) -> HTMLResponse | RedirectResponse:
+    """Handle registration form submission via HTMX.
+
+    Creates a new user account and logs them in on success.
+
+    Args:
+        request: FastAPI request object.
+        email: User's email address from form.
+        password: User's password from form.
+        name: User's display name from form.
+        role: User role ('gp', 'lp', or 'admin'). Defaults to 'gp'.
+
+    Returns:
+        Redirect to dashboard on success, or error HTML partial on failure.
+    """
     try:
         user = auth.create_user(email=email, password=password, name=name, role=role)
         return auth.login_response(user, redirect_to="/dashboard")
@@ -210,21 +341,39 @@ async def api_register(
 
 
 @app.get("/logout")
-async def logout(request: Request):
-    """Handle logout."""
+async def logout(request: Request) -> RedirectResponse:
+    """Handle user logout.
+
+    Clears the session and redirects to the home page.
+
+    Args:
+        request: FastAPI request object.
+
+    Returns:
+        Redirect to home page with cleared session cookie.
+    """
     return auth.logout_response(request, redirect_to="/")
 
 
-@app.get("/dashboard", response_class=HTMLResponse)
-async def dashboard_page(request: Request):
-    """Dashboard page (protected)."""
+@app.get("/dashboard", response_class=HTMLResponse, response_model=None)
+async def dashboard_page(request: Request) -> HTMLResponse | RedirectResponse:
+    """Render the user dashboard (protected route).
+
+    Requires authentication. Shows summary statistics for funds, LPs,
+    and matches.
+
+    Args:
+        request: FastAPI request object.
+
+    Returns:
+        Dashboard HTML or redirect to login if not authenticated.
+    """
     user = auth.get_current_user(request)
     if not user:
-        from fastapi.responses import RedirectResponse
         return RedirectResponse(url="/login", status_code=303)
 
     # Get stats for dashboard
-    stats = {
+    stats: dict[str, int] = {
         "total_funds": 0,
         "total_lps": 0,
         "total_matches": 0,
@@ -259,12 +408,20 @@ async def dashboard_page(request: Request):
     )
 
 
-@app.get("/settings", response_class=HTMLResponse)
-async def settings_page(request: Request):
-    """Settings page (protected)."""
+@app.get("/settings", response_class=HTMLResponse, response_model=None)
+async def settings_page(request: Request) -> HTMLResponse | RedirectResponse:
+    """Render the user settings page (protected route).
+
+    Requires authentication.
+
+    Args:
+        request: FastAPI request object.
+
+    Returns:
+        Settings page HTML or redirect to login if not authenticated.
+    """
     user = auth.get_current_user(request)
     if not user:
-        from fastapi.responses import RedirectResponse
         return RedirectResponse(url="/login", status_code=303)
 
     return templates.TemplateResponse(
@@ -278,15 +435,30 @@ async def settings_page(request: Request):
 
 
 @app.get("/matches", response_class=HTMLResponse)
-async def matches_page(request: Request, fund_id: Optional[str] = Query(None)):
-    """Matches page showing AI-recommended LP matches."""
+async def matches_page(
+    request: Request,
+    fund_id: str | None = Query(None),
+) -> HTMLResponse:
+    """Render the matches page showing AI-recommended LP matches.
+
+    Displays scored LP-Fund matches with filtering by fund and
+    statistics including high score count, average score, and
+    pipeline status.
+
+    Args:
+        request: FastAPI request object.
+        fund_id: Optional UUID of fund to filter matches by.
+
+    Returns:
+        Matches page HTML with match data and statistics.
+    """
     # Validate fund_id if provided - ignore invalid UUIDs to prevent crashes
-    validated_fund_id = None
+    validated_fund_id: str | None = None
     if fund_id and is_valid_uuid(fund_id):
         validated_fund_id = fund_id
 
     # Default empty state
-    empty_response = {
+    empty_response: dict[str, Any] = {
         "title": "Matches - LPxGP",
         "matches": [],
         "funds": [],
@@ -416,8 +588,8 @@ async def funds_page(request: Request):
 @app.get("/lps", response_class=HTMLResponse)
 async def lps_page(
     request: Request,
-    search: Optional[str] = Query(None),
-    lp_type: Optional[str] = Query(None),
+    search: str | None = Query(None),
+    lp_type: str | None = Query(None),
 ):
     """LPs page for browsing and searching LP profiles."""
     empty_response = {
@@ -612,18 +784,18 @@ async def create_fund(
     name: str = Form(...),
     org_id: str = Form(...),
     status: str = Form(default="draft"),
-    vintage_year: Optional[int] = Form(default=None),
-    target_size_mm: Optional[float] = Form(default=None),
-    strategy: Optional[str] = Form(default=None),
-    sub_strategy: Optional[str] = Form(default=None),
-    geographic_focus: Optional[str] = Form(default=""),
-    sector_focus: Optional[str] = Form(default=""),
-    check_size_min_mm: Optional[float] = Form(default=None),
-    check_size_max_mm: Optional[float] = Form(default=None),
-    investment_thesis: Optional[str] = Form(default=None),
-    management_fee_pct: Optional[float] = Form(default=None),
-    carried_interest_pct: Optional[float] = Form(default=None),
-    gp_commitment_pct: Optional[float] = Form(default=None),
+    vintage_year: int | None = Form(default=None),
+    target_size_mm: float | None = Form(default=None),
+    strategy: str | None = Form(default=None),
+    sub_strategy: str | None = Form(default=None),
+    geographic_focus: str | None = Form(default=""),
+    sector_focus: str | None = Form(default=""),
+    check_size_min_mm: float | None = Form(default=None),
+    check_size_max_mm: float | None = Form(default=None),
+    investment_thesis: str | None = Form(default=None),
+    management_fee_pct: float | None = Form(default=None),
+    carried_interest_pct: float | None = Form(default=None),
+    gp_commitment_pct: float | None = Form(default=None),
 ):
     """Create a new fund."""
     if not is_valid_uuid(org_id):
@@ -755,18 +927,18 @@ async def update_fund(
     name: str = Form(...),
     org_id: str = Form(...),
     status: str = Form(default="draft"),
-    vintage_year: Optional[int] = Form(default=None),
-    target_size_mm: Optional[float] = Form(default=None),
-    strategy: Optional[str] = Form(default=None),
-    sub_strategy: Optional[str] = Form(default=None),
-    geographic_focus: Optional[str] = Form(default=""),
-    sector_focus: Optional[str] = Form(default=""),
-    check_size_min_mm: Optional[float] = Form(default=None),
-    check_size_max_mm: Optional[float] = Form(default=None),
-    investment_thesis: Optional[str] = Form(default=None),
-    management_fee_pct: Optional[float] = Form(default=None),
-    carried_interest_pct: Optional[float] = Form(default=None),
-    gp_commitment_pct: Optional[float] = Form(default=None),
+    vintage_year: int | None = Form(default=None),
+    target_size_mm: float | None = Form(default=None),
+    strategy: str | None = Form(default=None),
+    sub_strategy: str | None = Form(default=None),
+    geographic_focus: str | None = Form(default=""),
+    sector_focus: str | None = Form(default=""),
+    check_size_min_mm: float | None = Form(default=None),
+    check_size_max_mm: float | None = Form(default=None),
+    investment_thesis: str | None = Form(default=None),
+    management_fee_pct: float | None = Form(default=None),
+    carried_interest_pct: float | None = Form(default=None),
+    gp_commitment_pct: float | None = Form(default=None),
 ):
     """Update an existing fund."""
     if not is_valid_uuid(fund_id) or not is_valid_uuid(org_id):
@@ -897,8 +1069,9 @@ async def delete_fund(request: Request, fund_id: str):
 @app.post("/api/funds/{fund_id}/generate-matches", response_class=HTMLResponse)
 async def generate_matches_for_fund(request: Request, fund_id: str):
     """Generate AI-powered matches for a fund against all LPs."""
-    from src.matching import calculate_match_score, generate_match_content
     import json
+
+    from src.matching import calculate_match_score, generate_match_content
 
     if not is_valid_uuid(fund_id):
         return HTMLResponse(
@@ -1020,25 +1193,25 @@ async def generate_matches_for_fund(request: Request, fund_id: str):
 async def create_lp(
     request: Request,
     name: str = Form(...),
-    lp_type: Optional[str] = Form(default=None),
-    hq_city: Optional[str] = Form(default=None),
-    hq_country: Optional[str] = Form(default=None),
-    website: Optional[str] = Form(default=None),
-    description: Optional[str] = Form(default=None),
-    total_aum_bn: Optional[float] = Form(default=None),
-    pe_allocation_pct: Optional[float] = Form(default=None),
-    strategies: Optional[str] = Form(default=""),
-    geographic_preferences: Optional[str] = Form(default=""),
-    sector_preferences: Optional[str] = Form(default=""),
-    check_size_min_mm: Optional[float] = Form(default=None),
-    check_size_max_mm: Optional[float] = Form(default=None),
-    fund_size_min_mm: Optional[float] = Form(default=None),
-    fund_size_max_mm: Optional[float] = Form(default=None),
-    min_track_record_years: Optional[int] = Form(default=None),
-    min_fund_number: Optional[int] = Form(default=None),
+    lp_type: str | None = Form(default=None),
+    hq_city: str | None = Form(default=None),
+    hq_country: str | None = Form(default=None),
+    website: str | None = Form(default=None),
+    description: str | None = Form(default=None),
+    total_aum_bn: float | None = Form(default=None),
+    pe_allocation_pct: float | None = Form(default=None),
+    strategies: str | None = Form(default=""),
+    geographic_preferences: str | None = Form(default=""),
+    sector_preferences: str | None = Form(default=""),
+    check_size_min_mm: float | None = Form(default=None),
+    check_size_max_mm: float | None = Form(default=None),
+    fund_size_min_mm: float | None = Form(default=None),
+    fund_size_max_mm: float | None = Form(default=None),
+    min_track_record_years: int | None = Form(default=None),
+    min_fund_number: int | None = Form(default=None),
     esg_required: bool = Form(default=False),
     emerging_manager_ok: bool = Form(default=False),
-    mandate_description: Optional[str] = Form(default=None),
+    mandate_description: str | None = Form(default=None),
 ):
     """Create a new LP (organization + lp_profile)."""
     conn = get_db()
@@ -1149,25 +1322,25 @@ async def update_lp(
     request: Request,
     lp_id: str,
     name: str = Form(...),
-    lp_type: Optional[str] = Form(default=None),
-    hq_city: Optional[str] = Form(default=None),
-    hq_country: Optional[str] = Form(default=None),
-    website: Optional[str] = Form(default=None),
-    description: Optional[str] = Form(default=None),
-    total_aum_bn: Optional[float] = Form(default=None),
-    pe_allocation_pct: Optional[float] = Form(default=None),
-    strategies: Optional[str] = Form(default=""),
-    geographic_preferences: Optional[str] = Form(default=""),
-    sector_preferences: Optional[str] = Form(default=""),
-    check_size_min_mm: Optional[float] = Form(default=None),
-    check_size_max_mm: Optional[float] = Form(default=None),
-    fund_size_min_mm: Optional[float] = Form(default=None),
-    fund_size_max_mm: Optional[float] = Form(default=None),
-    min_track_record_years: Optional[int] = Form(default=None),
-    min_fund_number: Optional[int] = Form(default=None),
+    lp_type: str | None = Form(default=None),
+    hq_city: str | None = Form(default=None),
+    hq_country: str | None = Form(default=None),
+    website: str | None = Form(default=None),
+    description: str | None = Form(default=None),
+    total_aum_bn: float | None = Form(default=None),
+    pe_allocation_pct: float | None = Form(default=None),
+    strategies: str | None = Form(default=""),
+    geographic_preferences: str | None = Form(default=""),
+    sector_preferences: str | None = Form(default=""),
+    check_size_min_mm: float | None = Form(default=None),
+    check_size_max_mm: float | None = Form(default=None),
+    fund_size_min_mm: float | None = Form(default=None),
+    fund_size_max_mm: float | None = Form(default=None),
+    min_track_record_years: int | None = Form(default=None),
+    min_fund_number: int | None = Form(default=None),
     esg_required: bool = Form(default=False),
     emerging_manager_ok: bool = Form(default=False),
-    mandate_description: Optional[str] = Form(default=None),
+    mandate_description: str | None = Form(default=None),
 ):
     """Update an existing LP."""
     if not is_valid_uuid(lp_id):

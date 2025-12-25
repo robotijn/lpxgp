@@ -7,7 +7,6 @@ from pydantic import Field
 
 from src.models.base import BaseModel, BaseResponse, LongText, MediumText, ShortText
 
-
 # Pitch types
 PitchType = Literal[
     "executive_summary",
