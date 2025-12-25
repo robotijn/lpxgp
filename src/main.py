@@ -2710,6 +2710,23 @@ def is_admin(user: auth.CurrentUser | None) -> bool:
     return user.get("role") == "admin"
 
 
+def can_manage_data(user: auth.CurrentUser | None) -> bool:
+    """Check if user can manage LP/Company data.
+
+    Allowed roles: admin, fa (fund advisor), gp.
+    LP users cannot manage data.
+
+    Args:
+        user: The current user or None.
+
+    Returns:
+        True if user has data management permissions, False otherwise.
+    """
+    if not user:
+        return False
+    return user.get("role") in ("admin", "fa", "gp")
+
+
 @app.get("/admin", response_class=HTMLResponse, response_model=None)
 async def admin_dashboard(request: Request) -> HTMLResponse | RedirectResponse:
     """Admin dashboard showing platform overview.
@@ -2946,6 +2963,731 @@ async def api_admin_stats(request: Request) -> JSONResponse:
             conn.close()
 
     return JSONResponse(content={"success": True, "stats": stats})
+
+
+# -----------------------------------------------------------------------------
+# LP & Company CRUD Endpoints (accessible by admin, fa, gp)
+# -----------------------------------------------------------------------------
+
+
+@app.get("/admin/lps", response_class=HTMLResponse, response_model=None)
+async def admin_lps_page(
+    request: Request,
+    page: int = 1,
+    q: str | None = None,
+    type: str | None = None,
+) -> HTMLResponse | RedirectResponse:
+    """LP database management page.
+
+    Accessible by admin, fa, and gp roles. Shows list of LPs
+    with search and filtering.
+
+    Args:
+        request: FastAPI request object.
+        page: Page number for pagination.
+        q: Search query string.
+        type: Filter by LP type.
+
+    Returns:
+        LP list page HTML or redirect.
+    """
+    user = auth.get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    if not can_manage_data(user):
+        return RedirectResponse(url="/dashboard", status_code=303)
+
+    # Pagination settings
+    per_page = 25
+
+    # Mock LP data for demo
+    mock_lps = [
+        {
+            "id": "lp-001",
+            "name": "CalPERS",
+            "description": "California Public Employees' Retirement System",
+            "lp_type": "pension",
+            "location": "Sacramento, CA",
+            "total_aum_bn": 450,
+            "is_active": True,
+        },
+        {
+            "id": "lp-002",
+            "name": "Yale Endowment",
+            "description": "Yale University Investments Office",
+            "lp_type": "endowment",
+            "location": "New Haven, CT",
+            "total_aum_bn": 41,
+            "is_active": True,
+        },
+        {
+            "id": "lp-003",
+            "name": "Smith Family Office",
+            "description": "Multi-family office",
+            "lp_type": "family_office",
+            "location": "New York, NY",
+            "total_aum_bn": 2,
+            "is_active": True,
+        },
+        {
+            "id": "lp-004",
+            "name": "Ontario Teachers'",
+            "description": "Ontario Teachers' Pension Plan",
+            "lp_type": "pension",
+            "location": "Toronto, Canada",
+            "total_aum_bn": 250,
+            "is_active": True,
+        },
+        {
+            "id": "lp-005",
+            "name": "GIC",
+            "description": "Government of Singapore Investment Corporation",
+            "lp_type": "sovereign_wealth",
+            "location": "Singapore",
+            "total_aum_bn": 690,
+            "is_active": True,
+        },
+    ]
+
+    # Try to get LPs from database
+    lps = []
+    stats = {"total": 0, "pensions": 0, "endowments": 0, "family_offices": 0, "other": 0}
+
+    conn = get_db()
+    if conn:
+        try:
+            with conn.cursor() as cur:
+                # Build query with filters
+                query = """
+                    SELECT lp.id, o.name, o.description, lp.lp_type,
+                           CONCAT(o.hq_city, ', ', o.hq_country) as location,
+                           lp.total_aum_bn, lp.is_active
+                    FROM lp_profiles lp
+                    JOIN organizations o ON lp.org_id = o.id
+                    WHERE 1=1
+                """
+                params: list = []
+
+                if q:
+                    query += " AND o.name ILIKE %s"
+                    params.append(f"%{q}%")
+
+                if type:
+                    query += " AND lp.lp_type = %s"
+                    params.append(type)
+
+                query += " ORDER BY o.name LIMIT %s OFFSET %s"
+                params.extend([per_page, (page - 1) * per_page])
+
+                cur.execute(query, params)
+                rows = cur.fetchall()
+                lps = [dict(row) for row in rows]
+
+                # Get stats
+                cur.execute("SELECT COUNT(*) FROM lp_profiles")
+                result = cur.fetchone()
+                stats["total"] = result["count"] if result else 0
+
+                cur.execute("SELECT COUNT(*) FROM lp_profiles WHERE lp_type = 'pension'")
+                result = cur.fetchone()
+                stats["pensions"] = result["count"] if result else 0
+
+                cur.execute("SELECT COUNT(*) FROM lp_profiles WHERE lp_type = 'endowment'")
+                result = cur.fetchone()
+                stats["endowments"] = result["count"] if result else 0
+
+                cur.execute("SELECT COUNT(*) FROM lp_profiles WHERE lp_type = 'family_office'")
+                result = cur.fetchone()
+                stats["family_offices"] = result["count"] if result else 0
+
+                cur.execute("SELECT COUNT(*) FROM lp_profiles WHERE lp_type NOT IN ('pension', 'endowment', 'family_office')")
+                result = cur.fetchone()
+                stats["other"] = result["count"] if result else 0
+
+        except Exception as e:
+            logger.warning(f"Failed to fetch LPs from database: {e}")
+            lps = mock_lps
+            stats = {"total": 5, "pensions": 2, "endowments": 1, "family_offices": 1, "other": 1}
+        finally:
+            conn.close()
+    else:
+        # Use mock data
+        lps = mock_lps
+        stats = {"total": 5, "pensions": 2, "endowments": 1, "family_offices": 1, "other": 1}
+
+        # Apply filters to mock data
+        if q:
+            lps = [lp for lp in lps if q.lower() in lp["name"].lower()]
+        if type:
+            lps = [lp for lp in lps if lp["lp_type"] == type]
+
+    total_pages = max(1, (stats["total"] + per_page - 1) // per_page)
+
+    return templates.TemplateResponse(
+        request,
+        "pages/admin/lps.html",
+        {
+            "title": "LP Database - LPxGP",
+            "user": user,
+            "lps": lps,
+            "stats": stats,
+            "page": page,
+            "per_page": per_page,
+            "total_pages": total_pages,
+            "search_query": q,
+            "filter_type": type,
+        },
+    )
+
+
+@app.get("/admin/lps/new", response_class=HTMLResponse, response_model=None)
+async def admin_lp_new_page(request: Request) -> HTMLResponse | RedirectResponse:
+    """Create new LP page.
+
+    Accessible by admin, fa, and gp roles.
+
+    Args:
+        request: FastAPI request object.
+
+    Returns:
+        New LP form HTML or redirect.
+    """
+    user = auth.get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    if not can_manage_data(user):
+        return RedirectResponse(url="/dashboard", status_code=303)
+
+    return templates.TemplateResponse(
+        request,
+        "pages/admin/lp-detail.html",
+        {
+            "title": "Add New LP - LPxGP",
+            "user": user,
+            "lp": None,
+        },
+    )
+
+
+@app.get("/admin/lps/{lp_id}", response_class=HTMLResponse, response_model=None)
+async def admin_lp_detail_page(request: Request, lp_id: str) -> HTMLResponse | RedirectResponse:
+    """LP detail/edit page.
+
+    Accessible by admin, fa, and gp roles.
+
+    Args:
+        request: FastAPI request object.
+        lp_id: LP profile ID.
+
+    Returns:
+        LP edit form HTML or redirect.
+    """
+    user = auth.get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    if not can_manage_data(user):
+        return RedirectResponse(url="/dashboard", status_code=303)
+
+    # Mock LP data for demo
+    mock_lps = {
+        "lp-001": {
+            "id": "lp-001",
+            "name": "CalPERS",
+            "description": "California Public Employees' Retirement System",
+            "lp_type": "pension",
+            "location": "Sacramento, CA, USA",
+            "total_aum_bn": 450,
+            "pe_allocation": "13%",
+            "typical_commitment_min_m": 100,
+            "typical_commitment_max_m": 500,
+            "preferred_strategies": ["buyout", "growth_equity", "infrastructure"],
+            "preferred_geographies": ["North America", "Europe"],
+            "investment_mandate": "CalPERS maintains a diversified private equity portfolio with allocations across buyout, growth equity, and venture capital strategies.",
+            "is_active": True,
+            "updated_at": "2 weeks ago",
+        },
+        "lp-002": {
+            "id": "lp-002",
+            "name": "Yale Endowment",
+            "description": "Yale University Investments Office",
+            "lp_type": "endowment",
+            "location": "New Haven, CT, USA",
+            "total_aum_bn": 41,
+            "pe_allocation": "41%",
+            "typical_commitment_min_m": 25,
+            "typical_commitment_max_m": 150,
+            "preferred_strategies": ["venture_capital", "buyout"],
+            "preferred_geographies": ["Global"],
+            "investment_mandate": "Pioneer of the endowment model with significant allocations to alternative investments.",
+            "is_active": True,
+            "updated_at": "1 week ago",
+        },
+    }
+
+    lp = None
+    conn = get_db()
+    if conn:
+        try:
+            from uuid import UUID
+            UUID(lp_id)  # Validate UUID format
+
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT lp.id, o.name, o.description, lp.lp_type,
+                           CONCAT(o.hq_city, ', ', o.hq_country) as location,
+                           lp.total_aum_bn, lp.typical_commitment_min_m,
+                           lp.typical_commitment_max_m, lp.preferred_strategies,
+                           lp.preferred_geographies, lp.investment_mandate,
+                           lp.is_active, lp.updated_at
+                    FROM lp_profiles lp
+                    JOIN organizations o ON lp.org_id = o.id
+                    WHERE lp.id = %s
+                    """,
+                    [lp_id],
+                )
+                row = cur.fetchone()
+                if row:
+                    lp = dict(row)
+        except ValueError:
+            # Not a valid UUID, try mock data
+            lp = mock_lps.get(lp_id)
+        except Exception as e:
+            logger.warning(f"Failed to fetch LP from database: {e}")
+            lp = mock_lps.get(lp_id)
+        finally:
+            conn.close()
+    else:
+        lp = mock_lps.get(lp_id)
+
+    if not lp:
+        return RedirectResponse(url="/admin/lps", status_code=303)
+
+    return templates.TemplateResponse(
+        request,
+        "pages/admin/lp-detail.html",
+        {
+            "title": f"Edit {lp['name']} - LPxGP",
+            "user": user,
+            "lp": lp,
+        },
+    )
+
+
+@app.post("/admin/lps/new", response_class=HTMLResponse, response_model=None)
+async def admin_lp_create(request: Request) -> HTMLResponse | RedirectResponse:
+    """Create new LP.
+
+    Accessible by admin, fa, and gp roles.
+
+    Args:
+        request: FastAPI request object.
+
+    Returns:
+        Redirect to LP list or error.
+    """
+    user = auth.get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    if not can_manage_data(user):
+        return RedirectResponse(url="/dashboard", status_code=303)
+
+    form = await request.form()
+    name = form.get("name", "").strip()
+    lp_type = form.get("lp_type", "").strip()
+
+    if not name or not lp_type:
+        # Return form with error
+        return templates.TemplateResponse(
+            request,
+            "pages/admin/lp-detail.html",
+            {
+                "title": "Add New LP - LPxGP",
+                "user": user,
+                "lp": None,
+                "error": "Name and Type are required",
+            },
+        )
+
+    # For now, just redirect back to list (database insert would go here)
+    logger.info(f"Would create LP: {name} ({lp_type})")
+    return RedirectResponse(url="/admin/lps", status_code=303)
+
+
+@app.post("/admin/lps/{lp_id}", response_class=HTMLResponse, response_model=None)
+async def admin_lp_update(request: Request, lp_id: str) -> HTMLResponse | RedirectResponse:
+    """Update LP.
+
+    Accessible by admin, fa, and gp roles.
+
+    Args:
+        request: FastAPI request object.
+        lp_id: LP profile ID.
+
+    Returns:
+        Redirect to LP list or error.
+    """
+    user = auth.get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    if not can_manage_data(user):
+        return RedirectResponse(url="/dashboard", status_code=303)
+
+    form = await request.form()
+    name = form.get("name", "").strip()
+    lp_type = form.get("lp_type", "").strip()
+
+    if not name or not lp_type:
+        return RedirectResponse(url=f"/admin/lps/{lp_id}", status_code=303)
+
+    # For now, just redirect back to list (database update would go here)
+    logger.info(f"Would update LP {lp_id}: {name} ({lp_type})")
+    return RedirectResponse(url="/admin/lps", status_code=303)
+
+
+@app.delete("/admin/lps/{lp_id}", response_model=None)
+async def admin_lp_delete(request: Request, lp_id: str) -> JSONResponse | RedirectResponse:
+    """Delete LP.
+
+    Accessible by admin, fa, and gp roles.
+
+    Args:
+        request: FastAPI request object.
+        lp_id: LP profile ID.
+
+    Returns:
+        JSON success response or redirect.
+    """
+    user = auth.get_current_user(request)
+    if not user:
+        return JSONResponse(content={"error": "Not authenticated"}, status_code=401)
+
+    if not can_manage_data(user):
+        return JSONResponse(content={"error": "Insufficient permissions"}, status_code=403)
+
+    # For now, just log (database delete would go here)
+    logger.info(f"Would delete LP {lp_id}")
+    return JSONResponse(content={"success": True})
+
+
+@app.get("/admin/companies", response_class=HTMLResponse, response_model=None)
+async def admin_companies_page(
+    request: Request,
+    page: int = 1,
+    q: str | None = None,
+    status: str | None = None,
+) -> HTMLResponse | RedirectResponse:
+    """Companies management page.
+
+    Accessible by admin, fa, and gp roles. Shows list of GP organizations.
+
+    Args:
+        request: FastAPI request object.
+        page: Page number for pagination.
+        q: Search query string.
+        status: Filter by status (active/pending/inactive).
+
+    Returns:
+        Companies list page HTML or redirect.
+    """
+    user = auth.get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    if not can_manage_data(user):
+        return RedirectResponse(url="/dashboard", status_code=303)
+
+    # Pagination settings
+    per_page = 25
+
+    # Mock company data for demo
+    mock_companies = [
+        {
+            "id": "org-001",
+            "name": "Acme Capital",
+            "initials": "AC",
+            "color": "navy",
+            "type": "Private Equity",
+            "admin_email": "john@acmecapital.com",
+            "user_count": 4,
+            "fund_count": 3,
+            "status": "active",
+            "created_at": "Dec 1, 2024",
+        },
+        {
+            "id": "org-002",
+            "name": "Beta Ventures",
+            "initials": "BV",
+            "color": "green",
+            "type": "Venture Capital",
+            "admin_email": None,
+            "user_count": 0,
+            "fund_count": 0,
+            "status": "pending",
+            "created_at": "Dec 18, 2024",
+        },
+        {
+            "id": "org-003",
+            "name": "Gamma Partners",
+            "initials": "GP",
+            "color": "purple",
+            "type": "Growth Equity",
+            "admin_email": "alex@gammapartners.com",
+            "user_count": 2,
+            "fund_count": 1,
+            "status": "inactive",
+            "created_at": "Oct 15, 2024",
+        },
+        {
+            "id": "org-004",
+            "name": "Delta Capital",
+            "initials": "DC",
+            "color": "blue",
+            "type": "Private Equity",
+            "admin_email": "sarah@deltacap.com",
+            "user_count": 6,
+            "fund_count": 4,
+            "status": "active",
+            "created_at": "Sep 20, 2024",
+        },
+    ]
+
+    companies = []
+    total_companies = 0
+
+    conn = get_db()
+    if conn:
+        try:
+            with conn.cursor() as cur:
+                # Build query with filters
+                query = """
+                    SELECT o.id, o.name, o.description,
+                           UPPER(LEFT(o.name, 1)) || UPPER(LEFT(SPLIT_PART(o.name, ' ', 2), 1)) as initials,
+                           o.created_at
+                    FROM organizations o
+                    WHERE o.is_gp = TRUE
+                """
+                params: list = []
+
+                if q:
+                    query += " AND o.name ILIKE %s"
+                    params.append(f"%{q}%")
+
+                query += " ORDER BY o.name LIMIT %s OFFSET %s"
+                params.extend([per_page, (page - 1) * per_page])
+
+                cur.execute(query, params)
+                rows = cur.fetchall()
+                for row in rows:
+                    company = dict(row)
+                    company["color"] = "navy"
+                    company["type"] = "Private Equity"
+                    company["admin_email"] = None
+                    company["user_count"] = 0
+                    company["fund_count"] = 0
+                    company["status"] = "active"
+                    company["created_at"] = company["created_at"].strftime("%b %d, %Y") if company.get("created_at") else "Unknown"
+                    companies.append(company)
+
+                # Get total count
+                cur.execute("SELECT COUNT(*) FROM organizations WHERE is_gp = TRUE")
+                result = cur.fetchone()
+                total_companies = result["count"] if result else 0
+
+        except Exception as e:
+            logger.warning(f"Failed to fetch companies from database: {e}")
+            companies = mock_companies
+            total_companies = len(mock_companies)
+        finally:
+            conn.close()
+    else:
+        # Use mock data
+        companies = mock_companies
+        total_companies = len(mock_companies)
+
+        # Apply filters to mock data
+        if q:
+            companies = [c for c in companies if q.lower() in c["name"].lower()]
+        if status:
+            companies = [c for c in companies if c["status"] == status]
+        total_companies = len(companies)
+
+    total_pages = max(1, (total_companies + per_page - 1) // per_page)
+
+    return templates.TemplateResponse(
+        request,
+        "pages/admin/companies.html",
+        {
+            "title": "Companies - LPxGP",
+            "user": user,
+            "companies": companies,
+            "total_companies": total_companies,
+            "page": page,
+            "per_page": per_page,
+            "total_pages": total_pages,
+            "search_query": q,
+            "filter_status": status,
+        },
+    )
+
+
+@app.get("/admin/companies/{org_id}", response_class=HTMLResponse, response_model=None)
+async def admin_company_detail_page(request: Request, org_id: str) -> HTMLResponse | RedirectResponse:
+    """Company detail page.
+
+    Accessible by admin, fa, and gp roles.
+
+    Args:
+        request: FastAPI request object.
+        org_id: Organization ID.
+
+    Returns:
+        Company detail page HTML or redirect.
+    """
+    user = auth.get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    if not can_manage_data(user):
+        return RedirectResponse(url="/dashboard", status_code=303)
+
+    # Mock company data for demo
+    mock_companies = {
+        "org-001": {
+            "id": "org-001",
+            "name": "Acme Capital",
+            "initials": "AC",
+            "color": "navy",
+            "type": "Private Equity - Growth",
+            "location": "San Francisco, CA",
+            "website": "acmecapital.com",
+            "status": "active",
+            "created_at": "December 1, 2024",
+            "user_count": 4,
+            "fund_count": 3,
+            "match_count": 127,
+            "last_login": "2 hours ago",
+            "searches_30d": 127,
+            "pitches_30d": 23,
+            "users": [
+                {"name": "John Partner", "email": "john@acmecapital.com", "initials": "JP", "color": "navy", "role": "admin", "status": "Active"},
+                {"name": "Sarah Johnson", "email": "sarah@acmecapital.com", "initials": "SJ", "color": "green", "role": "member", "status": "Active"},
+                {"name": "Mike Chen", "email": "mike@acmecapital.com", "initials": "MC", "color": "purple", "role": "member", "status": "Active"},
+            ],
+            "funds": [
+                {"name": "Growth Fund III", "target": 500, "status": "Raising", "matches": 45},
+                {"name": "Growth Fund II", "target": 350, "status": "Investing", "matches": 52},
+                {"name": "Growth Fund I", "target": 200, "status": "Harvesting", "matches": 30},
+            ],
+        },
+        "org-002": {
+            "id": "org-002",
+            "name": "Beta Ventures",
+            "initials": "BV",
+            "color": "green",
+            "type": "Venture Capital",
+            "location": None,
+            "website": None,
+            "status": "pending",
+            "created_at": "December 18, 2024",
+            "user_count": 0,
+            "fund_count": 0,
+            "match_count": 0,
+            "last_login": "Never",
+            "searches_30d": 0,
+            "pitches_30d": 0,
+            "users": [],
+            "funds": [],
+        },
+    }
+
+    company = None
+    conn = get_db()
+    if conn:
+        try:
+            from uuid import UUID
+            UUID(org_id)  # Validate UUID format
+
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT o.id, o.name, o.description, o.website,
+                           CONCAT(o.hq_city, ', ', o.hq_country) as location,
+                           o.created_at
+                    FROM organizations o
+                    WHERE o.id = %s AND o.is_gp = TRUE
+                    """,
+                    [org_id],
+                )
+                row = cur.fetchone()
+                if row:
+                    company = dict(row)
+                    company["initials"] = company["name"][:2].upper() if company["name"] else "??"
+                    company["color"] = "navy"
+                    company["type"] = "Private Equity"
+                    company["status"] = "active"
+                    company["created_at"] = company["created_at"].strftime("%B %d, %Y") if company.get("created_at") else "Unknown"
+                    company["user_count"] = 0
+                    company["fund_count"] = 0
+                    company["match_count"] = 0
+                    company["last_login"] = "Unknown"
+                    company["searches_30d"] = 0
+                    company["pitches_30d"] = 0
+                    company["users"] = []
+                    company["funds"] = []
+        except ValueError:
+            # Not a valid UUID, try mock data
+            company = mock_companies.get(org_id)
+        except Exception as e:
+            logger.warning(f"Failed to fetch company from database: {e}")
+            company = mock_companies.get(org_id)
+        finally:
+            conn.close()
+    else:
+        company = mock_companies.get(org_id)
+
+    if not company:
+        return RedirectResponse(url="/admin/companies", status_code=303)
+
+    return templates.TemplateResponse(
+        request,
+        "pages/admin/company-detail.html",
+        {
+            "title": f"{company['name']} - LPxGP",
+            "user": user,
+            "company": company,
+        },
+    )
+
+
+@app.delete("/admin/companies/{org_id}", response_model=None)
+async def admin_company_deactivate(request: Request, org_id: str) -> JSONResponse:
+    """Deactivate a company.
+
+    Accessible by admin, fa, and gp roles.
+
+    Args:
+        request: FastAPI request object.
+        org_id: Organization ID.
+
+    Returns:
+        JSON success response.
+    """
+    user = auth.get_current_user(request)
+    if not user:
+        return JSONResponse(content={"error": "Not authenticated"}, status_code=401)
+
+    if not can_manage_data(user):
+        return JSONResponse(content={"error": "Insufficient permissions"}, status_code=403)
+
+    # For now, just log (database update would go here)
+    logger.info(f"Would deactivate company {org_id}")
+    return JSONResponse(content={"success": True})
 
 
 # -----------------------------------------------------------------------------

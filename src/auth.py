@@ -57,7 +57,7 @@ class UserData(TypedDict):
     id: str
     email: str
     name: str
-    role: Literal["gp", "lp", "admin"]
+    role: Literal["gp", "lp", "admin", "fa"]
     created_at: str
 
 
@@ -89,7 +89,7 @@ class SessionData(TypedDict):
     user_id: str
     email: str
     name: str
-    role: Literal["gp", "lp", "admin"]
+    role: Literal["gp", "lp", "admin", "fa"]
     created_at: datetime
     expires_at: datetime
 
@@ -109,7 +109,7 @@ class CurrentUser(TypedDict):
     id: str
     email: str
     name: str
-    role: Literal["gp", "lp", "admin"]
+    role: Literal["gp", "lp", "admin", "fa"]
 
 
 class DemoUserConfig(TypedDict):
@@ -125,11 +125,11 @@ class DemoUserConfig(TypedDict):
     email: str
     password: str
     name: str
-    role: Literal["gp", "lp", "admin"]
+    role: Literal["gp", "lp", "admin", "fa"]
 
 
 # Type alias for user roles
-UserRole = Literal["gp", "lp", "admin"]
+UserRole = Literal["gp", "lp", "admin", "fa"]
 
 
 # =============================================================================
@@ -248,7 +248,7 @@ def create_user(
         email: User's email address (will be lowercased).
         password: Plain text password (will be hashed).
         name: User's display name.
-        role: User role, one of 'gp', 'lp', or 'admin'. Defaults to 'gp'.
+        role: User role, one of 'gp', 'lp', 'admin', or 'fa'. Defaults to 'gp'.
 
     Returns:
         Created user data (without password hash).
@@ -662,9 +662,10 @@ def require_role(request: Request, *roles: UserRole) -> CurrentUser:
 def init_demo_users() -> None:
     """Initialize demo users for local development.
 
-    Creates three demo accounts if they don't already exist:
+    Creates four demo accounts if they don't already exist:
         - gp@demo.com (password: demo123) - GP role
         - lp@demo.com (password: demo123) - LP role
+        - fa@demo.com (password: demo123) - FA role (Fund Advisor)
         - admin@demo.com (password: admin123) - Admin role
 
     This function is called automatically on module import.
@@ -682,6 +683,12 @@ def init_demo_users() -> None:
             "password": "demo123",
             "name": "Demo LP User",
             "role": "lp",
+        },
+        {
+            "email": "fa@demo.com",
+            "password": "demo123",
+            "name": "Demo Fund Advisor",
+            "role": "fa",
         },
         {
             "email": "admin@demo.com",

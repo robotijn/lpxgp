@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+
+{% block nav %}
+<nav class="hidden md:flex ml-10 space-x-8">
+    <a href="/admin" class="text-navy-600 hover:text-navy-900 text-sm">Overview</a>
+    <a href="/admin/companies" class="text-navy-600 hover:text-navy-900 text-sm">Companies</a>
+    <a href="/admin/users" class="text-navy-600 hover:text-navy-900 text-sm">Users</a>
+    <a href="/admin/lps" class="text-gold font-medium text-sm">LPs</a>
+    <a href="/admin/health" class="text-navy-600 hover:text-navy-900 text-sm">Health</a>
+    <a href="/dashboard" class="text-navy-600 hover:text-navy-900 text-sm">Back to App</a>
+</nav>
+{% endblock %}
+
+{% block mobile_nav %}
+<a href="/admin" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Overview</a>
+<a href="/admin/companies" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Companies</a>
+<a href="/admin/users" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Users</a>
+<a href="/admin/lps" class="block py-2 px-3 rounded-lg bg-gold/10 text-gold font-medium">LPs</a>
+<a href="/admin/health" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Health</a>
+<a href="/dashboard" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Back to App</a>
+{% endblock %}
+
+{% block header_right %}
+<div class="flex items-center space-x-4">
+    <span class="px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-800 rounded">Admin</span>
+    <a href="/settings" class="text-gold font-medium text-sm hidden md:inline">
+        {{ user.name }}
+    </a>
+    <a href="/logout" class="btn-secondary text-sm">Sign Out</a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-navy-900">LP Database</h1>
+            <p class="text-navy-500 mt-1">{{ stats.total }} institutional investors</p>
+        </div>
+        <div class="flex space-x-3">
+            <a href="/admin/lps/new" class="btn-primary">
+                <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                Add LP
+            </a>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+        <div class="card p-4">
+            <div class="text-sm text-navy-500">Total LPs</div>
+            <div class="text-xl lg:text-2xl font-semibold text-navy-900">{{ stats.total }}</div>
+        </div>
+        <div class="card p-4">
+            <div class="text-sm text-navy-500">Pensions</div>
+            <div class="text-xl lg:text-2xl font-semibold text-navy-900">{{ stats.pensions }}</div>
+        </div>
+        <div class="card p-4">
+            <div class="text-sm text-navy-500">Endowments</div>
+            <div class="text-xl lg:text-2xl font-semibold text-navy-900">{{ stats.endowments }}</div>
+        </div>
+        <div class="card p-4">
+            <div class="text-sm text-navy-500">Family Offices</div>
+            <div class="text-xl lg:text-2xl font-semibold text-navy-900">{{ stats.family_offices }}</div>
+        </div>
+        <div class="card p-4">
+            <div class="text-sm text-navy-500">Other</div>
+            <div class="text-xl lg:text-2xl font-semibold text-navy-900">{{ stats.other }}</div>
+        </div>
+    </div>
+
+    <!-- Search & Filters -->
+    <div class="card p-4 mb-6">
+        <form class="flex flex-wrap gap-2 sm:gap-4" method="get" action="/admin/lps">
+            <div class="flex-1 min-w-[200px]">
+                <input type="text" name="q" class="form-input w-full" placeholder="Search LPs..." value="{{ search_query or '' }}">
+            </div>
+            <select name="type" class="form-input w-40">
+                <option value="">All Types</option>
+                <option value="pension" {{ 'selected' if filter_type == 'pension' else '' }}>Pension</option>
+                <option value="endowment" {{ 'selected' if filter_type == 'endowment' else '' }}>Endowment</option>
+                <option value="foundation" {{ 'selected' if filter_type == 'foundation' else '' }}>Foundation</option>
+                <option value="family_office" {{ 'selected' if filter_type == 'family_office' else '' }}>Family Office</option>
+                <option value="sovereign_wealth" {{ 'selected' if filter_type == 'sovereign_wealth' else '' }}>Sovereign Wealth</option>
+            </select>
+            <button type="submit" class="btn-secondary">Filter</button>
+        </form>
+    </div>
+
+    <!-- LPs Table -->
+    <div class="card overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-navy-200">
+                <thead class="bg-navy-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-navy-500 uppercase tracking-wider">
+                            LP Name
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-navy-500 uppercase tracking-wider">
+                            Type
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-navy-500 uppercase tracking-wider">
+                            Location
+                        </th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-navy-500 uppercase tracking-wider">
+                            AUM
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-navy-500 uppercase tracking-wider">
+                            Status
+                        </th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-navy-500 uppercase tracking-wider">
+                            Actions
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-navy-100">
+                    {% for lp in lps %}
+                    <tr class="hover:bg-navy-50">
+                        <td class="px-6 py-4">
+                            <div class="font-medium text-navy-900">{{ lp.name }}</div>
+                            {% if lp.description %}
+                            <div class="text-xs text-navy-400">{{ lp.description[:50] }}{{ '...' if lp.description|length > 50 else '' }}</div>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-sm text-navy-600">
+                            {{ lp.lp_type|replace('_', ' ')|title if lp.lp_type else '-' }}
+                        </td>
+                        <td class="px-6 py-4 text-sm text-navy-600">
+                            {{ lp.location or '-' }}
+                        </td>
+                        <td class="px-6 py-4 text-sm text-navy-900 text-right font-medium">
+                            {% if lp.total_aum_bn %}
+                            ${{ lp.total_aum_bn }}B
+                            {% else %}
+                            <span class="italic text-navy-400">Unknown</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4">
+                            {% if lp.is_active %}
+                            <span class="px-2 py-0.5 text-xs font-medium bg-green-50 text-green-700 rounded">Active</span>
+                            {% else %}
+                            <span class="px-2 py-0.5 text-xs font-medium bg-red-50 text-red-700 rounded">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            <a href="/admin/lps/{{ lp.id }}" class="text-sm text-gold hover:text-gold-600">Edit &rarr;</a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="px-6 py-8 text-center text-navy-500">
+                            No LPs found.
+                            {% if search_query or filter_type %}
+                            <a href="/admin/lps" class="text-gold hover:underline">Clear filters</a>
+                            {% else %}
+                            <a href="/admin/lps/new" class="text-gold hover:underline">Add the first LP</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if total_pages > 1 %}
+        <!-- Pagination -->
+        <div class="flex justify-between items-center px-6 py-4 border-t border-navy-100">
+            <span class="text-sm text-navy-500">Showing {{ (page - 1) * per_page + 1 }}-{{ min(page * per_page, stats.total) }} of {{ stats.total }} LPs</span>
+            <div class="flex space-x-2">
+                {% if page > 1 %}
+                <a href="/admin/lps?page={{ page - 1 }}{% if search_query %}&q={{ search_query }}{% endif %}{% if filter_type %}&type={{ filter_type }}{% endif %}" class="btn-secondary text-sm px-3">Previous</a>
+                {% endif %}
+                {% for p in range(1, total_pages + 1) %}
+                <a href="/admin/lps?page={{ p }}{% if search_query %}&q={{ search_query }}{% endif %}{% if filter_type %}&type={{ filter_type }}{% endif %}"
+                   class="{% if p == page %}btn-primary{% else %}btn-secondary{% endif %} text-sm px-3">{{ p }}</a>
+                {% endfor %}
+                {% if page < total_pages %}
+                <a href="/admin/lps?page={{ page + 1 }}{% if search_query %}&q={{ search_query }}{% endif %}{% if filter_type %}&type={{ filter_type }}{% endif %}" class="btn-secondary text-sm px-3">Next</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Back Link -->
+    <div class="mt-8">
+        <a href="/admin" class="text-gold hover:text-gold-600 text-sm font-medium">
+            &larr; Back to Admin Dashboard
+        </a>
+    </div>
+</div>
+{% endblock %}

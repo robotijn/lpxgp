@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block nav %}
+<nav class="hidden md:flex ml-10 space-x-8">
+    <a href="/admin" class="text-navy-600 hover:text-navy-900 text-sm">Overview</a>
+    <a href="/admin/companies" class="text-gold font-medium text-sm">Companies</a>
+    <a href="/admin/users" class="text-navy-600 hover:text-navy-900 text-sm">Users</a>
+    <a href="/admin/lps" class="text-navy-600 hover:text-navy-900 text-sm">LPs</a>
+    <a href="/admin/health" class="text-navy-600 hover:text-navy-900 text-sm">Health</a>
+    <a href="/dashboard" class="text-navy-600 hover:text-navy-900 text-sm">Back to App</a>
+</nav>
+{% endblock %}
+
+{% block mobile_nav %}
+<a href="/admin" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Overview</a>
+<a href="/admin/companies" class="block py-2 px-3 rounded-lg bg-gold/10 text-gold font-medium">Companies</a>
+<a href="/admin/users" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Users</a>
+<a href="/admin/lps" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">LPs</a>
+<a href="/admin/health" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Health</a>
+<a href="/dashboard" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Back to App</a>
+{% endblock %}
+
+{% block header_right %}
+<div class="flex items-center space-x-4">
+    <span class="px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-800 rounded">Admin</span>
+    <a href="/settings" class="text-gold font-medium text-sm hidden md:inline">
+        {{ user.name }}
+    </a>
+    <a href="/logout" class="btn-secondary text-sm">Sign Out</a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-navy-900">Companies</h1>
+            <p class="text-navy-500 mt-1">Manage GP firms on the platform</p>
+        </div>
+        <a href="/admin/companies/new" class="btn-primary">
+            <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+            Add Company
+        </a>
+    </div>
+
+    <!-- Search & Filters -->
+    <div class="card p-4 mb-6">
+        <form class="flex flex-wrap gap-2 sm:gap-4" method="get" action="/admin/companies">
+            <div class="flex-1 min-w-[200px]">
+                <input type="text" name="q" class="form-input w-full" placeholder="Search companies..." value="{{ search_query or '' }}">
+            </div>
+            <select name="status" class="form-input w-48">
+                <option value="">All Status</option>
+                <option value="active" {{ 'selected' if filter_status == 'active' else '' }}>Active</option>
+                <option value="pending" {{ 'selected' if filter_status == 'pending' else '' }}>Pending</option>
+                <option value="inactive" {{ 'selected' if filter_status == 'inactive' else '' }}>Inactive</option>
+            </select>
+            <button type="submit" class="btn-secondary">Filter</button>
+        </form>
+    </div>
+
+    <!-- Companies Table -->
+    <div class="card overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-navy-200">
+                <thead class="bg-navy-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-navy-500 uppercase tracking-wider">
+                            Company
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-navy-500 uppercase tracking-wider">
+                            Admin
+                        </th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-navy-500 uppercase tracking-wider">
+                            Users
+                        </th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-navy-500 uppercase tracking-wider">
+                            Funds
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-navy-500 uppercase tracking-wider">
+                            Status
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-navy-500 uppercase tracking-wider">
+                            Created
+                        </th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-navy-500 uppercase tracking-wider">
+                            Actions
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-navy-100">
+                    {% for company in companies %}
+                    <tr class="hover:bg-navy-50">
+                        <td class="px-6 py-4">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded bg-{{ company.color or 'navy' }}-100 flex items-center justify-center mr-3">
+                                    <span class="text-sm font-bold text-{{ company.color or 'navy' }}-600">{{ company.initials }}</span>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-navy-900">{{ company.name }}</div>
+                                    <div class="text-xs text-navy-400">{{ company.type or 'Private Equity' }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-navy-600">
+                            {{ company.admin_email or '—' }}
+                        </td>
+                        <td class="px-6 py-4 text-sm text-navy-600 text-center">
+                            {{ company.user_count or 0 }}
+                        </td>
+                        <td class="px-6 py-4 text-sm text-navy-600 text-center">
+                            {{ company.fund_count or 0 }}
+                        </td>
+                        <td class="px-6 py-4">
+                            {% if company.status == 'active' %}
+                            <span class="px-2 py-1 text-xs font-medium bg-green-50 text-green-700 rounded">Active</span>
+                            {% elif company.status == 'pending' %}
+                            <span class="px-2 py-1 text-xs font-medium bg-amber-50 text-amber-700 rounded">Pending</span>
+                            {% else %}
+                            <span class="px-2 py-1 text-xs font-medium bg-slate-100 text-slate-600 rounded">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-sm text-navy-500">
+                            {{ company.created_at }}
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            <a href="/admin/companies/{{ company.id }}" class="text-sm text-gold hover:text-gold-600">View &rarr;</a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="px-6 py-8 text-center text-navy-500">
+                            No companies found.
+                            {% if search_query or filter_status %}
+                            <a href="/admin/companies" class="text-gold hover:underline">Clear filters</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if total_pages > 1 %}
+        <!-- Pagination -->
+        <div class="flex justify-between items-center px-6 py-4 border-t border-navy-100">
+            <span class="text-sm text-navy-500">Showing {{ (page - 1) * per_page + 1 }}-{{ min(page * per_page, total_companies) }} of {{ total_companies }}</span>
+            <div class="flex space-x-2">
+                {% if page > 1 %}
+                <a href="/admin/companies?page={{ page - 1 }}{% if search_query %}&q={{ search_query }}{% endif %}{% if filter_status %}&status={{ filter_status }}{% endif %}" class="btn-secondary text-sm px-3">Previous</a>
+                {% endif %}
+                {% for p in range(1, total_pages + 1) %}
+                <a href="/admin/companies?page={{ p }}{% if search_query %}&q={{ search_query }}{% endif %}{% if filter_status %}&status={{ filter_status }}{% endif %}"
+                   class="{% if p == page %}btn-primary{% else %}btn-secondary{% endif %} text-sm px-3">{{ p }}</a>
+                {% endfor %}
+                {% if page < total_pages %}
+                <a href="/admin/companies?page={{ page + 1 }}{% if search_query %}&q={{ search_query }}{% endif %}{% if filter_status %}&status={{ filter_status }}{% endif %}" class="btn-secondary text-sm px-3">Next</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Back Link -->
+    <div class="mt-8">
+        <a href="/admin" class="text-gold hover:text-gold-600 text-sm font-medium">
+            &larr; Back to Admin Dashboard
+        </a>
+    </div>
+</div>
+{% endblock %}
