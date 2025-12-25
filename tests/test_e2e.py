@@ -30,8 +30,6 @@ from collections.abc import Generator
 import pytest
 from playwright.sync_api import Page, expect
 
-from tests.conftest import wait_for_page_ready
-
 # Base URL for the running server
 BASE_URL = "http://localhost:8000"
 

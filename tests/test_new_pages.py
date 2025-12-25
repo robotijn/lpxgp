@@ -13,14 +13,12 @@ BDD Reference: docs/prd/tests/test-specifications.md
 """
 
 import uuid
-from typing import Any
 from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
 
 from src.main import app
-
 
 # =============================================================================
 # TEST FIXTURES

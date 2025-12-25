@@ -39,7 +39,7 @@ if TYPE_CHECKING:
 # =============================================================================
 
 
-def wait_for_page_ready(page: "Page", selector: str | None = None, timeout: int = 5000) -> None:
+def wait_for_page_ready(page: Page, selector: str | None = None, timeout: int = 5000) -> None:
     """Fast page ready check - avoids slow networkidle waits.
 
     Args:
@@ -75,7 +75,7 @@ def browser_base_url(worker_id: str) -> str:
 
 
 @pytest.fixture(scope="session")
-def gp_session_context(browser: Any, browser_base_url: str) -> Generator["BrowserContext", None, None]:
+def gp_session_context(browser: Any, browser_base_url: str) -> Generator[BrowserContext, None, None]:
     """Session-scoped GP login context - login once, reuse across tests.
 
     This dramatically speeds up browser tests by avoiding repeated logins.
@@ -103,7 +103,7 @@ def gp_session_context(browser: Any, browser_base_url: str) -> Generator["Browse
 
 
 @pytest.fixture(scope="session")
-def lp_session_context(browser: Any, browser_base_url: str) -> Generator["BrowserContext", None, None]:
+def lp_session_context(browser: Any, browser_base_url: str) -> Generator[BrowserContext, None, None]:
     """Session-scoped LP login context.
 
     Args:
@@ -128,7 +128,7 @@ def lp_session_context(browser: Any, browser_base_url: str) -> Generator["Browse
 
 
 @pytest.fixture(scope="session")
-def admin_session_context(browser: Any, browser_base_url: str) -> Generator["BrowserContext", None, None]:
+def admin_session_context(browser: Any, browser_base_url: str) -> Generator[BrowserContext, None, None]:
     """Session-scoped admin login context.
 
     Args:
@@ -153,7 +153,7 @@ def admin_session_context(browser: Any, browser_base_url: str) -> Generator["Bro
 
 
 @pytest.fixture
-def gp_page(gp_session_context: "BrowserContext") -> Generator["Page", None, None]:
+def gp_page(gp_session_context: BrowserContext) -> Generator[Page, None, None]:
     """Fresh page within GP session - fast because login is reused.
 
     Args:
@@ -168,7 +168,7 @@ def gp_page(gp_session_context: "BrowserContext") -> Generator["Page", None, Non
 
 
 @pytest.fixture
-def lp_page(lp_session_context: "BrowserContext") -> Generator["Page", None, None]:
+def lp_page(lp_session_context: BrowserContext) -> Generator[Page, None, None]:
     """Fresh page within LP session.
 
     Args:
@@ -183,7 +183,7 @@ def lp_page(lp_session_context: "BrowserContext") -> Generator["Page", None, Non
 
 
 @pytest.fixture
-def admin_page(admin_session_context: "BrowserContext") -> Generator["Page", None, None]:
+def admin_page(admin_session_context: BrowserContext) -> Generator[Page, None, None]:
     """Fresh page within admin session.
 
     Args:
