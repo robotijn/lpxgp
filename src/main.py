@@ -222,6 +222,63 @@ async def matches_page(request: Request, fund_id: Optional[str] = Query(None)):
 
 
 # -----------------------------------------------------------------------------
+# API Endpoints (HTMX partials)
+# -----------------------------------------------------------------------------
+
+@app.get("/api/match/{match_id}/detail", response_class=HTMLResponse)
+async def match_detail(request: Request, match_id: str):
+    """Get match detail for modal display (HTMX partial)."""
+    if not is_valid_uuid(match_id):
+        return HTMLResponse(
+            content="<p class='text-red-500'>Invalid match ID</p>",
+            status_code=400
+        )
+
+    conn = get_db()
+    if not conn:
+        return HTMLResponse(
+            content="<p class='text-navy-500'>Database not configured</p>",
+            status_code=503
+        )
+
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT
+                    m.id, m.fund_id, m.lp_org_id, m.score,
+                    m.score_breakdown, m.explanation, m.talking_points, m.concerns,
+                    o.name as lp_name, o.hq_city as lp_city, o.hq_country as lp_country,
+                    o.website as lp_website,
+                    lp.lp_type, lp.total_aum_bn, lp.pe_allocation_pct,
+                    lp.check_size_min_mm, lp.check_size_max_mm,
+                    f.name as fund_name, f.target_size_mm, f.vintage_year,
+                    s.pipeline_stage, s.gp_interest, s.lp_interest,
+                    s.gp_interest_reason, s.lp_interest_reason
+                FROM fund_lp_matches m
+                JOIN organizations o ON o.id = m.lp_org_id
+                LEFT JOIN lp_profiles lp ON lp.org_id = m.lp_org_id
+                JOIN funds f ON f.id = m.fund_id
+                LEFT JOIN fund_lp_status s ON s.fund_id = m.fund_id AND s.lp_org_id = m.lp_org_id
+                WHERE m.id = %s
+            """, (match_id,))
+            match = cur.fetchone()
+
+        if not match:
+            return HTMLResponse(
+                content="<p class='text-navy-500'>Match not found</p>",
+                status_code=404
+            )
+
+        return templates.TemplateResponse(
+            request,
+            "partials/match_detail_modal.html",
+            {"match": match},
+        )
+    finally:
+        conn.close()
+
+
+# -----------------------------------------------------------------------------
 # Error Handlers
 # -----------------------------------------------------------------------------
 
