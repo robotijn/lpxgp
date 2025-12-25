@@ -27,7 +27,7 @@ from __future__ import annotations
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from uuid import UUID
 
 import httpx
@@ -95,7 +95,7 @@ def get_db() -> psycopg.Connection[dict[str, Any]] | None:
                     conn.close()
     """
     settings = get_settings()
-    if settings.database_configured:
+    if settings.database_configured and settings.database_url:
         return psycopg.connect(settings.database_url, row_factory=dict_row)
     return None
 
@@ -329,7 +329,15 @@ async def api_register(
         Redirect to dashboard on success, or error HTML partial on failure.
     """
     try:
-        user = auth.create_user(email=email, password=password, name=name, role=role)
+        # Validate and cast role to UserRole
+        validated_role: auth.UserRole
+        if role == "lp":
+            validated_role = "lp"
+        elif role == "admin":
+            validated_role = "admin"
+        else:
+            validated_role = "gp"
+        user = auth.create_user(email=email, password=password, name=name, role=validated_role)
         return auth.login_response(user, redirect_to="/dashboard")
     except ValueError as e:
         return templates.TemplateResponse(
@@ -385,13 +393,16 @@ async def dashboard_page(request: Request) -> HTMLResponse | RedirectResponse:
         try:
             with conn.cursor() as cur:
                 cur.execute("SELECT COUNT(*) FROM funds")
-                stats["total_funds"] = cur.fetchone()["count"]
+                result = cur.fetchone()
+                stats["total_funds"] = result["count"] if result else 0
 
                 cur.execute("SELECT COUNT(*) FROM lps")
-                stats["total_lps"] = cur.fetchone()["count"]
+                result = cur.fetchone()
+                stats["total_lps"] = result["count"] if result else 0
 
                 cur.execute("SELECT COUNT(*) FROM fund_lp_matches")
-                stats["total_matches"] = cur.fetchone()["count"]
+                result = cur.fetchone()
+                stats["total_matches"] = result["count"] if result else 0
         except Exception:
             pass
         finally:
@@ -832,7 +843,8 @@ async def create_fund(
                 check_size_min_mm, check_size_max_mm, investment_thesis,
                 management_fee_pct, carried_interest_pct, gp_commitment_pct
             ))
-            cur.fetchone()["id"]
+            result = cur.fetchone()
+            _ = result["id"] if result else None  # Verify insert succeeded
             conn.commit()
 
         # Return success with redirect
@@ -1071,7 +1083,12 @@ async def generate_matches_for_fund(request: Request, fund_id: str):
     """Generate AI-powered matches for a fund against all LPs."""
     import json
 
-    from src.matching import calculate_match_score, generate_match_content
+    from src.matching import (
+        FundData,
+        LPData,
+        calculate_match_score,
+        generate_match_content,
+    )
 
     if not is_valid_uuid(fund_id):
         return HTMLResponse(
@@ -1117,15 +1134,17 @@ async def generate_matches_for_fund(request: Request, fund_id: str):
             lps = cur.fetchall()
 
             for lp in lps:
-                # Calculate match score
-                result = calculate_match_score(dict(fund), dict(lp))
+                # Calculate match score (cast dict to TypedDict for type safety)
+                fund_data = cast(FundData, dict(fund))
+                lp_data = cast(LPData, dict(lp))
+                result = calculate_match_score(fund_data, lp_data)
 
                 # Only create matches for scores above threshold
                 if result["score"] >= 50:
                     # Generate LLM content
                     content = await generate_match_content(
-                        dict(fund),
-                        dict(lp),
+                        fund_data,
+                        lp_data,
                         result["score_breakdown"],
                         ollama_base_url=settings.ollama_base_url,
                         ollama_model=settings.ollama_model
@@ -1234,7 +1253,10 @@ async def create_lp(
                 VALUES (%s, %s, %s, %s, %s, TRUE)
                 RETURNING id
             """, (name, website, hq_city, hq_country, description))
-            org_id = cur.fetchone()["id"]
+            result = cur.fetchone()
+            if not result:
+                raise ValueError("Failed to create organization")
+            org_id = result["id"]
 
             # Create lp_profile
             cur.execute("""

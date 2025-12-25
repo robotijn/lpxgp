@@ -92,14 +92,31 @@ def create_error_response(
 
 async def validation_exception_handler(
     request: Request,
-    exc: RequestValidationError,
+    exc: Exception,
 ) -> JSONResponse:
-    """Handle Pydantic validation errors."""
+    """Handle Pydantic validation errors.
+
+    Args:
+        request: The incoming request.
+        exc: The validation exception (typed as Exception for FastAPI compatibility).
+
+    Returns:
+        JSON response with validation error details.
+    """
+    # Cast to RequestValidationError for type safety
+    validation_exc = exc if isinstance(exc, (RequestValidationError, ValidationError)) else None
     request_id = getattr(request.state, "request_id", str(uuid.uuid4()))
 
     # Extract validation errors without exposing internal details
     errors = []
-    for error in exc.errors():
+    if validation_exc is None:
+        return create_error_response(
+            error="validation_error",
+            message="Request validation failed",
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            request_id=request_id,
+        )
+    for error in validation_exc.errors():
         field = ".".join(str(loc) for loc in error.get("loc", []))
         message = error.get("msg", "Invalid value")
 
@@ -174,9 +191,17 @@ async def generic_exception_handler(
 
 async def http_exception_handler(
     request: Request,
-    exc: Any,  # HTTPException
+    exc: Exception,
 ) -> JSONResponse:
-    """Handle HTTP exceptions."""
+    """Handle HTTP exceptions.
+
+    Args:
+        request: The incoming request.
+        exc: The HTTP exception (typed as Exception for FastAPI compatibility).
+
+    Returns:
+        JSON response with error details.
+    """
     request_id = getattr(request.state, "request_id", str(uuid.uuid4()))
 
     # Map status codes to error types
@@ -193,12 +218,14 @@ async def http_exception_handler(
         503: "service_unavailable",
     }
 
-    error_type = error_types.get(exc.status_code, "error")
+    # Get status_code from exception (HTTPException has this attribute)
+    status_code = getattr(exc, "status_code", 500)
+    error_type = error_types.get(status_code, "error")
 
     return create_error_response(
         error=error_type,
-        message=str(exc.detail) if hasattr(exc, "detail") else "An error occurred",
-        status_code=exc.status_code,
+        message=str(getattr(exc, "detail", "An error occurred")),
+        status_code=status_code,
         request_id=request_id,
     )
 

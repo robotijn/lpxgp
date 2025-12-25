@@ -633,14 +633,14 @@ def _generate_fallback_content(
             f"Fund {fund.get('fund_number', 'N')} demonstrates proven track record"
         )
     if score_breakdown.get("geography", 0) >= 70:
-        geo_prefs = lp.get("geographic_preferences", ["regional"])[:2]
+        geo_prefs = lp.get("geographic_preferences") or ["regional"]
         talking_points.append(
-            f"Geographic focus aligns with LP's {', '.join(geo_prefs)} mandate"
+            f"Geographic focus aligns with LP's {', '.join(geo_prefs[:2])} mandate"
         )
     if score_breakdown.get("sector", 0) >= 70:
-        sectors = fund.get("sector_focus", ["target"])[:2]
+        sectors = fund.get("sector_focus") or ["target"]
         talking_points.append(
-            f"Sector expertise in {', '.join(sectors)} matches LP interests"
+            f"Sector expertise in {', '.join(sectors[:2])} matches LP interests"
         )
 
     # Ensure we have at least 3 talking points

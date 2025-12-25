@@ -1,5 +1,6 @@
 """Match generation and management models."""
 
+from decimal import Decimal
 from typing import Literal
 from uuid import UUID
 
@@ -53,11 +54,11 @@ class MatchScoreBreakdown(BaseModel):
     relationship_score: int = Field(default=0, ge=0, le=100)
 
     # Weights used
-    strategy_weight: Percentage = Field(default=30)
-    geography_weight: Percentage = Field(default=20)
-    size_weight: Percentage = Field(default=20)
-    semantic_weight: Percentage = Field(default=25)
-    relationship_weight: Percentage = Field(default=5)
+    strategy_weight: Percentage = Field(default=Decimal("30"))
+    geography_weight: Percentage = Field(default=Decimal("20"))
+    size_weight: Percentage = Field(default=Decimal("20"))
+    semantic_weight: Percentage = Field(default=Decimal("25"))
+    relationship_weight: Percentage = Field(default=Decimal("5"))
 
 
 class MatchResponse(BaseResponse):

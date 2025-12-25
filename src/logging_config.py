@@ -35,9 +35,11 @@ from __future__ import annotations
 
 import logging
 import sys
+from collections.abc import MutableMapping
 from typing import Any
 
 import structlog
+from structlog.typing import WrappedLogger
 
 # =============================================================================
 # Sensitive Field Patterns
@@ -90,10 +92,10 @@ MASKED_PREFIX: str = "***"
 
 
 def redact_sensitive_fields(
-    logger: logging.Logger,
+    logger: WrappedLogger,
     method_name: str,
-    event_dict: dict[str, Any],
-) -> dict[str, Any]:
+    event_dict: MutableMapping[str, Any],
+) -> MutableMapping[str, Any]:
     """Redact sensitive fields from log events.
 
     This structlog processor recursively searches through the event dict
@@ -163,7 +165,8 @@ def redact_sensitive_fields(
                 result[key] = redact_value(key, value)
         return result
 
-    return redact_dict(event_dict)
+    # Convert MutableMapping to dict for processing
+    return redact_dict(dict(event_dict))
 
 
 # =============================================================================
@@ -172,10 +175,10 @@ def redact_sensitive_fields(
 
 
 def add_app_context(
-    logger: logging.Logger,
+    logger: WrappedLogger,
     method_name: str,
-    event_dict: dict[str, Any],
-) -> dict[str, Any]:
+    event_dict: MutableMapping[str, Any],
+) -> MutableMapping[str, Any]:
     """Add application context to all log events.
 
     Injects the current environment (development/staging/production)
@@ -201,10 +204,10 @@ def add_app_context(
 
 
 def sanitize_exception(
-    logger: logging.Logger,
+    logger: WrappedLogger,
     method_name: str,
-    event_dict: dict[str, Any],
-) -> dict[str, Any]:
+    event_dict: MutableMapping[str, Any],
+) -> MutableMapping[str, Any]:
     """Sanitize exception information to remove sensitive data from stack traces.
 
     Checks exception text for sensitive patterns and replaces the entire
@@ -268,6 +271,7 @@ def configure_logging(
         suppresses noisy third-party loggers (httpx, supabase).
     """
     # Determine renderer based on environment
+    renderer: structlog.processors.JSONRenderer | structlog.dev.ConsoleRenderer
     if json_logs:
         renderer = structlog.processors.JSONRenderer()
     else:

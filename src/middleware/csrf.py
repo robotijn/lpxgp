@@ -91,7 +91,10 @@ async def csrf_middleware(request: Request, call_next: Callable) -> Response:
             if "application/x-www-form-urlencoded" in content_type:
                 try:
                     form = await request.form()
-                    request_token = form.get(CSRF_FORM_FIELD)
+                    form_token = form.get(CSRF_FORM_FIELD)
+                    # form.get() can return UploadFile | str | None, we only want str
+                    if isinstance(form_token, str):
+                        request_token = form_token
                 except Exception:
                     pass
 

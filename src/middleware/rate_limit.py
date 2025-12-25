@@ -6,6 +6,7 @@ Configurable rate limits per endpoint with org-scoped and user-scoped options.
 from typing import Callable
 
 from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
@@ -97,11 +98,19 @@ def rate_limit_auth() -> Callable:
 # ---------------------------------------------------------------------------
 
 
-async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
-    """Custom handler that returns structured JSON response."""
-    # Parse the limit from the exception
-    # exc.detail format: "Rate limit exceeded: X per Y"
-    str(exc.detail)
+async def rate_limit_handler(request: Request, exc: Exception) -> JSONResponse:
+    """Custom handler that returns structured JSON response.
+
+    Args:
+        request: The incoming request.
+        exc: The RateLimitExceeded exception (typed as Exception for FastAPI compatibility).
+
+    Returns:
+        JSON response with rate limit error details.
+    """
+    # Cast to RateLimitExceeded for type safety
+    rate_exc = exc if isinstance(exc, RateLimitExceeded) else None
+    _ = str(rate_exc.detail) if rate_exc else ""
 
     # Extract retry-after from headers if available
     retry_after = 60  # Default to 60 seconds
@@ -112,8 +121,6 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
         limit=10,  # Will be overridden per endpoint
         window_seconds=60,
     )
-
-    from fastapi.responses import JSONResponse
 
     return JSONResponse(
         status_code=429,
