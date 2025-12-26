@@ -178,6 +178,11 @@ def get_db() -> psycopg.Connection[dict[str, Any]] | None:
     Creates a new psycopg connection with dict_row factory for easy
     data access. The caller is responsible for closing the connection.
 
+    IMPORTANT: This function automatically selects the appropriate database:
+    - In tests (pytest): Uses TEST_DATABASE_URL
+    - In production: Uses DATABASE_URL
+    - In development: Prefers TEST_DATABASE_URL if set
+
     Returns:
         psycopg Connection with dict_row factory if database is configured,
         None otherwise.
@@ -193,8 +198,9 @@ def get_db() -> psycopg.Connection[dict[str, Any]] | None:
                     conn.close()
     """
     settings = get_settings()
-    if settings.database_configured and settings.database_url:
-        return psycopg.connect(settings.database_url, row_factory=dict_row)
+    db_url = settings.active_database_url
+    if db_url:
+        return psycopg.connect(db_url, row_factory=dict_row)
     return None
 
 # =============================================================================

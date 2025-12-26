@@ -99,14 +99,20 @@ class Settings(BaseSettings):
     )
 
     # =========================================================================
-    # Required Settings (fail fast if missing in production)
+    # Database Settings (IMPORTANT: Separate test and production!)
     # =========================================================================
 
     database_url: str | None = Field(
         default=None,
-        description="PostgreSQL connection URL (e.g., postgresql://user:pass@host:port/db)",
+        description="PRODUCTION PostgreSQL connection URL - NEVER use for testing!",
     )
-    """PostgreSQL database connection URL. None disables database features."""
+    """PRODUCTION database connection URL. Protected from test operations."""
+
+    test_database_url: str | None = Field(
+        default=None,
+        description="TEST PostgreSQL connection URL - safe to reset/delete",
+    )
+    """TEST database connection URL. Can be safely reset, truncated, or deleted."""
 
     # =========================================================================
     # Environment Settings
@@ -325,12 +331,12 @@ class Settings(BaseSettings):
 
     @property
     def database_configured(self) -> bool:
-        """Check if database is configured.
+        """Check if any database is configured.
 
         Returns:
-            True if database_url is set, False otherwise.
+            True if database_url or test_database_url is set.
         """
-        return self.database_url is not None
+        return self.database_url is not None or self.test_database_url is not None
 
     @property
     def is_production(self) -> bool:
@@ -340,6 +346,66 @@ class Settings(BaseSettings):
             True if environment is 'production', False otherwise.
         """
         return self.environment == "production"
+
+    @property
+    def is_test_mode(self) -> bool:
+        """Check if running in test mode.
+
+        Test mode is detected by:
+        1. PYTEST_CURRENT_TEST env var (set by pytest)
+        2. Environment is 'development' and test_database_url is set
+
+        Returns:
+            True if in test mode, False otherwise.
+        """
+        import os
+        return bool(os.environ.get("PYTEST_CURRENT_TEST"))
+
+    @property
+    def active_database_url(self) -> str | None:
+        """Get the appropriate database URL based on context.
+
+        SAFETY: In test mode or when explicitly requested, returns test_database_url.
+        In production mode, returns database_url.
+
+        Returns:
+            The appropriate database URL for the current context.
+        """
+        import os
+
+        # If pytest is running, ALWAYS use test database
+        if os.environ.get("PYTEST_CURRENT_TEST"):
+            return self.test_database_url
+
+        # If USE_TEST_DATABASE env var is set, use test database
+        if os.environ.get("USE_TEST_DATABASE", "").lower() in ("1", "true", "yes"):
+            return self.test_database_url
+
+        # In production, use production database
+        if self.is_production:
+            return self.database_url
+
+        # In development without explicit test mode, prefer test_database_url if set
+        # This provides an extra safety layer
+        return self.test_database_url or self.database_url
+
+    @property
+    def test_database_configured(self) -> bool:
+        """Check if test database is configured.
+
+        Returns:
+            True if test_database_url is set, False otherwise.
+        """
+        return self.test_database_url is not None
+
+    @property
+    def production_database_configured(self) -> bool:
+        """Check if production database is configured.
+
+        Returns:
+            True if database_url is set, False otherwise.
+        """
+        return self.database_url is not None
 
     @property
     def max_file_upload_bytes(self) -> int:

@@ -34,3 +34,6 @@ Thumbs.db
 
 # Project
 *.log
+
+# Seed data (regenerate with scripts/generate_seed_data.py)
+data/seed/*.json

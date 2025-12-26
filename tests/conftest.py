@@ -760,3 +760,84 @@ def authenticated_client() -> Generator[TestClient, None, None]:
     with patch("src.main.get_db", return_value=None):
         with patch("src.auth.get_current_user", return_value=mock_user):
             yield TestClient(app)
+
+
+# =============================================================================
+# Database Reset Fixtures (for integration tests with real database)
+# =============================================================================
+
+
+@pytest.fixture(scope="session")
+def reset_test_database_once():
+    """Reset TEST database once at the start of the test session.
+
+    SAFETY: Only operates on TEST_DATABASE_URL, never production.
+
+    Use this for integration tests that need a clean database with seed data.
+    Only runs if TEST_DATABASE_URL is configured.
+    """
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    scripts_dir = Path(__file__).parent.parent / "scripts"
+    reset_script = scripts_dir / "reset_database.py"
+
+    if not reset_script.exists():
+        pytest.skip("reset_database.py not found")
+
+    try:
+        # Check if TEST database is configured
+        from src.config import get_settings
+        settings = get_settings()
+
+        if not settings.test_database_url:
+            pytest.skip("TEST_DATABASE_URL not configured - tests use test database only")
+
+        # Verify we're not accidentally targeting production
+        if settings.is_production:
+            pytest.fail("REFUSING to reset database in production environment!")
+
+        # Reset with demo data
+        result = subprocess.run(
+            [sys.executable, str(reset_script), "--demo"],
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        if result.returncode != 0:
+            print(f"Test database reset failed: {result.stderr}")
+            pytest.skip(f"Test database reset failed: {result.stderr}")
+
+        yield True
+
+    except Exception as e:
+        pytest.skip(f"Test database reset not available: {e}")
+
+
+@pytest.fixture
+def test_database(reset_test_database_once):
+    """Get a connection to the TEST database.
+
+    SAFETY: Only connects to TEST_DATABASE_URL, never production.
+
+    Depends on reset_test_database_once to ensure database is reset at session start.
+    Individual tests can use this to verify database is available.
+    """
+    from src.config import get_settings
+
+    settings = get_settings()
+    if not settings.test_database_url:
+        pytest.skip("TEST_DATABASE_URL not configured")
+
+    import psycopg2
+    conn = psycopg2.connect(settings.test_database_url)
+    yield conn
+    conn.close()
+
+
+# Alias for backwards compatibility
+@pytest.fixture
+def fresh_database(test_database):
+    """Alias for test_database fixture (backwards compatibility)."""
+    yield test_database
