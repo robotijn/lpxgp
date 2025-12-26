@@ -22,7 +22,6 @@ Environment:
 
 import argparse
 import json
-import os
 import sys
 from pathlib import Path
 
@@ -440,7 +439,7 @@ def show_stats(conn):
         cur.execute("SELECT COUNT(*) FROM funds")
         fund_count = cur.fetchone()[0]
 
-    print(f"\nDatabase statistics:")
+    print("\nDatabase statistics:")
     print(f"  LPs: {lp_count}")
     print(f"  GPs: {gp_count}")
     print(f"  Funds: {fund_count}")

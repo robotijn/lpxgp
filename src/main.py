@@ -793,14 +793,15 @@ async def lps_page(
             else:
                 # Simple text search
                 conditions = ["o.is_lp = TRUE"]
-                params: list[Any] = []
+                simple_params: list[Any] = []
                 if search:
                     conditions.append("(o.name ILIKE %s OR o.hq_city ILIKE %s)")
-                    params.extend([f"%{search}%", f"%{search}%"])
+                    simple_params.extend([f"%{search}%", f"%{search}%"])
                 if lp_type:
                     conditions.append("lp.lp_type = %s")
-                    params.append(lp_type)
+                    simple_params.append(lp_type)
                 where_clause = " AND ".join(conditions)
+                params = simple_params
 
             query = base_query.format(where_clause=where_clause)
             cur.execute(query, params)
@@ -861,13 +862,13 @@ async def gps_page(
             cur.execute("""
                 SELECT DISTINCT
                     CASE
-                        WHEN investment_philosophy ILIKE '%buyout%' THEN 'buyout'
-                        WHEN investment_philosophy ILIKE '%growth%' THEN 'growth'
-                        WHEN investment_philosophy ILIKE '%venture%' THEN 'venture'
-                        WHEN investment_philosophy ILIKE '%real estate%' THEN 'real_estate'
-                        WHEN investment_philosophy ILIKE '%infrastructure%' THEN 'infrastructure'
-                        WHEN investment_philosophy ILIKE '%credit%' THEN 'credit'
-                        WHEN investment_philosophy ILIKE '%secondaries%' THEN 'secondaries'
+                        WHEN investment_philosophy ILIKE '%%buyout%%' THEN 'buyout'
+                        WHEN investment_philosophy ILIKE '%%growth%%' THEN 'growth'
+                        WHEN investment_philosophy ILIKE '%%venture%%' THEN 'venture'
+                        WHEN investment_philosophy ILIKE '%%real estate%%' THEN 'real_estate'
+                        WHEN investment_philosophy ILIKE '%%infrastructure%%' THEN 'infrastructure'
+                        WHEN investment_philosophy ILIKE '%%credit%%' THEN 'credit'
+                        WHEN investment_philosophy ILIKE '%%secondaries%%' THEN 'secondaries'
                         ELSE NULL
                     END as strategy
                 FROM gp_profiles
@@ -883,13 +884,13 @@ async def gps_page(
                     gp.spun_out_from, gp.notable_exits,
                     (SELECT COUNT(*) FROM funds f WHERE f.org_id = o.id) as fund_count,
                     CASE
-                        WHEN gp.investment_philosophy ILIKE '%buyout%' THEN 'buyout'
-                        WHEN gp.investment_philosophy ILIKE '%growth%' THEN 'growth'
-                        WHEN gp.investment_philosophy ILIKE '%venture%' THEN 'venture'
-                        WHEN gp.investment_philosophy ILIKE '%real estate%' THEN 'real_estate'
-                        WHEN gp.investment_philosophy ILIKE '%infrastructure%' THEN 'infrastructure'
-                        WHEN gp.investment_philosophy ILIKE '%credit%' THEN 'credit'
-                        WHEN gp.investment_philosophy ILIKE '%secondaries%' THEN 'secondaries'
+                        WHEN gp.investment_philosophy ILIKE '%%buyout%%' THEN 'buyout'
+                        WHEN gp.investment_philosophy ILIKE '%%growth%%' THEN 'growth'
+                        WHEN gp.investment_philosophy ILIKE '%%venture%%' THEN 'venture'
+                        WHEN gp.investment_philosophy ILIKE '%%real estate%%' THEN 'real_estate'
+                        WHEN gp.investment_philosophy ILIKE '%%infrastructure%%' THEN 'infrastructure'
+                        WHEN gp.investment_philosophy ILIKE '%%credit%%' THEN 'credit'
+                        WHEN gp.investment_philosophy ILIKE '%%secondaries%%' THEN 'secondaries'
                         ELSE NULL
                     END as strategy
                 FROM organizations o
@@ -911,14 +912,15 @@ async def gps_page(
             else:
                 # Simple text search
                 conditions = ["o.is_gp = TRUE"]
-                params: list[Any] = []
+                simple_params: list[Any] = []
                 if search:
                     conditions.append("(o.name ILIKE %s OR o.hq_city ILIKE %s OR gp.investment_philosophy ILIKE %s)")
-                    params.extend([f"%{search}%", f"%{search}%", f"%{search}%"])
+                    simple_params.extend([f"%{search}%", f"%{search}%", f"%{search}%"])
                 if strategy:
                     conditions.append("gp.investment_philosophy ILIKE %s")
-                    params.append(f"%{strategy}%")
+                    simple_params.append(f"%{strategy}%")
                 where_clause = " AND ".join(conditions)
+                params = simple_params
 
             query = base_query.format(where_clause=where_clause)
             cur.execute(query, params)
@@ -3424,7 +3426,7 @@ async def admin_lps_page(
     per_page = 25
 
     # Mock LP data for demo
-    mock_lps = [
+    mock_lps: list[dict[str, Any]] = [
         {
             "id": "lp-001",
             "name": "CalPERS",
@@ -3473,8 +3475,8 @@ async def admin_lps_page(
     ]
 
     # Try to get LPs from database
-    lps = []
-    stats = {"total": 0, "pensions": 0, "endowments": 0, "family_offices": 0, "other": 0}
+    lps: list[dict[str, Any]] = []
+    stats: dict[str, int] = {"total": 0, "pensions": 0, "endowments": 0, "family_offices": 0, "other": 0}
 
     conn = get_db()
     if conn:
@@ -3719,8 +3721,8 @@ async def admin_lp_create(request: Request) -> HTMLResponse | RedirectResponse:
         return RedirectResponse(url="/dashboard", status_code=303)
 
     form = await request.form()
-    name = form.get("name", "").strip()
-    lp_type = form.get("lp_type", "").strip()
+    name = str(form.get("name", "")).strip()
+    lp_type = str(form.get("lp_type", "")).strip()
 
     if not name or not lp_type:
         # Return form with error
@@ -3761,8 +3763,8 @@ async def admin_lp_update(request: Request, lp_id: str) -> HTMLResponse | Redire
         return RedirectResponse(url="/dashboard", status_code=303)
 
     form = await request.form()
-    name = form.get("name", "").strip()
-    lp_type = form.get("lp_type", "").strip()
+    name = str(form.get("name", "")).strip()
+    lp_type = str(form.get("lp_type", "")).strip()
 
     if not name or not lp_type:
         return RedirectResponse(url=f"/admin/lps/{lp_id}", status_code=303)
@@ -3828,7 +3830,7 @@ async def admin_companies_page(
     per_page = 25
 
     # Mock company data for demo
-    mock_companies = [
+    mock_companies: list[dict[str, Any]] = [
         {
             "id": "org-001",
             "name": "Acme Capital",
@@ -3879,7 +3881,7 @@ async def admin_companies_page(
         },
     ]
 
-    companies = []
+    companies: list[dict[str, Any]] = []
     total_companies = 0
 
     conn = get_db()
@@ -3979,7 +3981,7 @@ async def admin_company_detail_page(request: Request, org_id: str) -> HTMLRespon
         return RedirectResponse(url="/dashboard", status_code=303)
 
     # Mock company data for demo
-    mock_companies = {
+    mock_companies: dict[str, dict[str, Any]] = {
         "org-001": {
             "id": "org-001",
             "name": "Acme Capital",
@@ -4028,7 +4030,7 @@ async def admin_company_detail_page(request: Request, org_id: str) -> HTMLRespon
         },
     }
 
-    company = None
+    company: dict[str, Any] | None = None
     conn = get_db()
     if conn:
         try:
@@ -4437,7 +4439,7 @@ async def create_event(
                     notes,
                 ),
             )
-            event_id = cur.fetchone()["id"]
+            cur.fetchone()  # Consume the RETURNING result
             conn.commit()
 
             return HTMLResponse(
@@ -4505,7 +4507,7 @@ async def get_event_detail(request: Request, event_id: str) -> HTMLResponse:
             # Get attendees
             cur.execute(
                 """
-                SELECT ea.*, p.first_name, p.last_name, o.name as org_name
+                SELECT ea.*, p.full_name, o.name as org_name
                 FROM event_attendance ea
                 LEFT JOIN people p ON p.id = ea.person_id
                 LEFT JOIN organizations o ON o.id = ea.company_id
@@ -4587,7 +4589,7 @@ async def touchpoints_page(request: Request) -> HTMLResponse | RedirectResponse:
                     """
                     SELECT
                         t.*,
-                        p.first_name, p.last_name,
+                        p.full_name as person_name,
                         o.name as company_name,
                         e.name as event_name
                     FROM touchpoints t
@@ -4715,10 +4717,10 @@ async def tasks_page(request: Request) -> HTMLResponse | RedirectResponse:
                     """
                     SELECT
                         t.*,
-                        p.first_name as contact_first, p.last_name as contact_last,
+                        p.full_name as contact_name,
                         o.name as company_name,
                         e.name as event_name,
-                        ap.first_name as assigned_first, ap.last_name as assigned_last
+                        ap.full_name as assigned_name
                     FROM tasks t
                     LEFT JOIN people p ON p.id = t.person_id
                     LEFT JOIN organizations o ON o.id = t.company_id
@@ -4926,12 +4928,13 @@ async def lp_dashboard(request: Request) -> HTMLResponse | RedirectResponse:
     if conn:
         try:
             with conn.cursor() as cur:
-                # Get LP's organization
+                # Get LP's organization through employment
                 cur.execute(
                     """
                     SELECT o.id as lp_org_id
                     FROM people p
-                    JOIN organizations o ON o.id = p.org_id
+                    JOIN employment e ON e.person_id = p.id AND e.is_current = TRUE
+                    JOIN organizations o ON o.id = e.org_id
                     WHERE p.auth_user_id = %s AND o.is_lp = TRUE
                     """,
                     (user.get("id"),),
@@ -5023,12 +5026,13 @@ async def lp_watchlist_page(request: Request) -> HTMLResponse | RedirectResponse
     if conn:
         try:
             with conn.cursor() as cur:
-                # Get LP's organization
+                # Get LP's organization through employment
                 cur.execute(
                     """
                     SELECT o.id as lp_org_id
                     FROM people p
-                    JOIN organizations o ON o.id = p.org_id
+                    JOIN employment e ON e.person_id = p.id AND e.is_current = TRUE
+                    JOIN organizations o ON o.id = e.org_id
                     WHERE p.auth_user_id = %s
                     """,
                     (user.get("id"),),
@@ -5107,12 +5111,13 @@ async def update_lp_interest(
 
     try:
         with conn.cursor() as cur:
-            # Get LP's org
+            # Get LP's org through employment
             cur.execute(
                 """
                 SELECT o.id as lp_org_id
                 FROM people p
-                JOIN organizations o ON o.id = p.org_id
+                JOIN employment e ON e.person_id = p.id AND e.is_current = TRUE
+                JOIN organizations o ON o.id = e.org_id
                 WHERE p.auth_user_id = %s
                 """,
                 (user.get("id"),),
@@ -5189,11 +5194,13 @@ async def lp_pipeline_page(request: Request) -> HTMLResponse | RedirectResponse:
     if conn:
         try:
             with conn.cursor() as cur:
+                # Get LP's organization through employment
                 cur.execute(
                     """
                     SELECT o.id as lp_org_id
                     FROM people p
-                    JOIN organizations o ON o.id = p.org_id
+                    JOIN employment e ON e.person_id = p.id AND e.is_current = TRUE
+                    JOIN organizations o ON o.id = e.org_id
                     WHERE p.auth_user_id = %s
                     """,
                     (user.get("id"),),

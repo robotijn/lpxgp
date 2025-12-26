@@ -2455,7 +2455,8 @@ class TestLPWatchlistJourney:
         page.goto(f"{BASE_URL}/lp-watchlist")
         page.wait_for_load_state("domcontentloaded")
 
-        dashboard_link = page.locator("a:has-text('Dashboard')")
+        # Use first() to handle both desktop and mobile nav links
+        dashboard_link = page.locator("nav a:has-text('Dashboard')").first
         expect(dashboard_link).to_be_visible()
 
 

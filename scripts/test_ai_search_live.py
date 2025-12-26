@@ -50,7 +50,7 @@ async def test_query(query: str, conn) -> dict:
         return {"query": query, "is_nl": False}
 
     # Parse with AI
-    start = time.time()
+    _start = time.time()  # noqa: F841 - kept for timing reference
     filters = await parse_lp_search_query(query, use_cache=True)
     parse_time = filters.get("_parse_time_ms", 0)
     cache_hit = filters.get("_cache_hit", False)
@@ -163,7 +163,7 @@ async def main():
 
     print_section("Cache Statistics After First Pass")
     stats = get_cache_stats()
-    print(f"    AI Query Cache:")
+    print("    AI Query Cache:")
     print(f"      Size: {stats['ai_query']['size']}")
     print(f"      Hits: {stats['ai_query']['hits']}")
     print(f"      Misses: {stats['ai_query']['misses']}")
@@ -179,11 +179,11 @@ async def main():
     for query in cache_test_queries:
         result = await test_query(query, conn)
         if result.get("cache_hit"):
-            print(f"    ✓ Cache hit confirmed!")
+            print("    ✓ Cache hit confirmed!")
 
     print_section("Final Cache Statistics")
     stats = get_cache_stats()
-    print(f"    AI Query Cache:")
+    print("    AI Query Cache:")
     print(f"      Size: {stats['ai_query']['size']}")
     print(f"      Hits: {stats['ai_query']['hits']}")
     print(f"      Misses: {stats['ai_query']['misses']}")

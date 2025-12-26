@@ -236,7 +236,7 @@ class DataVersion:
     checksum: str  # Hash of count + timestamp
 
     @classmethod
-    def compute(cls, entity_type: str, row_count: int, last_modified: Any) -> "DataVersion":
+    def compute(cls, entity_type: str, row_count: int, last_modified: Any) -> DataVersion:
         """Compute a version from database stats."""
         modified_str = str(last_modified) if last_modified else ""
         checksum = hashlib.md5(f"{row_count}|{modified_str}".encode()).hexdigest()[:8]

@@ -2,22 +2,27 @@
 
 {% block nav %}
 <nav class="hidden md:flex ml-10 space-x-8">
-    <a href="/dashboard" class="text-navy-600 hover:text-navy-900 text-sm">Dashboard</a>
-    <a href="/matches" class="text-navy-600 hover:text-navy-900 text-sm">Matches</a>
-    <a href="/funds" class="text-navy-600 hover:text-navy-900 text-sm">Funds</a>
-    <a href="/lps" class="text-navy-600 hover:text-navy-900 text-sm">LPs</a>
-    <a href="/gps" class="text-gold font-medium text-sm">GPs</a>
-    <a href="/shortlist" class="text-navy-600 hover:text-navy-900 text-sm">Shortlist</a>
+    <a href="/lp-dashboard" class="text-navy-600 hover:text-navy-900 text-sm">Dashboard</a>
+    <a href="/gps" class="text-gold font-medium text-sm">Find GPs</a>
+    <a href="/funds" class="text-navy-600 hover:text-navy-900 text-sm">Browse Funds</a>
+    <a href="/lp-watchlist" class="text-navy-600 hover:text-navy-900 text-sm">Watchlist</a>
+    <a href="/lp-pipeline" class="text-navy-600 hover:text-navy-900 text-sm">Pipeline</a>
 </nav>
 {% endblock %}
 
 {% block mobile_nav %}
-<a href="/dashboard" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Dashboard</a>
-<a href="/matches" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Matches</a>
-<a href="/funds" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Funds</a>
-<a href="/lps" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">LPs</a>
-<a href="/gps" class="block py-2 px-3 rounded-lg bg-gold/10 text-gold font-medium">GPs</a>
-<a href="/shortlist" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Shortlist</a>
+<a href="/lp-dashboard" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Dashboard</a>
+<a href="/gps" class="block py-2 px-3 rounded-lg bg-gold/10 text-gold font-medium">Find GPs</a>
+<a href="/funds" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Browse Funds</a>
+<a href="/lp-watchlist" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Watchlist</a>
+<a href="/lp-pipeline" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Pipeline</a>
+{% endblock %}
+
+{% block header_right %}
+<div class="flex items-center space-x-3">
+    <span class="hidden md:inline px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded-full font-medium">LP View</span>
+    <a href="/dashboard" class="text-sm text-navy-500 hover:text-navy-700">Switch to GP</a>
+</div>
 {% endblock %}
 
 {% block content %}

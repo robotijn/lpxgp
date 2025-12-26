@@ -9,8 +9,9 @@ Tests the AI-powered GP search including:
 
 from __future__ import annotations
 
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
 
 from src.search import (
     build_gp_search_sql,
@@ -177,7 +178,7 @@ class TestParseGpSearchQuery:
     @pytest.mark.asyncio
     async def test_cache_hit_returns_cached_result(self):
         """Cached queries should return cached result."""
-        from src.cache import ai_query_cache, clear_all_caches
+        from src.cache import clear_all_caches
 
         clear_all_caches()
 

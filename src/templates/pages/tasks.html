@@ -78,9 +78,9 @@
                                 Due: {{ task.due_date.strftime('%b %d') }}
                             </span>
                             {% endif %}
-                            {% if task.contact_first or task.contact_last %}
+                            {% if task.contact_name %}
                             <span class="text-navy-400">•</span>
-                            <span class="text-navy-500">{{ task.contact_first }} {{ task.contact_last }}</span>
+                            <span class="text-navy-500">{{ task.contact_name }}</span>
                             {% elif task.company_name %}
                             <span class="text-navy-400">•</span>
                             <span class="text-navy-500">{{ task.company_name }}</span>

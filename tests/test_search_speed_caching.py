@@ -26,21 +26,16 @@ from src.cache import (
     CacheVersionManager,
     DataVersion,
     VersionedLRUCache,
-    ai_query_cache,
     clear_all_caches,
     get_cache_stats,
     match_score_cache,
-    search_results_cache,
     version_manager,
 )
 from src.config import get_settings
 from src.matching import calculate_match_score
 from src.search import (
-    build_lp_search_sql,
-    is_natural_language_query,
     parse_lp_search_query,
 )
-
 
 # =============================================================================
 # Fixtures
@@ -148,7 +143,7 @@ class TestKeywordSearchSpeed:
             print(f"    '{term}': {len(results)} results in {elapsed:.1f}ms")
 
         avg_time = total_time / len(search_terms)
-        print(f"  " + "-" * 50)
+        print("  " + "-" * 50)
         print(f"  Average: {avg_time:.1f}ms")
 
         # Should be fast - under 100ms per query
@@ -203,7 +198,7 @@ class TestKeywordSearchSpeed:
             print(f"    {filters}: {len(results)} results in {elapsed:.1f}ms")
 
         avg_time = total_time / len(test_cases)
-        print(f"  " + "-" * 50)
+        print("  " + "-" * 50)
         print(f"  Average: {avg_time:.1f}ms")
 
         assert avg_time < 500, f"Filtered search too slow: {avg_time:.1f}ms"
@@ -263,7 +258,7 @@ class TestAISearchSpeed:
             print(f"    '{query[:30]}...': {elapsed:.1f}ms (cache: {cache_hit})")
 
         avg_time = total_time / len(queries)
-        print(f"  " + "-" * 50)
+        print("  " + "-" * 50)
         print(f"  Average: {avg_time:.1f}ms")
 
     @pytest.mark.asyncio
@@ -311,7 +306,7 @@ class TestAISearchSpeed:
         third_cache_hit = result3.get("_cache_hit", True)
         print(f"    Third call:  {third_time:.1f}ms (cache hit: {third_cache_hit})")
 
-        print(f"  " + "-" * 50)
+        print("  " + "-" * 50)
         speedup = first_time / second_time if second_time > 0 else float("inf")
         print(f"  Speedup: {speedup:.1f}x faster with cache")
 
@@ -449,7 +444,7 @@ class TestGPToLPMatchingSpeed:
         total_time = db_time + match_time
         print(f"    Matching: {len(scored_matches)} matches in {match_time:.1f}ms")
         print(f"    Total: {total_time:.1f}ms")
-        print(f"  " + "-" * 50)
+        print("  " + "-" * 50)
         if scored_matches:
             print(f"    Top match: {scored_matches[0]['lp_name']} ({scored_matches[0]['score']})")
 
@@ -466,8 +461,8 @@ class TestLPToGPMatchingSpeed:
 
     def test_lp_to_gp_search_with_db(self, db_connection):
         """Measure LP -> GP matching with database."""
-        # Sample LP preferences
-        lp = {
+        # Sample LP preferences (defined for documentation, actual matching uses DB)
+        _lp = {
             "name": "California Pension Fund",
             "lp_type": "pension",
             "strategies": ["buyout", "growth"],
@@ -502,8 +497,8 @@ class TestLPToGPMatchingSpeed:
         # In a real implementation, we'd also fetch their funds
         # and match LP preferences against fund characteristics
 
-        print(f"  " + "-" * 50)
-        print(f"    Note: Full LP->GP matching requires fund data")
+        print("  " + "-" * 50)
+        print("    Note: Full LP->GP matching requires fund data")
 
 
 # =============================================================================
@@ -541,7 +536,7 @@ class TestCachingBehavior:
                 await parse_lp_search_query(query, use_cache=True)
 
         stats = get_cache_stats()
-        print(f"    AI Query Cache:")
+        print("    AI Query Cache:")
         print(f"      Size: {stats['ai_query']['size']}")
         print(f"      Hits: {stats['ai_query']['hits']}")
         print(f"      Misses: {stats['ai_query']['misses']}")
@@ -553,7 +548,7 @@ class TestCachingBehavior:
 
     def test_match_score_caching(self):
         """Test caching for match score calculations."""
-        from src.cache import make_cache_key, match_score_cache
+        from src.cache import make_cache_key
 
         fund_id = "fund-001"
         lp_id = "lp-001"
@@ -588,7 +583,7 @@ class TestCachingBehavior:
         assert cached["score"] == 85.5
 
         stats = match_score_cache.stats
-        print(f"  " + "-" * 50)
+        print("  " + "-" * 50)
         print(f"    Hits: {stats.hits}, Misses: {stats.misses}")
 
 
@@ -776,7 +771,7 @@ class TestVersionedCacheWithDatabase:
 
         stats = fetch_db_versions_sync(db_connection)
 
-        print(f"\n  Database versions:")
+        print("\n  Database versions:")
         for entity, data in stats.items():
             print(f"    {entity}: count={data['count']}")
 
@@ -786,14 +781,14 @@ class TestVersionedCacheWithDatabase:
 
     def test_refresh_versions_if_stale(self, db_connection):
         """Should refresh versions when stale."""
-        from src.cache import refresh_versions_if_stale, version_manager
+        from src.cache import refresh_versions_if_stale
 
         # Force stale
         version_manager._last_poll = 0
 
-        changed = refresh_versions_if_stale(db_connection)
+        _changed = refresh_versions_if_stale(db_connection)
 
-        # First refresh shouldn't report "changed"
+        # First refresh shouldn't report "changed" (verifying checksum exists)
         assert version_manager.combined_checksum != ""
         print(f"\n  Combined checksum: {version_manager.combined_checksum}")
 
@@ -815,12 +810,12 @@ class TestPerformanceSummary:
             cur.execute("SELECT COUNT(*) FROM gp_profiles")
             gp_count = cur.fetchone()["count"]
 
-        print(f"\n  Database Size:")
+        print("\n  Database Size:")
         print(f"    LPs: {lp_count:,}")
         print(f"    GPs: {gp_count:,}")
 
         # Keyword search benchmark
-        print(f"\n  Keyword Search (ILIKE):")
+        print("\n  Keyword Search (ILIKE):")
         start = time.time()
         with db_connection.cursor() as cur:
             cur.execute("""
@@ -833,7 +828,7 @@ class TestPerformanceSummary:
         print(f"    'Capital' search: {count} results in {elapsed:.1f}ms")
 
         # Filtered search benchmark
-        print(f"\n  Filtered Search:")
+        print("\n  Filtered Search:")
         start = time.time()
         with db_connection.cursor() as cur:
             cur.execute("""
@@ -847,7 +842,7 @@ class TestPerformanceSummary:
         print(f"    Pension + AUM filter: {count} results in {elapsed:.1f}ms")
 
         # Match calculation benchmark
-        print(f"\n  Match Score Calculation:")
+        print("\n  Match Score Calculation:")
         fund = {"strategy": "growth", "target_size_mm": 500, "fund_number": 3}
         sample_lps = [
             {"strategies": ["growth"], "fund_size_min_mm": 100, "fund_size_max_mm": 1000}

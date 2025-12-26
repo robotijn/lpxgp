@@ -66,8 +66,8 @@
                     {% for attendee in attendees %}
                     <div class="p-3 flex items-center justify-between">
                         <div>
-                            {% if attendee.first_name or attendee.last_name %}
-                            <div class="font-medium text-navy-900">{{ attendee.first_name }} {{ attendee.last_name }}</div>
+                            {% if attendee.full_name %}
+                            <div class="font-medium text-navy-900">{{ attendee.full_name }}</div>
                             {% endif %}
                             {% if attendee.org_name %}
                             <div class="text-sm text-navy-500">{{ attendee.org_name }}</div>

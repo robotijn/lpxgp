@@ -395,10 +395,10 @@ def main():
     with open(gp_file, "w") as f:
         json.dump(gps, f, indent=2)
 
-    print(f"\nDone! Generated:")
+    print("\nDone! Generated:")
     print(f"  - {len(lps)} LPs -> {lp_file}")
     print(f"  - {len(gps)} GPs -> {gp_file}")
-    print(f"\nTotal file sizes:")
+    print("\nTotal file sizes:")
     print(f"  - LPs: {lp_file.stat().st_size / 1024 / 1024:.1f} MB")
     print(f"  - GPs: {gp_file.stat().st_size / 1024 / 1024:.1f} MB")
 

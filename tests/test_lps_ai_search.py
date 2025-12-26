@@ -3,7 +3,7 @@
 Tests the full flow from HTTP request through AI parsing to response.
 """
 
-from typing import Generator
+from collections.abc import Generator
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -186,7 +186,7 @@ class TestLpsAiSearchSqlGeneration:
                 mock_parse.return_value = mock_filters
                 mock_build.return_value = ("o.is_lp = TRUE AND lp.total_aum_bn >= %s", [0.05])
 
-                response = authenticated_client_with_db.get("/lps?search=50m+or+more+aum")
+                authenticated_client_with_db.get("/lps?search=50m+or+more+aum")
 
                 mock_build.assert_called_once()
                 # Check filters passed to SQL builder
@@ -205,7 +205,7 @@ class TestLpsAiSearchSqlGeneration:
                     ["%California%", "%California%"],
                 )
 
-                response = authenticated_client_with_db.get(
+                authenticated_client_with_db.get(
                     "/lps?search=investors+in+california"
                 )
 
