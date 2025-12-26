@@ -1,0 +1,349 @@
+{% extends "base.html" %}
+
+{% block nav %}
+<nav class="hidden md:flex ml-10 space-x-8">
+    <a href="/dashboard" class="text-navy-600 hover:text-navy-900 text-sm">Dashboard</a>
+    <a href="/matches" class="text-navy-600 hover:text-navy-900 text-sm">Matches</a>
+    <a href="/funds" class="text-navy-600 hover:text-navy-900 text-sm">Funds</a>
+    <a href="/lps" class="text-navy-600 hover:text-navy-900 text-sm">LPs</a>
+    <a href="/gps" class="text-gold font-medium text-sm">GPs</a>
+    <a href="/shortlist" class="text-navy-600 hover:text-navy-900 text-sm">Shortlist</a>
+</nav>
+{% endblock %}
+
+{% block mobile_nav %}
+<a href="/dashboard" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Dashboard</a>
+<a href="/matches" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Matches</a>
+<a href="/funds" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Funds</a>
+<a href="/lps" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">LPs</a>
+<a href="/gps" class="block py-2 px-3 rounded-lg bg-gold/10 text-gold font-medium">GPs</a>
+<a href="/shortlist" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Shortlist</a>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+    <!-- Page Header -->
+    <div class="flex items-center justify-between mb-8">
+        <div>
+            <h1 class="text-2xl font-bold text-navy-900">GP Database</h1>
+            <p class="text-navy-500 mt-1">Browse and search fund managers</p>
+        </div>
+        <button onclick="document.getElementById('create-gp-modal').classList.remove('hidden')"
+                class="btn-primary">
+            <svg class="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            New GP
+        </button>
+    </div>
+
+    <!-- Search & Filters -->
+    <div class="card p-4 mb-6">
+        <form method="GET" action="/gps" class="flex flex-wrap gap-4 items-end">
+            <div class="flex-1 min-w-[200px]">
+                <label class="block text-sm font-medium text-navy-700 mb-1">Search</label>
+                <input type="text" name="search" value="{{ search }}"
+                       placeholder="Try: 'buyout firms in New York' or 'growth equity over 10 years'"
+                       class="form-input w-full">
+            </div>
+            <div class="w-48">
+                <label class="block text-sm font-medium text-navy-700 mb-1">Strategy</label>
+                <select name="strategy" class="form-input w-full">
+                    <option value="">All Strategies</option>
+                    {% for s in strategies %}
+                    <option value="{{ s }}" {% if strategy == s %}selected{% endif %}>{{ s|title }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn-primary">
+                <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+                Search
+            </button>
+            {% if search or strategy %}
+            <a href="/gps" class="text-sm text-navy-500 hover:text-navy-700">Clear filters</a>
+            {% endif %}
+        </form>
+    </div>
+
+    {% if parsed_filters %}
+    <!-- AI-Parsed Filters -->
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-6">
+        <div class="flex items-start gap-2">
+            <svg class="w-5 h-5 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+            </svg>
+            <div class="flex-1">
+                <span class="text-sm font-medium text-blue-800">AI interpreted your search:</span>
+                <div class="flex flex-wrap gap-2 mt-1">
+                    {% if parsed_filters.strategy %}
+                    <span class="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded">Strategy: {{ parsed_filters.strategy|title }}</span>
+                    {% endif %}
+                    {% if parsed_filters.location %}
+                    <span class="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded">Location: {{ parsed_filters.location }}</span>
+                    {% endif %}
+                    {% if parsed_filters.fund_size_min %}
+                    <span class="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded">Fund Size >= ${{ parsed_filters.fund_size_min }}M</span>
+                    {% endif %}
+                    {% if parsed_filters.fund_size_max %}
+                    <span class="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded">Fund Size <= ${{ parsed_filters.fund_size_max }}M</span>
+                    {% endif %}
+                    {% if parsed_filters.team_size_min %}
+                    <span class="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded">Team Size >= {{ parsed_filters.team_size_min }}</span>
+                    {% endif %}
+                    {% if parsed_filters.years_investing_min %}
+                    <span class="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded">Experience >= {{ parsed_filters.years_investing_min }} years</span>
+                    {% endif %}
+                    {% if parsed_filters.text_search %}
+                    <span class="px-2 py-0.5 bg-gray-100 text-gray-800 text-xs rounded">Text: "{{ parsed_filters.text_search }}"</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div class="card p-4">
+            <div class="text-2xl font-bold text-navy-900">{{ gps|length }}</div>
+            <div class="text-sm text-navy-500">GPs Found</div>
+        </div>
+        <div class="card p-4">
+            <div class="text-2xl font-bold text-gold">{{ total_funds }}</div>
+            <div class="text-sm text-navy-500">Total Funds</div>
+        </div>
+        <div class="card p-4">
+            <div class="text-2xl font-bold text-navy-900">{{ strategies|length }}</div>
+            <div class="text-sm text-navy-500">Strategies</div>
+        </div>
+    </div>
+
+    <!-- GP Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for gp in gps %}
+        <div class="card p-5 hover:shadow-md transition-shadow">
+            <div class="flex items-start justify-between mb-3">
+                <div class="cursor-pointer" hx-get="/api/gp/{{ gp.id }}/detail" hx-target="#gp-detail-modal" hx-swap="innerHTML">
+                    <h3 class="font-semibold text-navy-900 hover:text-gold">{{ gp.name }}</h3>
+                    <p class="text-sm text-navy-500">{{ gp.hq_city }}{% if gp.hq_country %}, {{ gp.hq_country }}{% endif %}</p>
+                </div>
+                {% if gp.strategy %}
+                <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-700">
+                    {{ gp.strategy|title }}
+                </span>
+                {% endif %}
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                    <div class="text-navy-500">Team Size</div>
+                    <div class="font-medium text-navy-900">{{ gp.team_size or '?' }}</div>
+                </div>
+                <div>
+                    <div class="text-navy-500">Years Investing</div>
+                    <div class="font-medium text-navy-900">{{ gp.years_investing or '?' }}</div>
+                </div>
+                <div>
+                    <div class="text-navy-500">Funds</div>
+                    <div class="font-medium text-navy-900">{{ gp.fund_count or 0 }}</div>
+                </div>
+                <div>
+                    <div class="text-navy-500">Website</div>
+                    {% if gp.website %}
+                    <a href="{{ gp.website }}" target="_blank" class="font-medium text-gold hover:underline">Visit</a>
+                    {% else %}
+                    <div class="text-navy-400">-</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if gp.investment_philosophy %}
+            <div class="mt-3 text-sm text-navy-600 line-clamp-2">
+                {{ gp.investment_philosophy[:100] }}{% if gp.investment_philosophy|length > 100 %}...{% endif %}
+            </div>
+            {% endif %}
+
+            {% if gp.spun_out_from %}
+            <div class="mt-2">
+                <span class="px-2 py-0.5 text-xs bg-purple-100 text-purple-700 rounded">Spun from: {{ gp.spun_out_from }}</span>
+            </div>
+            {% endif %}
+
+            <div class="mt-4 pt-3 border-t border-navy-100 flex justify-between items-center">
+                <a href="/funds?gp_id={{ gp.id }}" class="text-sm text-navy-500 hover:text-gold">
+                    View Funds
+                </a>
+                <button hx-get="/api/gps/{{ gp.id }}/edit"
+                        hx-target="#gp-edit-modal"
+                        hx-swap="innerHTML"
+                        class="text-sm text-navy-500 hover:text-navy-700">
+                    Edit
+                </button>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-span-full card p-8 text-center">
+            <svg class="w-12 h-12 text-navy-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+            </svg>
+            <p class="text-navy-500 mb-4">
+                {% if search or strategy %}
+                No GPs found matching your criteria. Try adjusting your filters.
+                {% else %}
+                No GP data available. Add your first GP to get started.
+                {% endif %}
+            </p>
+            <button onclick="document.getElementById('create-gp-modal').classList.remove('hidden')"
+                    class="btn-primary">
+                Add Your First GP
+            </button>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Create GP Modal -->
+<div id="create-gp-modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+     onclick="if(event.target === this) this.classList.add('hidden')">
+    <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto"
+         onclick="event.stopPropagation()">
+        <!-- Header -->
+        <div class="sticky top-0 bg-white border-b border-navy-100 px-6 py-4 flex items-center justify-between">
+            <h2 class="text-xl font-bold text-navy-900">Add New GP</h2>
+            <button onclick="this.closest('#create-gp-modal').classList.add('hidden')"
+                    class="text-navy-400 hover:text-navy-600 p-1"
+                    aria-label="Close modal">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Form -->
+        <form id="create-gp-form" hx-post="/api/gps" hx-target="#gp-form-response" hx-swap="innerHTML">
+            <div class="p-6 space-y-6">
+                <!-- Response area -->
+                <div id="gp-form-response"></div>
+
+                <!-- Basic Info -->
+                <div>
+                    <h3 class="text-sm font-semibold text-navy-700 mb-3 flex items-center">
+                        <span class="w-6 h-6 rounded-full bg-gold text-white text-xs flex items-center justify-center mr-2">1</span>
+                        Organization Info
+                    </h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="col-span-2">
+                            <label class="block text-sm font-medium text-navy-700 mb-1">GP Name *</label>
+                            <input type="text" name="name" required
+                                   placeholder="e.g., Sequoia Capital"
+                                   class="form-input w-full">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Website</label>
+                            <input type="url" name="website" placeholder="https://..."
+                                   class="form-input w-full">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Spun Out From</label>
+                            <input type="text" name="spun_out_from" placeholder="e.g., Goldman Sachs"
+                                   class="form-input w-full">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">HQ City</label>
+                            <input type="text" name="hq_city" placeholder="San Francisco"
+                                   class="form-input w-full">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">HQ Country</label>
+                            <input type="text" name="hq_country" placeholder="USA"
+                                   class="form-input w-full">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Description</label>
+                            <textarea name="description" rows="2"
+                                      placeholder="Brief description of the GP..."
+                                      class="form-input w-full"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Team & Experience -->
+                <div>
+                    <h3 class="text-sm font-semibold text-navy-700 mb-3 flex items-center">
+                        <span class="w-6 h-6 rounded-full bg-gold text-white text-xs flex items-center justify-center mr-2">2</span>
+                        Team & Experience
+                    </h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Team Size</label>
+                            <input type="number" name="team_size" min="1"
+                                   placeholder="15" class="form-input w-full">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Years Investing</label>
+                            <input type="number" name="years_investing" min="0"
+                                   placeholder="20" class="form-input w-full">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Investment Philosophy -->
+                <div>
+                    <h3 class="text-sm font-semibold text-navy-700 mb-3 flex items-center">
+                        <span class="w-6 h-6 rounded-full bg-gold text-white text-xs flex items-center justify-center mr-2">3</span>
+                        Investment Philosophy
+                    </h3>
+                    <textarea name="investment_philosophy" rows="4"
+                              placeholder="Describe the GP's investment philosophy, thesis, and approach..."
+                              class="form-input w-full"></textarea>
+                    <p class="text-xs text-navy-400 mt-1">Used for AI-powered LP matching</p>
+                </div>
+
+                <!-- Notable Exits -->
+                <div>
+                    <h3 class="text-sm font-semibold text-navy-700 mb-3 flex items-center">
+                        <span class="w-6 h-6 rounded-full bg-gold text-white text-xs flex items-center justify-center mr-2">4</span>
+                        Track Record
+                    </h3>
+                    <textarea name="notable_exits" rows="2"
+                              placeholder="Notable exits, e.g., Google, Apple, Stripe (one per line)"
+                              class="form-input w-full"></textarea>
+                    <p class="text-xs text-navy-400 mt-1">One company per line</p>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="sticky bottom-0 bg-white border-t border-navy-100 px-6 py-4 flex justify-end gap-3">
+                <button type="button"
+                        onclick="this.closest('#create-gp-modal').classList.add('hidden')"
+                        class="px-4 py-2 text-navy-600 hover:text-navy-800 font-medium">
+                    Cancel
+                </button>
+                <button type="submit" class="btn-primary">
+                    Add GP
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.body.addEventListener('gpCreated', function() {
+    setTimeout(() => { window.location.reload(); }, 1500);
+});
+document.body.addEventListener('gpUpdated', function() {
+    setTimeout(() => { window.location.reload(); }, 1500);
+});
+document.body.addEventListener('gpDeleted', function() {
+    setTimeout(() => { window.location.reload(); }, 1500);
+});
+</script>
+
+<!-- GP Detail Modal -->
+<div id="gp-detail-modal"></div>
+
+<!-- GP Edit Modal -->
+<div id="gp-edit-modal"></div>
+{% endblock %}

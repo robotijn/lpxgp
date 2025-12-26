@@ -1,0 +1,126 @@
+<!-- GP Detail Modal Content -->
+<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+     onclick="if(event.target === this) this.remove()">
+    <div class="bg-white rounded-xl shadow-2xl max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto"
+         onclick="event.stopPropagation()">
+        <!-- Header -->
+        <div class="sticky top-0 bg-white border-b border-navy-100 px-6 py-4 flex items-center justify-between">
+            <div>
+                <h2 class="text-xl font-bold text-navy-900">{{ gp.name }}</h2>
+                <p class="text-sm text-navy-500">Fund Manager | {{ gp.hq_city }}{% if gp.hq_country %}, {{ gp.hq_country }}{% endif %}</p>
+            </div>
+            <button onclick="this.closest('.fixed').remove()"
+                    class="text-navy-400 hover:text-navy-600 p-1">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+
+        <div class="p-6 space-y-6">
+            <!-- GP Profile Stats -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="bg-navy-50 rounded-lg p-3 text-center">
+                    <div class="text-lg font-bold text-navy-900">{{ gp.team_size or '-' }}</div>
+                    <div class="text-xs text-navy-500">Team Size</div>
+                </div>
+                <div class="bg-navy-50 rounded-lg p-3 text-center">
+                    <div class="text-lg font-bold text-navy-900">{{ gp.years_investing or '-' }}</div>
+                    <div class="text-xs text-navy-500">Years Investing</div>
+                </div>
+                <div class="bg-navy-50 rounded-lg p-3 text-center">
+                    <div class="text-lg font-bold text-gold">{{ gp.fund_count or 0 }}</div>
+                    <div class="text-xs text-navy-500">Funds</div>
+                </div>
+                <div class="bg-navy-50 rounded-lg p-3 text-center">
+                    {% if gp.website %}
+                    <a href="{{ gp.website }}" target="_blank" class="text-lg font-bold text-gold hover:underline">Visit</a>
+                    {% else %}
+                    <div class="text-lg font-bold text-navy-400">-</div>
+                    {% endif %}
+                    <div class="text-xs text-navy-500">Website</div>
+                </div>
+            </div>
+
+            <!-- Spun Out From -->
+            {% if gp.spun_out_from %}
+            <div class="flex items-center gap-2">
+                <span class="px-3 py-1 text-sm bg-purple-100 text-purple-800 rounded-full">
+                    Spun out from: {{ gp.spun_out_from }}
+                </span>
+            </div>
+            {% endif %}
+
+            <!-- Description -->
+            {% if gp.description %}
+            <div class="bg-navy-50 rounded-lg p-4">
+                <h3 class="text-sm font-semibold text-navy-700 mb-2">About</h3>
+                <p class="text-navy-700 text-sm">{{ gp.description }}</p>
+            </div>
+            {% endif %}
+
+            <!-- Investment Philosophy -->
+            {% if gp.investment_philosophy %}
+            <div class="bg-gold/10 border border-gold/30 rounded-lg p-4">
+                <h3 class="text-sm font-semibold text-navy-700 mb-2">Investment Philosophy</h3>
+                <p class="text-navy-700 text-sm">{{ gp.investment_philosophy }}</p>
+            </div>
+            {% endif %}
+
+            <!-- Notable Exits -->
+            {% if gp.notable_exits %}
+            <div>
+                <h3 class="text-sm font-semibold text-navy-700 mb-2">Notable Exits</h3>
+                <div class="flex flex-wrap gap-2">
+                    {% for exit in gp.notable_exits %}
+                    <span class="px-3 py-1 text-sm bg-green-100 text-green-800 rounded-full">{{ exit }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Funds -->
+            {% if funds %}
+            <div class="border-t border-navy-100 pt-4">
+                <h3 class="text-sm font-semibold text-navy-700 mb-3">Funds</h3>
+                <div class="space-y-3">
+                    {% for fund in funds %}
+                    <div class="flex items-center justify-between p-3 bg-navy-50 rounded-lg">
+                        <div>
+                            <div class="font-medium text-navy-900">{{ fund.name }}</div>
+                            <div class="text-sm text-navy-500">
+                                {{ fund.strategy|title if fund.strategy else 'Strategy TBD' }}
+                                {% if fund.vintage_year %} | {{ fund.vintage_year }}{% endif %}
+                                {% if fund.target_size_mm %} | ${{ fund.target_size_mm }}M{% endif %}
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="px-2 py-0.5 text-xs rounded-full
+                                {% if fund.status == 'raising' %}bg-green-100 text-green-700
+                                {% elif fund.status == 'closed' %}bg-navy-100 text-navy-700
+                                {% else %}bg-gray-100 text-gray-600{% endif %}">
+                                {{ fund.status|title if fund.status else 'Draft' }}
+                            </span>
+                            <a href="/funds/{{ fund.id }}" class="text-gold hover:text-gold/80 text-sm">
+                                View
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Footer Actions -->
+        <div class="sticky bottom-0 bg-white border-t border-navy-100 px-6 py-4 flex justify-end gap-3">
+            <a href="/funds?gp_id={{ gp.id }}" class="px-4 py-2 text-gold hover:text-gold/80 font-medium">
+                View All Funds
+            </a>
+            <button onclick="this.closest('.fixed').remove()"
+                    class="px-4 py-2 text-navy-600 hover:text-navy-800 font-medium">
+                Close
+            </button>
+        </div>
+    </div>
+</div>

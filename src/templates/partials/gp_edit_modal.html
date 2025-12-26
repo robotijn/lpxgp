@@ -1,0 +1,168 @@
+<!-- GP Edit Modal Content -->
+<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+     onclick="if(event.target === this) this.remove()">
+    <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto"
+         onclick="event.stopPropagation()">
+        <!-- Header -->
+        <div class="sticky top-0 bg-white border-b border-navy-100 px-6 py-4 flex items-center justify-between">
+            <h2 class="text-xl font-bold text-navy-900">Edit GP</h2>
+            <button onclick="this.closest('.fixed').remove()"
+                    class="text-navy-400 hover:text-navy-600 p-1"
+                    aria-label="Close modal">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Form -->
+        <form hx-put="/api/gps/{{ gp.id }}" hx-target="#gp-edit-form-response" hx-swap="innerHTML">
+            <div class="p-6 space-y-6">
+                <!-- Response area -->
+                <div id="gp-edit-form-response"></div>
+
+                <!-- Basic Info -->
+                <div>
+                    <h3 class="text-sm font-semibold text-navy-700 mb-3 flex items-center">
+                        <span class="w-6 h-6 rounded-full bg-gold text-white text-xs flex items-center justify-center mr-2">1</span>
+                        Organization Info
+                    </h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="col-span-2">
+                            <label class="block text-sm font-medium text-navy-700 mb-1">GP Name *</label>
+                            <input type="text" name="name" required
+                                   value="{{ gp.name }}"
+                                   class="form-input w-full">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Website</label>
+                            <input type="url" name="website"
+                                   value="{{ gp.website or '' }}"
+                                   class="form-input w-full">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Spun Out From</label>
+                            <input type="text" name="spun_out_from"
+                                   value="{{ gp.spun_out_from or '' }}"
+                                   class="form-input w-full">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">HQ City</label>
+                            <input type="text" name="hq_city"
+                                   value="{{ gp.hq_city or '' }}"
+                                   class="form-input w-full">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">HQ Country</label>
+                            <input type="text" name="hq_country"
+                                   value="{{ gp.hq_country or '' }}"
+                                   class="form-input w-full">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Description</label>
+                            <textarea name="description" rows="2"
+                                      class="form-input w-full">{{ gp.description or '' }}</textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Team & Experience -->
+                <div>
+                    <h3 class="text-sm font-semibold text-navy-700 mb-3 flex items-center">
+                        <span class="w-6 h-6 rounded-full bg-gold text-white text-xs flex items-center justify-center mr-2">2</span>
+                        Team & Experience
+                    </h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Team Size</label>
+                            <input type="number" name="team_size" min="1"
+                                   value="{{ gp.team_size or '' }}"
+                                   class="form-input w-full">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-navy-700 mb-1">Years Investing</label>
+                            <input type="number" name="years_investing" min="0"
+                                   value="{{ gp.years_investing or '' }}"
+                                   class="form-input w-full">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Investment Philosophy -->
+                <div>
+                    <h3 class="text-sm font-semibold text-navy-700 mb-3 flex items-center">
+                        <span class="w-6 h-6 rounded-full bg-gold text-white text-xs flex items-center justify-center mr-2">3</span>
+                        Investment Philosophy
+                    </h3>
+                    <textarea name="investment_philosophy" rows="4"
+                              class="form-input w-full">{{ gp.investment_philosophy or '' }}</textarea>
+                    <p class="text-xs text-navy-400 mt-1">Used for AI-powered LP matching</p>
+                </div>
+
+                <!-- Notable Exits -->
+                <div>
+                    <h3 class="text-sm font-semibold text-navy-700 mb-3 flex items-center">
+                        <span class="w-6 h-6 rounded-full bg-gold text-white text-xs flex items-center justify-center mr-2">4</span>
+                        Track Record
+                    </h3>
+                    <textarea name="notable_exits" rows="2"
+                              class="form-input w-full">{% if gp.notable_exits %}{% for exit in gp.notable_exits %}{{ exit }}
+{% endfor %}{% endif %}</textarea>
+                    <p class="text-xs text-navy-400 mt-1">Notable exits, one per line</p>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="sticky bottom-0 bg-white border-t border-navy-100 px-6 py-4">
+                <!-- Normal footer -->
+                <div id="gp-edit-footer-normal" class="flex justify-between">
+                    <button type="button"
+                            onclick="document.getElementById('gp-edit-footer-normal').classList.add('hidden'); document.getElementById('gp-edit-footer-delete').classList.remove('hidden');"
+                            class="px-4 py-2 text-red-500 hover:text-red-700 font-medium">
+                        Delete GP
+                    </button>
+                    <div class="flex gap-3">
+                        <button type="button"
+                                onclick="this.closest('.fixed').remove()"
+                                class="px-4 py-2 text-navy-600 hover:text-navy-800 font-medium">
+                            Cancel
+                        </button>
+                        <button type="submit" class="btn-primary">
+                            Save Changes
+                        </button>
+                    </div>
+                </div>
+                <!-- Delete confirmation -->
+                <div id="gp-edit-footer-delete" class="hidden">
+                    <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-3">
+                        <p class="text-red-800 text-sm font-medium">Are you sure you want to delete this GP?</p>
+                        <p class="text-red-600 text-xs mt-1">This action cannot be undone. All associated funds will also be deleted.</p>
+                    </div>
+                    <div class="flex justify-end gap-3">
+                        <button type="button"
+                                onclick="document.getElementById('gp-edit-footer-delete').classList.add('hidden'); document.getElementById('gp-edit-footer-normal').classList.remove('hidden');"
+                                class="px-4 py-2 text-navy-600 hover:text-navy-800 font-medium">
+                            Cancel
+                        </button>
+                        <button type="button"
+                                hx-delete="/api/gps/{{ gp.id }}"
+                                hx-target="#gp-edit-form-response"
+                                hx-swap="innerHTML"
+                                class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium">
+                            Yes, Delete GP
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.body.addEventListener('gpUpdated', function() {
+    setTimeout(() => { window.location.reload(); }, 1500);
+});
+document.body.addEventListener('gpDeleted', function() {
+    setTimeout(() => { window.location.reload(); }, 1500);
+});
+</script>

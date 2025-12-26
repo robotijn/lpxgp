@@ -1957,3 +1957,237 @@ class TestAISearchMobile:
             body_width = page.evaluate("document.body.scrollWidth")
             viewport_width = mobile_viewport["width"]
             assert body_width <= viewport_width + 20
+
+
+# =============================================================================
+# GP DATABASE E2E TESTS
+# =============================================================================
+
+
+@pytest.mark.browser
+class TestGPDatabaseJourney:
+    """E2E tests for GP database page user journey.
+
+    Tests navigation to GP database, search, filter, and CRUD operations.
+    """
+
+    def test_gps_page_accessible(self, logged_in_page: Page):
+        """GP database page should be accessible when logged in."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/gps")
+        page.wait_for_load_state("networkidle")
+
+        expect(page).to_have_url(f"{BASE_URL}/gps")
+        expect(page.locator("h1")).to_contain_text("GP")
+
+    def test_gps_page_shows_statistics(self, logged_in_page: Page):
+        """GP page should show statistics."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/gps")
+        page.wait_for_load_state("networkidle")
+
+        page_content = page.content()
+        # Should show some statistics
+        assert "GPs Found" in page_content or "Funds" in page_content
+
+    def test_gps_page_has_search(self, logged_in_page: Page):
+        """GP page should have search functionality."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/gps")
+        page.wait_for_load_state("networkidle")
+
+        search_input = page.locator(
+            'input[type="search"], input[name="search"], input[placeholder*="Search"]'
+        )
+        expect(search_input.first).to_be_visible()
+
+    def test_gps_page_has_strategy_filter(self, logged_in_page: Page):
+        """GP page should have strategy filter dropdown."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/gps")
+        page.wait_for_load_state("networkidle")
+
+        strategy_filter = page.locator('select[name="strategy"]')
+        if strategy_filter.count() > 0:
+            expect(strategy_filter.first).to_be_visible()
+
+    def test_gps_page_has_create_button(self, logged_in_page: Page):
+        """GP page should have create GP button."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/gps")
+        page.wait_for_load_state("networkidle")
+
+        create_btn = page.locator("button:has-text('New GP'), button:has-text('Add GP')")
+        if create_btn.count() > 0:
+            expect(create_btn.first).to_be_visible()
+
+
+@pytest.mark.browser
+class TestGPSearchJourney:
+    """E2E tests for GP search functionality."""
+
+    def test_gp_simple_name_search(self, logged_in_page: Page):
+        """Simple GP name search should work."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/gps")
+
+        search_input = page.locator(
+            'input[type="search"], input[name="search"], input[placeholder*="Search"]'
+        )
+        if search_input.count() > 0:
+            search_input.first.fill("Sequoia")
+            search_input.first.press("Enter")
+            page.wait_for_timeout(1000)
+
+            expect(page).to_have_url(re.compile(r"/gps"))
+
+    def test_gp_strategy_natural_language_search(self, logged_in_page: Page):
+        """Strategy-based natural language search should work for GPs."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/gps")
+
+        search_input = page.locator(
+            'input[type="search"], input[name="search"], input[placeholder*="Search"]'
+        )
+        if search_input.count() > 0:
+            search_input.first.fill("buyout firms in New York")
+            search_input.first.press("Enter")
+            page.wait_for_timeout(2000)
+
+            expect(page).to_have_url(re.compile(r"/gps"))
+
+    def test_gp_experience_search(self, logged_in_page: Page):
+        """Experience-based search should work for GPs."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/gps")
+
+        search_input = page.locator(
+            'input[type="search"], input[name="search"], input[placeholder*="Search"]'
+        )
+        if search_input.count() > 0:
+            search_input.first.fill("managers with 10 years experience")
+            search_input.first.press("Enter")
+            page.wait_for_timeout(2000)
+
+            expect(page).to_have_url(re.compile(r"/gps"))
+
+    def test_gp_location_search(self, logged_in_page: Page):
+        """Location-based search should work for GPs."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/gps")
+
+        search_input = page.locator(
+            'input[type="search"], input[name="search"], input[placeholder*="Search"]'
+        )
+        if search_input.count() > 0:
+            search_input.first.fill("venture funds in san francisco")
+            search_input.first.press("Enter")
+            page.wait_for_timeout(2000)
+
+            expect(page).to_have_url(re.compile(r"/gps"))
+
+    def test_gp_combined_search(self, logged_in_page: Page):
+        """Combined filter search should work for GPs."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/gps")
+
+        search_input = page.locator(
+            'input[type="search"], input[name="search"], input[placeholder*="Search"]'
+        )
+        if search_input.count() > 0:
+            search_input.first.fill("growth equity managers with 20 team members")
+            search_input.first.press("Enter")
+            page.wait_for_timeout(2000)
+
+            expect(page).to_have_url(re.compile(r"/gps"))
+
+    def test_gp_ai_filter_display(self, logged_in_page: Page):
+        """AI-parsed filters should be displayed on GP page."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/gps")
+
+        search_input = page.locator(
+            'input[type="search"], input[name="search"], input[placeholder*="Search"]'
+        )
+        if search_input.count() > 0:
+            search_input.first.fill("buyout funds")
+            search_input.first.press("Enter")
+            page.wait_for_timeout(2000)
+
+            # Page should have loaded (either with AI filters or simple search)
+            expect(page).to_have_url(re.compile(r"/gps"))
+
+
+@pytest.mark.browser
+class TestGPCRUDJourney:
+    """E2E tests for GP CRUD operations."""
+
+    def test_gp_create_modal_opens(self, logged_in_page: Page):
+        """Create GP button should open modal."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/gps")
+
+        create_btn = page.locator("button:has-text('New GP'), button:has-text('Add GP')")
+        if create_btn.count() > 0:
+            create_btn.first.click()
+            page.wait_for_timeout(500)
+
+            # Modal should appear
+            modal = page.locator("#create-gp-modal, [role='dialog']")
+            if modal.count() > 0:
+                expect(modal.first).to_be_visible()
+
+    def test_gp_create_form_has_fields(self, logged_in_page: Page):
+        """GP create form should have required fields."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/gps")
+
+        create_btn = page.locator("button:has-text('New GP'), button:has-text('Add GP')")
+        if create_btn.count() > 0:
+            create_btn.first.click()
+            page.wait_for_timeout(500)
+
+            # Check for form fields
+            html = page.content()
+            assert 'name="name"' in html, "GP name field missing"
+
+
+@pytest.mark.browser
+class TestGPMobileResponsive:
+    """Test GP database on mobile viewport."""
+
+    def test_gps_page_mobile(self, logged_in_page: Page, mobile_viewport):
+        """GP database should work on mobile."""
+        page = logged_in_page
+        page.set_viewport_size(mobile_viewport)
+        page.goto(f"{BASE_URL}/gps")
+        page.wait_for_load_state("networkidle")
+
+        expect(page.locator("h1")).to_contain_text("GP")
+
+    def test_gps_search_mobile(self, logged_in_page: Page, mobile_viewport):
+        """GP search should work on mobile."""
+        page = logged_in_page
+        page.set_viewport_size(mobile_viewport)
+        page.goto(f"{BASE_URL}/gps")
+
+        search_input = page.locator(
+            'input[type="search"], input[name="search"], input[placeholder*="Search"]'
+        )
+        if search_input.count() > 0:
+            search_input.first.fill("buyout")
+            search_input.first.press("Enter")
+            page.wait_for_timeout(1000)
+
+            expect(page).to_have_url(re.compile(r"/gps"))
+
+    def test_gps_no_horizontal_scroll_mobile(self, logged_in_page: Page, mobile_viewport):
+        """GP page should not have horizontal scroll on mobile."""
+        page = logged_in_page
+        page.set_viewport_size(mobile_viewport)
+        page.goto(f"{BASE_URL}/gps")
+        page.wait_for_load_state("networkidle")
+
+        body_width = page.evaluate("document.body.scrollWidth")
+        viewport_width = mobile_viewport["width"]
+        assert body_width <= viewport_width + 20

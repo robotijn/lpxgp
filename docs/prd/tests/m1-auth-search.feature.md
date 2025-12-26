@@ -1843,3 +1843,259 @@ Feature: Security Tests
     Then rate limit applies across API versions
     And I remain rate limited
 ```
+
+---
+
+## F-GP-02: GP Search & Filter [P1]
+
+```gherkin
+Feature: GP Search & Filter
+  As an LP or admin
+  I want to search and filter GPs
+  So that I can find relevant fund managers
+
+  # Sub-feature: Type Filter
+  Scenario: Filter by single strategy
+    Given the database has GPs with various strategies
+    When I filter by strategy "Buyout"
+    Then I only see GPs focused on Buyout
+    And result count is updated
+
+  Scenario: Filter by multiple strategies
+    Given the database has GPs with various strategies
+    When I filter by strategies "Buyout" and "Growth"
+    Then I see GPs that focus on either strategy
+    And result count shows combined total
+
+  # Sub-feature: Location Filter
+  Scenario: Filter by location
+    Given GPs have headquarters in various cities
+    When I filter by location "New York"
+    Then I see GPs headquartered in New York
+    And GPs only in San Francisco are excluded
+
+  # Sub-feature: Team Size Filter
+  Scenario: Filter by minimum team size
+    When I filter by team size minimum 10
+    Then I see GPs with team size >= 10
+    And smaller GPs are excluded
+
+  # Sub-feature: Years Investing Filter
+  Scenario: Filter by years investing
+    When I filter by years investing minimum 15
+    Then I see GPs with 15+ years experience
+    And newer GPs are excluded
+
+  # Sub-feature: Full-Text Search
+  Scenario: Search by GP name
+    When I search for "Sequoia"
+    Then I see GPs with "Sequoia" in the name
+    And results are ranked by relevance
+
+  Scenario: Search by investment philosophy
+    When I search for "technology growth companies"
+    Then I see GPs with those terms in philosophy
+    And results include partial matches
+
+  Scenario: Combine search with filters
+    When I search for "technology"
+    And I filter by strategy "Venture"
+    Then I only see Venture GPs
+    And they contain "technology" in searchable fields
+
+  # Sub-feature: AI-Powered Natural Language Search
+  Scenario: Natural language query parsing
+    When I search for "buyout firms in New York with 20+ years experience"
+    Then AI parses the query into structured filters
+    And I see:
+      | strategy | buyout |
+      | location | New York |
+      | years_investing_min | 20 |
+    And results match all criteria
+
+  Scenario: Natural language AUM search
+    When I search for "funds with 500M+ AUM"
+    Then AI extracts fund size from query
+    And results show appropriate GPs
+
+  Scenario: Simple text falls back to keyword search
+    When I search for "KKR"
+    Then simple keyword search is used (no AI parsing)
+    And results show GPs matching "KKR"
+
+  Scenario: AI parsing fallback on timeout
+    When I search for "growth equity managers in Europe"
+    And the AI service times out
+    Then system falls back to keyword search
+    And I see "Using keyword search (AI unavailable)"
+    And results still return
+
+  # Sub-feature: Pagination
+  Scenario: Paginate results
+    Given there are 150 matching GPs
+    When I view results
+    Then I see 50 GPs per page
+    And I can navigate to page 2 and 3
+
+  # Sub-feature: Performance
+  Scenario: Search performance
+    Given there are 10,000 GPs in the database
+    When I perform a search with filters
+    Then results load in under 500ms
+
+  # --- NEGATIVE TESTS: Search Edge Cases ---
+  Scenario: Search returns no results
+    When I search for "XyzNonExistentGP123"
+    Then I see "No GPs found matching your criteria"
+    And I see suggestions to broaden search
+    And I do not see an error
+
+  Scenario: Search with empty query
+    When I submit search with empty query
+    Then I see all GPs (unfiltered results)
+    Or I see "Please enter a search term"
+
+  Scenario: Filter combination returns no results
+    When I filter by strategy "Infrastructure"
+    And I filter by location "Antarctica"
+    Then I see "No GPs match these filters"
+    And I see option to clear filters
+
+  # --- NEGATIVE TESTS: SQL Injection Prevention ---
+  Scenario: SQL injection in search field
+    When I search for "'; SELECT * FROM users; --"
+    Then I see no results or safe error message
+    And no database query is executed maliciously
+
+  Scenario: SQL injection in filter parameters
+    When I send filter parameter strategy="Buyout'; DROP TABLE gps;--"
+    Then the parameter is sanitized
+    And normal filter behavior occurs
+```
+
+---
+
+## F-UI-04: GP Search Interface [P1]
+
+```gherkin
+Feature: GP Search Interface
+  As an LP or admin
+  I want a powerful GP search interface
+  So that I can easily find fund managers
+
+  # Sub-feature: Filter Sidebar
+  Scenario: Collapsible filter sidebar
+    When I go to GP Search
+    Then I see a filter sidebar on the left
+    And I can collapse it for more space
+    And I can expand it to see all filters
+
+  Scenario: Filter options
+    When I view the filter sidebar
+    Then I see filter groups:
+      | Filter Group | Options |
+      | Strategy | Buyout, Growth, Venture, etc. |
+      | Location | City/Country search |
+      | Team Size | Min slider |
+      | Years Investing | Min slider |
+
+  # Sub-feature: Results Display
+  Scenario: GP cards view
+    When I view search results
+    Then I see GPs displayed as cards
+    And each card shows:
+      | Name | Sequoia Capital |
+      | Location | Menlo Park, USA |
+      | Team Size | 50 |
+      | Years Investing | 40+ |
+      | Funds | 15 |
+
+  Scenario: Quick view modal
+    When I click on a GP card
+    Then a modal opens with more details
+    And I see investment philosophy
+    And I see notable exits
+    And I see fund list
+    And I can close the modal
+
+  # Sub-feature: GP CRUD Operations
+  Scenario: Create new GP
+    Given I am an admin or GP manager
+    When I click "Add GP"
+    Then I see a creation form
+    When I fill required fields:
+      | name | New Capital Partners |
+      | hq_city | Boston |
+    And I click "Create GP"
+    Then GP is created
+    And I see success message
+
+  Scenario: Edit existing GP
+    Given I click edit on a GP card
+    Then I see edit modal with current values
+    When I update the name
+    And I click "Save Changes"
+    Then GP is updated
+    And page refreshes with new data
+
+  Scenario: Delete GP
+    Given I am in the GP edit modal
+    When I click "Delete GP"
+    Then I see confirmation dialog
+    When I confirm deletion
+    Then GP is removed
+    And page refreshes
+
+  # Sub-feature: HTMX Updates
+  Scenario: Filters update without page reload
+    When I check a filter option
+    Then results update via HTMX
+    And the page does not fully reload
+    And URL updates with filter params
+
+  # --- NEGATIVE TESTS: UI Edge Cases ---
+  Scenario: Mobile responsive view
+    Given I am on a mobile device (< 768px width)
+    When I go to GP Search
+    Then filters are hidden by default
+    And I can toggle filter visibility
+    And cards are displayed in single column
+
+  Scenario: GP card with missing data
+    Given a GP has no team_size data
+    When I view the GP card
+    Then I see "-" for missing fields
+    And the card layout is not broken
+
+  Scenario: Quick view modal for GP with minimal data
+    Given a GP has only name and city
+    When I click on the GP card
+    Then modal opens with available data
+    And missing sections show appropriate placeholders
+
+  Scenario: Modal close on escape key
+    Given the GP modal is open
+    When I press Escape key
+    Then the modal closes
+
+  Scenario: Modal close on backdrop click
+    Given the GP modal is open
+    When I click outside the modal
+    Then the modal closes
+
+  # --- NEGATIVE TESTS: CRUD Operations ---
+  Scenario: Create GP with missing required fields
+    When I try to create GP without name
+    Then I see "GP Name is required"
+    And GP is not created
+
+  Scenario: Update GP with invalid data
+    When I try to update GP with invalid website URL
+    Then I see validation error
+    And GP is not updated
+
+  Scenario: Delete GP confirmation prevents accidents
+    Given I click "Delete GP"
+    Then I must click confirmation
+    And clicking outside modal cancels deletion
+```

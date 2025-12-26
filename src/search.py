@@ -263,6 +263,11 @@ def is_natural_language_query(query: str) -> bool:
         r"buyout|growth|venture|infrastructure",
         r"in (california|new york|texas|london|europe)",
         r"europe|asia|americas|middle east|africa",  # Continent/region names
+        r"fund\s*(size|raising)",
+        r"track record",
+        r"years? (of |in )?(experience|investing)",
+        r"team size",
+        r"emerging manager",
     ]
 
     query_lower = query.lower()
@@ -271,3 +276,153 @@ def is_natural_language_query(query: str) -> bool:
             return True
 
     return False
+
+
+# =============================================================================
+# GP Search Functions
+# =============================================================================
+
+
+async def parse_gp_search_query(
+    query: str,
+    use_cache: bool = True,
+) -> dict[str, Any]:
+    """Use Ollama to parse natural language into GP search filters.
+
+    Args:
+        query: Natural language search query
+        use_cache: Whether to use cache for results. Defaults to True.
+
+    Returns:
+        Dictionary with extracted filters:
+        - strategy: str (buyout, growth, venture, etc.)
+        - location: str (city, state, or country)
+        - fund_size_min: float (in millions)
+        - fund_size_max: float (in millions)
+        - team_size_min: int
+        - years_investing_min: int
+        - text_search: str (fallback)
+        - _cache_hit: bool
+        - _parse_time_ms: float
+    """
+    start_time = time.time()
+
+    cache_key = make_cache_key("gp_search", query.lower().strip())
+    if use_cache:
+        cached = ai_query_cache.get(cache_key)
+        if cached is not None:
+            result = cached.copy()
+            result["_cache_hit"] = True
+            result["_parse_time_ms"] = round((time.time() - start_time) * 1000, 2)
+            logger.info(f"Cache hit for GP query '{query}' ({result['_parse_time_ms']}ms)")
+            return result
+
+    settings = get_settings()
+
+    prompt = f"""You are a search query parser for a GP (General Partner/Fund Manager) database.
+Extract structured filters from this search query. Return ONLY valid JSON.
+
+Available filters:
+- strategy: one of: buyout, growth, venture, real_estate, infrastructure, credit, secondaries
+- location: city, state, or country name
+- fund_size_min: minimum fund size in MILLIONS
+- fund_size_max: maximum fund size in MILLIONS
+- team_size_min: minimum team size
+- years_investing_min: minimum years of investing experience
+- text_search: any text to search by name (use if query is just a name)
+
+Query: "{query}"
+
+Return ONLY a JSON object with the relevant filters. Example:
+{{"strategy": "buyout", "fund_size_min": 500}}
+
+JSON:"""
+
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            response = await client.post(
+                f"{settings.ollama_base_url}/api/generate",
+                json={
+                    "model": settings.ollama_model,
+                    "prompt": prompt,
+                    "stream": False,
+                    "options": {"temperature": 0.1},
+                },
+            )
+            response.raise_for_status()
+
+            result = response.json()
+            text = result.get("response", "").strip()
+
+            filters = _extract_json(text)
+            if filters:
+                ai_query_cache.set(cache_key, filters)
+                parse_time = round((time.time() - start_time) * 1000, 2)
+                filters["_cache_hit"] = False
+                filters["_parse_time_ms"] = parse_time
+                logger.info(f"Parsed GP query '{query}' -> {filters} ({parse_time}ms)")
+                return filters
+
+            logger.warning(f"Could not parse JSON from Ollama response: {text}")
+            parse_time = round((time.time() - start_time) * 1000, 2)
+            return {"text_search": query, "_cache_hit": False, "_parse_time_ms": parse_time}
+
+    except httpx.TimeoutException:
+        logger.warning("Ollama request timed out, falling back to text search")
+        parse_time = round((time.time() - start_time) * 1000, 2)
+        return {"text_search": query, "_cache_hit": False, "_parse_time_ms": parse_time}
+    except httpx.HTTPError as e:
+        logger.warning(f"Ollama HTTP error: {e}, falling back to text search")
+        parse_time = round((time.time() - start_time) * 1000, 2)
+        return {"text_search": query, "_cache_hit": False, "_parse_time_ms": parse_time}
+    except Exception as e:
+        logger.warning(f"Ollama error: {e}, falling back to text search")
+        parse_time = round((time.time() - start_time) * 1000, 2)
+        return {"text_search": query, "_cache_hit": False, "_parse_time_ms": parse_time}
+
+
+def build_gp_search_sql(
+    filters: dict[str, Any],
+    base_conditions: list[str] | None = None,
+) -> tuple[str, list[Any]]:
+    """Build parameterized SQL WHERE clause for GP search.
+
+    Args:
+        filters: Dictionary of filters from parse_gp_search_query
+        base_conditions: Optional base conditions to include
+
+    Returns:
+        Tuple of (WHERE clause string, list of parameters)
+    """
+    conditions = base_conditions or ["o.is_gp = TRUE"]
+    params: list[Any] = []
+
+    # Strategy filter (stored in investment_philosophy or we match on pattern)
+    if filters.get("strategy"):
+        strategy = filters["strategy"]
+        conditions.append("gp.investment_philosophy ILIKE %s")
+        params.append(f"%{strategy}%")
+
+    # Location filter
+    if filters.get("location"):
+        conditions.append("(o.hq_city ILIKE %s OR o.hq_country ILIKE %s)")
+        location_pattern = f"%{filters['location']}%"
+        params.extend([location_pattern, location_pattern])
+
+    # Team size filter
+    if filters.get("team_size_min") is not None:
+        conditions.append("gp.team_size >= %s")
+        params.append(int(filters["team_size_min"]))
+
+    # Years investing filter
+    if filters.get("years_investing_min") is not None:
+        conditions.append("gp.years_investing >= %s")
+        params.append(int(filters["years_investing_min"]))
+
+    # Text search fallback
+    if filters.get("text_search"):
+        conditions.append("(o.name ILIKE %s OR o.hq_city ILIKE %s OR gp.investment_philosophy ILIKE %s)")
+        text_pattern = f"%{filters['text_search']}%"
+        params.extend([text_pattern, text_pattern, text_pattern])
+
+    return " AND ".join(conditions), params
