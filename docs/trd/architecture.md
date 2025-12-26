@@ -6,57 +6,54 @@
 
 ## Overview
 
-This document describes the core system architecture for LPxGP, including the two-database model, API layer design, authentication, and multi-tenancy approach.
+This document describes the core system architecture for LPxGP, including the unified schema model, API layer design, authentication, and multi-tenancy approach.
 
 ---
 
-## Two-Database Model
+## Unified Schema Model
 
-LPxGP uses a logical separation between **Market Data** and **Client Data** within a single Supabase instance.
+LPxGP uses a **unified schema** where organizations can be both GP and LP (via `is_gp`/`is_lp` flags). Users are stored in `people` with `auth_user_id` for login capability. This simplifies the data model and allows firms like Blackstone or KKR that invest in other funds to be represented accurately.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                         SUPABASE (Single Instance)                          │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                              │
-│  ┌───────────────────────────────────┐  ┌───────────────────────────────────┐
-│  │         MARKET DATABASE           │  │         CLIENT DATABASE           │
-│  │         (Shared Schema)           │  │         (Tenant Schema)           │
-│  ├───────────────────────────────────┤  ├───────────────────────────────────┤
-│  │                                   │  │                                   │
-│  │  Organizations (GP/LP firms)      │  │  Companies (GP tenants)           │
-│  │  People (Contacts)                │  │  Users (Team members)             │
-│  │  Funds (Historical)               │  │  Funds (Active, tenant-owned)     │
-│  │  LP Profiles (Market data)        │  │  Matches (Per-tenant results)     │
-│  │  GP Profiles (Market data)        │  │  Pitches (Generated content)      │
-│  │  Investments (Historical)         │  │  Touchpoints (Interactions)       │
-│  │  Events (Industry events)         │  │  Tasks (Follow-ups)               │
-│  │  Employment (Career history)      │  │  Notes (Internal notes)           │
-│  │                                   │  │  Invitations (User onboarding)    │
-│  │  Source: External data feeds      │  │                                   │
-│  │  Access: Read-only for clients    │  │  Source: Client input             │
-│  │                                   │  │  Access: RLS per company          │
-│  │                                   │  │                                   │
-│  └───────────────────────────────────┘  └───────────────────────────────────┘
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │                         UNIFIED SCHEMA                                │  │
+│  ├───────────────────────────────────────────────────────────────────────┤  │
+│  │                                                                        │  │
+│  │  CORE ENTITIES                     RELATIONSHIPS                      │  │
+│  │  ─────────────                     ─────────────                      │  │
+│  │  organizations (is_gp, is_lp)      fund_lp_matches (AI scores)        │  │
+│  │  ├─ gp_profiles (1:1)              fund_lp_status (user interest)     │  │
+│  │  ├─ lp_profiles (1:1)              investments (historical facts)     │  │
+│  │  └─ funds (1:N for GPs)            pitches (generated content)        │  │
+│  │                                    touchpoints (interactions)         │  │
+│  │  people (auth_user_id for login)   tasks (follow-ups)                 │  │
+│  │  employment (M:N with orgs)        outreach_events (tracking)         │  │
+│  │  invitations (user onboarding)     match_outcomes (training data)     │  │
+│  │                                                                        │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
 │                                                                              │
-│  ┌───────────────────────────────────────────────────────────────────────────┐
-│  │                         SHARED INFRASTRUCTURE                             │
-│  ├───────────────────────────────────────────────────────────────────────────┤
-│  │  pgvector (Embeddings)  │  Supabase Auth  │  Supabase Storage (Decks)    │
-│  └───────────────────────────────────────────────────────────────────────────┘
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │                         SHARED INFRASTRUCTURE                          │  │
+│  ├───────────────────────────────────────────────────────────────────────┤  │
+│  │  pgvector (Embeddings)  │  Supabase Auth  │  Supabase Storage (Decks) │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
 │                                                                              │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Rationale
+### Key Design Decisions
 
-| Approach | Pros | Cons |
-|----------|------|------|
-| **Single DB, logical separation** | Simpler ops, easier joins | Careful RLS design needed |
-| Separate DB instances | Strong isolation | Complex ops, no cross-DB joins |
-| Schema-per-tenant | Moderate isolation | Migration complexity |
-
-**Decision:** Logical separation with RLS. Single Supabase instance keeps operations simple while RLS provides security.
+| Decision | Rationale |
+|----------|-----------|
+| **Unified organizations** | Firms can be both GP and LP (e.g., Blackstone invests in other funds) |
+| **Boolean role flags** | `is_gp` and `is_lp` on organizations, not separate tables |
+| **people = users** | People with `auth_user_id` set can log in; no separate users table |
+| **Separate profile tables** | GP-specific and LP-specific fields avoid NULL pollution |
+| **RLS for multi-tenancy** | Row-Level Security enforces org-scoped access |
 
 ---
 
@@ -198,73 +195,73 @@ CREATE TABLE investments (
 );
 ```
 
-### Client Data Tables
+### Relationship & Matching Tables
+
+> **Note:** Unlike the earlier "two-database" concept, we use a unified schema where
+> organizations can be both GP and LP (via `is_gp`/`is_lp` flags). Users are stored
+> in `people` with `auth_user_id` for login capability.
 
 ```sql
--- GP companies (tenants)
-CREATE TABLE companies (
+-- Fund-LP Matches (AI recommendations)
+CREATE TABLE fund_lp_matches (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name TEXT NOT NULL,
-    org_id UUID REFERENCES organizations(id),  -- Link to market data
-    subscription_tier TEXT DEFAULT 'basic',
-    settings JSONB DEFAULT '{}',
+    fund_id UUID NOT NULL REFERENCES funds(id) ON DELETE CASCADE,
+    lp_org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    score DECIMAL(5,2) NOT NULL,
+    score_breakdown JSONB DEFAULT '{}',
+    explanation TEXT,
+    talking_points TEXT[] DEFAULT '{}',
+    concerns TEXT[] DEFAULT '{}',
+    debate_id UUID,  -- Reference to agent_debates
+    model_version TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    expires_at TIMESTAMPTZ,
+    UNIQUE(fund_id, lp_org_id)
 );
 
--- Users (team members)
-CREATE TABLE users (
+-- Fund-LP Status (user-expressed interest)
+CREATE TABLE fund_lp_status (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    auth_id UUID UNIQUE NOT NULL,  -- Supabase auth.users.id
-    company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
-    email TEXT NOT NULL,
-    full_name TEXT,
-    role TEXT CHECK (role IN ('admin', 'user', 'viewer')) DEFAULT 'user',
-    is_active BOOLEAN DEFAULT TRUE,
-    last_login TIMESTAMPTZ,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Matches (per-tenant, cached debate results)
-CREATE TABLE matches (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
-    fund_id UUID REFERENCES funds(id),
-    lp_org_id UUID REFERENCES organizations(id),
-    score DECIMAL(5,2),
-    confidence DECIMAL(3,2),
-    recommendation TEXT CHECK (recommendation IN (
-        'strong_pursue', 'pursue', 'investigate', 'cautious', 'avoid'
-    )),
-    talking_points TEXT[],
-    concerns TEXT[],
-    debate_id UUID,  -- Reference to agent debate
-    status TEXT DEFAULT 'active',
-    user_feedback TEXT,
+    fund_id UUID NOT NULL REFERENCES funds(id) ON DELETE CASCADE,
+    lp_org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    -- GP side
+    gp_interest TEXT CHECK (gp_interest IN ('interested', 'not_interested', 'pursuing')),
+    gp_interest_reason TEXT,
+    gp_interest_by UUID REFERENCES people(id),
+    gp_interest_at TIMESTAMPTZ,
+    -- LP side
+    lp_interest TEXT CHECK (lp_interest IN ('interested', 'not_interested', 'reviewing')),
+    lp_interest_reason TEXT,
+    lp_interest_by UUID REFERENCES people(id),
+    lp_interest_at TIMESTAMPTZ,
+    -- Pipeline stage (computed from interests)
+    pipeline_stage TEXT CHECK (pipeline_stage IN (
+        'recommended', 'gp_interested', 'gp_pursuing', 'lp_reviewing',
+        'mutual_interest', 'in_diligence', 'gp_passed', 'lp_passed', 'invested'
+    )) DEFAULT 'recommended',
+    notes TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    expires_at TIMESTAMPTZ
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(fund_id, lp_org_id)
 );
 
 -- Pitches (generated content)
 CREATE TABLE pitches (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
-    match_id UUID REFERENCES matches(id),
-    pitch_type TEXT CHECK (pitch_type IN (
-        'email_intro', 'executive_summary', 'meeting_prep', 'follow_up'
-    )),
-    content JSONB NOT NULL,
-    quality_score DECIMAL(5,2),
-    status TEXT DEFAULT 'draft',
+    match_id UUID NOT NULL REFERENCES fund_lp_matches(id) ON DELETE CASCADE,
+    type TEXT CHECK (type IN ('email', 'summary', 'addendum')) NOT NULL,
+    content TEXT NOT NULL,
+    tone TEXT,
+    created_by UUID REFERENCES people(id),
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Touchpoints (interactions)
 CREATE TABLE touchpoints (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
+    org_id UUID REFERENCES organizations(id),  -- GP org
     person_id UUID REFERENCES people(id),
-    org_id UUID REFERENCES organizations(id),
+    target_org_id UUID REFERENCES organizations(id),  -- LP org
     touchpoint_type TEXT CHECK (touchpoint_type IN (
         'meeting', 'call', 'email', 'event_interaction',
         'linkedin_message', 'coffee', 'dinner', 'other'
@@ -274,17 +271,17 @@ CREATE TABLE touchpoints (
     summary TEXT,
     key_takeaways TEXT[],
     follow_up_required BOOLEAN DEFAULT FALSE,
-    created_by UUID REFERENCES users(id),
+    created_by UUID REFERENCES people(id),
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Tasks (follow-ups)
 CREATE TABLE tasks (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
-    assigned_to UUID REFERENCES users(id),
-    person_id UUID REFERENCES people(id),
     org_id UUID REFERENCES organizations(id),
+    assigned_to UUID REFERENCES people(id),
+    person_id UUID REFERENCES people(id),
+    target_org_id UUID REFERENCES organizations(id),
     title TEXT NOT NULL,
     description TEXT,
     due_date DATE,
@@ -557,18 +554,19 @@ CREATE FUNCTION is_privileged_user() RETURNS BOOLEAN AS $$
     SELECT get_user_org_role() IN ('fund_admin', 'super_admin');
 $$ LANGUAGE SQL SECURITY DEFINER STABLE;
 
--- Enable RLS on tenant tables
-ALTER TABLE companies ENABLE ROW LEVEL SECURITY;
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE matches ENABLE ROW LEVEL SECURITY;
+-- Enable RLS on key tables
+ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE funds ENABLE ROW LEVEL SECURITY;
+ALTER TABLE fund_lp_matches ENABLE ROW LEVEL SECURITY;
+ALTER TABLE fund_lp_status ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pitches ENABLE ROW LEVEL SECURITY;
 ALTER TABLE touchpoints ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
 
 -- Standard pattern: org-scoped access with privileged bypass
-CREATE POLICY "matches_org_scoped" ON matches FOR ALL
+CREATE POLICY "fund_lp_matches_org_scoped" ON fund_lp_matches FOR ALL
 USING (
-    org_id = current_user_org_id()
+    fund_id IN (SELECT id FROM funds WHERE org_id = current_user_org_id())
     OR is_privileged_user()
 );
 
