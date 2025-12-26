@@ -225,6 +225,135 @@ DEMO_GPS = [
     },
 ]
 
+# Demo Funds for GP
+DEMO_FUNDS = [
+    {
+        "id": "f0000001-0000-0000-0000-000000000001",
+        "gp_org_id": "c0000001-0000-0000-0000-000000000001",
+        "name": "Demo GP Growth Fund III",
+        "strategy": "growth",
+        "target_size_mm": 500,
+        "geographic_focus": "North America",
+        "vintage_year": 2024,
+        "status": "fundraising",
+        "sectors": ["technology", "healthcare"],
+    },
+    {
+        "id": "f0000002-0000-0000-0000-000000000002",
+        "gp_org_id": "c0000001-0000-0000-0000-000000000001",
+        "name": "Demo GP Buyout Fund II",
+        "strategy": "buyout",
+        "target_size_mm": 750,
+        "geographic_focus": "North America, Europe",
+        "vintage_year": 2023,
+        "status": "fundraising",
+        "sectors": ["industrials", "consumer"],
+    },
+]
+
+# Pipeline entries - GP pursuing various LPs at different stages
+DEMO_PIPELINE = [
+    # CalPERS - Mutual interest (GP pursuing, LP interested)
+    {
+        "fund_id": "f0000001-0000-0000-0000-000000000001",
+        "lp_org_id": "a1000001-0000-0000-0000-000000000001",
+        "pipeline_stage": "mutual_interest",
+        "gp_interest": "pursuing",
+        "lp_interest": "interested",
+        "notes": "Had initial call, LP requested DDQ",
+    },
+    # Ontario Teachers - In diligence
+    {
+        "fund_id": "f0000001-0000-0000-0000-000000000001",
+        "lp_org_id": "a1000002-0000-0000-0000-000000000002",
+        "pipeline_stage": "in_diligence",
+        "gp_interest": "pursuing",
+        "lp_interest": "reviewing",
+        "notes": "Due diligence in progress, site visit scheduled",
+    },
+    # Harvard - GP interested, awaiting response
+    {
+        "fund_id": "f0000001-0000-0000-0000-000000000001",
+        "lp_org_id": "a1000003-0000-0000-0000-000000000003",
+        "pipeline_stage": "gp_pursuing",
+        "gp_interest": "pursuing",
+        "lp_interest": None,
+        "notes": "Sent materials, follow-up call next week",
+    },
+    # ADIA - Recommended, not yet contacted
+    {
+        "fund_id": "f0000001-0000-0000-0000-000000000001",
+        "lp_org_id": "a1000004-0000-0000-0000-000000000004",
+        "pipeline_stage": "recommended",
+        "gp_interest": "interested",
+        "lp_interest": None,
+        "notes": "High priority target based on strategy fit",
+    },
+    # GIC - LP passed
+    {
+        "fund_id": "f0000002-0000-0000-0000-000000000002",
+        "lp_org_id": "a1000005-0000-0000-0000-000000000005",
+        "pipeline_stage": "lp_passed",
+        "gp_interest": "pursuing",
+        "lp_interest": "not_interested",
+        "notes": "LP declined - already at allocation limit",
+    },
+    # Future Fund - GP interested, Fund II
+    {
+        "fund_id": "f0000002-0000-0000-0000-000000000002",
+        "lp_org_id": "a1000006-0000-0000-0000-000000000006",
+        "pipeline_stage": "gp_interested",
+        "gp_interest": "interested",
+        "lp_interest": None,
+        "notes": "Good geographic fit",
+    },
+]
+
+# Demo shortlist for GP user
+DEMO_SHORTLIST = [
+    {"lp_id": "a1000001-0000-0000-0000-000000000001", "priority": 5, "notes": "Top priority - perfect strategy fit"},
+    {"lp_id": "a1000002-0000-0000-0000-000000000002", "priority": 4, "notes": "Strong track record together"},
+    {"lp_id": "a1000003-0000-0000-0000-000000000003", "priority": 4, "notes": "Endowment with venture appetite"},
+    {"lp_id": "a1000007-0000-0000-0000-000000000007", "priority": 3, "notes": "Family office - quick decisions"},
+]
+
+# Demo touchpoints for activity timeline
+DEMO_TOUCHPOINTS = [
+    {
+        "lp_org_id": "a1000001-0000-0000-0000-000000000001",
+        "fund_id": "f0000001-0000-0000-0000-000000000001",
+        "touchpoint_type": "meeting",
+        "notes": "Initial intro call with investment team",
+    },
+    {
+        "lp_org_id": "a1000001-0000-0000-0000-000000000001",
+        "fund_id": "f0000001-0000-0000-0000-000000000001",
+        "touchpoint_type": "email",
+        "notes": "Sent DDQ and fund presentation",
+    },
+    {
+        "lp_org_id": "a1000002-0000-0000-0000-000000000002",
+        "fund_id": "f0000001-0000-0000-0000-000000000001",
+        "touchpoint_type": "meeting",
+        "notes": "On-site due diligence meeting",
+    },
+    {
+        "lp_org_id": "a1000003-0000-0000-0000-000000000003",
+        "fund_id": "f0000001-0000-0000-0000-000000000001",
+        "touchpoint_type": "call",
+        "notes": "Follow-up call to discuss strategy",
+    },
+]
+
+# LP Demo user watchlist/pipeline (for demo LP user viewing funds)
+DEMO_LP_PIPELINE = [
+    # LP is interested in Demo GP Growth Fund III
+    {
+        "fund_id": "f0000001-0000-0000-0000-000000000001",
+        "lp_org_id": "a1000001-0000-0000-0000-000000000001",  # CalPERS (demo LP is linked here)
+    },
+]
+
 
 def get_connection():
     """Get TEST database connection (with safety checks)."""
@@ -239,6 +368,9 @@ def truncate_all_tables(conn):
     # Truncate in dependency order (children first)
     # Note: Only include tables that exist in the schema
     tables = [
+        "touchpoints",
+        "shortlists",
+        "tracking_links",
         "fund_lp_status",
         "fund_lp_matches",
         "investments",
@@ -270,7 +402,7 @@ def truncate_all_tables(conn):
 
 
 def load_demo_data(conn):
-    """Load the 8 demo LPs and 1 demo GP."""
+    """Load the 8 demo LPs, 1 demo GP, funds, pipeline, shortlist, and touchpoints."""
     print("Loading demo data...")
 
     with conn.cursor() as cur:
@@ -312,6 +444,62 @@ def load_demo_data(conn):
             """, (gp["id"], gp["investment_philosophy"], gp["team_size"], gp["years_investing"]))
 
         print(f"  Loaded {len(DEMO_GPS)} demo GPs")
+
+        # Insert demo funds
+        for fund in DEMO_FUNDS:
+            cur.execute("""
+                INSERT INTO funds (id, gp_org_id, name, strategy, target_size_mm,
+                                   geographic_focus, vintage_year, status, sectors)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (id) DO NOTHING
+            """, (
+                fund["id"], fund["gp_org_id"], fund["name"], fund["strategy"],
+                fund["target_size_mm"], fund["geographic_focus"], fund["vintage_year"],
+                fund["status"], fund["sectors"]
+            ))
+
+        print(f"  Loaded {len(DEMO_FUNDS)} demo funds")
+
+        # Insert demo pipeline entries (fund_lp_status)
+        for entry in DEMO_PIPELINE:
+            cur.execute("""
+                INSERT INTO fund_lp_status (fund_id, lp_org_id, pipeline_stage,
+                                            gp_interest, lp_interest, notes)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                ON CONFLICT (fund_id, lp_org_id) DO NOTHING
+            """, (
+                entry["fund_id"], entry["lp_org_id"], entry["pipeline_stage"],
+                entry["gp_interest"], entry["lp_interest"], entry["notes"]
+            ))
+
+        print(f"  Loaded {len(DEMO_PIPELINE)} demo pipeline entries")
+
+        # Insert demo shortlist (need to get/create demo GP user ID)
+        # We'll use a placeholder user_id that matches the demo GP user
+        demo_gp_user_id = "00000000-0000-0000-0000-000000000001"  # Placeholder
+
+        # Check if shortlists table exists and has correct schema
+        try:
+            for item in DEMO_SHORTLIST:
+                cur.execute("""
+                    INSERT INTO shortlists (user_id, lp_id, priority, notes)
+                    VALUES (%s, %s, %s, %s)
+                    ON CONFLICT DO NOTHING
+                """, (demo_gp_user_id, item["lp_id"], item["priority"], item["notes"]))
+            print(f"  Loaded {len(DEMO_SHORTLIST)} demo shortlist entries")
+        except Exception as e:
+            print(f"  Skipped shortlist (table may not exist): {e}")
+
+        # Insert demo touchpoints
+        try:
+            for tp in DEMO_TOUCHPOINTS:
+                cur.execute("""
+                    INSERT INTO touchpoints (lp_org_id, fund_id, touchpoint_type, notes, occurred_at)
+                    VALUES (%s, %s, %s, %s, NOW() - interval '1 day' * (random() * 30)::int)
+                """, (tp["lp_org_id"], tp["fund_id"], tp["touchpoint_type"], tp["notes"]))
+            print(f"  Loaded {len(DEMO_TOUCHPOINTS)} demo touchpoints")
+        except Exception as e:
+            print(f"  Skipped touchpoints (table may not exist): {e}")
 
         # Note: Users are managed by Supabase Auth, not a custom users table
         print("  Demo users: Use Supabase Auth (gp@demo.com, admin@demo.com, lp@demo.com)")
