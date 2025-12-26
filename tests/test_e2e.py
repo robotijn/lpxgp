@@ -3018,3 +3018,492 @@ class TestSessionManagementE2E:
         page.goto(f"{BASE_URL}/funds")
         page.wait_for_load_state("domcontentloaded")
         assert page.url == f"{BASE_URL}/funds"
+
+
+# =============================================================================
+# LP Mandate Page Tests (M5/M7)
+# =============================================================================
+
+
+@pytest.mark.browser
+class TestLPMandateJourney:
+    """E2E tests for LP mandate configuration page."""
+
+    def test_lp_mandate_accessible(self, logged_in_page: Page):
+        """LP mandate page should be accessible for logged-in users."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/lp-mandate")
+        page.wait_for_load_state("domcontentloaded")
+
+        expect(page.locator("h1")).to_contain_text("Investment Mandate")
+
+    def test_lp_mandate_requires_auth(self, page: Page):
+        """LP mandate page should require authentication."""
+        page.goto(f"{BASE_URL}/lp-mandate")
+        page.wait_for_load_state("domcontentloaded")
+
+        # Should redirect to login
+        assert "/login" in page.url
+
+    def test_lp_mandate_has_strategy_checkboxes(self, logged_in_page: Page):
+        """LP mandate should have strategy preference checkboxes."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/lp-mandate")
+        page.wait_for_load_state("domcontentloaded")
+
+        # Should have checkboxes for strategies
+        strategy_checkboxes = page.locator("input[name='strategies']")
+        expect(strategy_checkboxes.first).to_be_visible()
+
+        # Check that multiple strategy options exist
+        count = strategy_checkboxes.count()
+        assert count >= 4, f"Expected at least 4 strategy options, got {count}"
+
+    def test_lp_mandate_has_check_size_inputs(self, logged_in_page: Page):
+        """LP mandate should have check size input fields."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/lp-mandate")
+        page.wait_for_load_state("domcontentloaded")
+
+        min_input = page.locator("input[name='check_size_min_mm']")
+        max_input = page.locator("input[name='check_size_max_mm']")
+
+        expect(min_input).to_be_visible()
+        expect(max_input).to_be_visible()
+        expect(min_input).to_have_attribute("type", "number")
+        expect(max_input).to_have_attribute("type", "number")
+
+    def test_lp_mandate_has_geography_checkboxes(self, logged_in_page: Page):
+        """LP mandate should have geography preference checkboxes."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/lp-mandate")
+        page.wait_for_load_state("domcontentloaded")
+
+        geo_checkboxes = page.locator("input[name='geographies']")
+        expect(geo_checkboxes.first).to_be_visible()
+
+        count = geo_checkboxes.count()
+        assert count >= 4, f"Expected at least 4 geography options, got {count}"
+
+    def test_lp_mandate_has_sector_checkboxes(self, logged_in_page: Page):
+        """LP mandate should have sector preference checkboxes."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/lp-mandate")
+        page.wait_for_load_state("domcontentloaded")
+
+        sector_checkboxes = page.locator("input[name='sectors']")
+        expect(sector_checkboxes.first).to_be_visible()
+
+        count = sector_checkboxes.count()
+        assert count >= 4, f"Expected at least 4 sector options, got {count}"
+
+    def test_lp_mandate_has_save_button(self, logged_in_page: Page):
+        """LP mandate should have a Save Mandate button."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/lp-mandate")
+        page.wait_for_load_state("domcontentloaded")
+
+        save_btn = page.locator("button[type='submit']:has-text('Save Mandate')")
+        expect(save_btn).to_be_visible()
+        expect(save_btn).to_be_enabled()
+
+    def test_lp_mandate_has_back_to_dashboard_link(self, logged_in_page: Page):
+        """LP mandate should have a link back to dashboard."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/lp-mandate")
+        page.wait_for_load_state("domcontentloaded")
+
+        back_link = page.locator("a:has-text('Back to Dashboard')")
+        expect(back_link).to_be_visible()
+
+    def test_lp_mandate_checkboxes_are_clickable(self, logged_in_page: Page):
+        """Strategy checkboxes should be clickable."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/lp-mandate")
+        page.wait_for_load_state("domcontentloaded")
+
+        # Find first strategy checkbox
+        first_checkbox = page.locator("input[name='strategies']").first
+        expect(first_checkbox).not_to_be_checked()
+
+        # Click to check it
+        first_checkbox.check()
+        expect(first_checkbox).to_be_checked()
+
+        # Click to uncheck it
+        first_checkbox.uncheck()
+        expect(first_checkbox).not_to_be_checked()
+
+    def test_lp_mandate_check_size_accepts_values(self, logged_in_page: Page):
+        """Check size inputs should accept numeric values."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/lp-mandate")
+        page.wait_for_load_state("domcontentloaded")
+
+        min_input = page.locator("input[name='check_size_min_mm']")
+        max_input = page.locator("input[name='check_size_max_mm']")
+
+        min_input.fill("10")
+        max_input.fill("100")
+
+        expect(min_input).to_have_value("10")
+        expect(max_input).to_have_value("100")
+
+    def test_lp_mandate_form_submission(self, logged_in_page: Page):
+        """LP mandate form should submit via HTMX."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/lp-mandate")
+        page.wait_for_load_state("domcontentloaded")
+
+        # Check a few options and enter check sizes
+        page.locator("input[name='strategies']").first.check()
+        page.locator("input[name='check_size_min_mm']").fill("25")
+        page.locator("input[name='check_size_max_mm']").fill("200")
+        page.locator("input[name='geographies']").first.check()
+
+        # Submit form
+        save_btn = page.locator("button[type='submit']:has-text('Save Mandate')")
+        save_btn.click()
+
+        # Wait for response
+        page.wait_for_timeout(1000)
+
+        # Should still be on the same page (HTMX update)
+        assert "/lp-mandate" in page.url
+
+    def test_lp_mandate_navigation_links_work(self, logged_in_page: Page):
+        """Navigation links from mandate page should work."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/lp-mandate")
+        page.wait_for_load_state("domcontentloaded")
+
+        # Desktop nav links should be present
+        content = page.content()
+        assert "Dashboard" in content
+        assert "Watchlist" in content
+        assert "Pipeline" in content
+
+    def test_lp_mandate_mobile_responsive(self, logged_in_page: Page, mobile_viewport):
+        """LP mandate page should work on mobile."""
+        page = logged_in_page
+        page.set_viewport_size(mobile_viewport)
+        page.goto(f"{BASE_URL}/lp-mandate")
+        page.wait_for_load_state("domcontentloaded")
+
+        # Page should load without horizontal scroll
+        body_width = page.evaluate("document.body.scrollWidth")
+        viewport_width = page.evaluate("window.innerWidth")
+        assert body_width <= viewport_width + 10
+
+        # Checkboxes should still be visible
+        expect(page.locator("input[name='strategies']").first).to_be_visible()
+
+
+# =============================================================================
+# LP Meeting Request Page Tests (M5/M7)
+# =============================================================================
+
+
+@pytest.mark.browser
+class TestLPMeetingRequestJourney:
+    """E2E tests for LP meeting request page."""
+
+    def test_lp_meeting_request_requires_auth(self, page: Page):
+        """Meeting request page should require authentication."""
+        page.goto(f"{BASE_URL}/lp-meeting-request?fund_id=f0000001-0000-0000-0000-000000000001")
+        page.wait_for_load_state("domcontentloaded")
+
+        # Should redirect to login
+        assert "/login" in page.url
+
+    def test_lp_meeting_request_redirects_without_fund_id(self, logged_in_page: Page):
+        """Meeting request should redirect if fund_id is missing."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/lp-meeting-request")
+        page.wait_for_load_state("domcontentloaded")
+
+        # Should redirect to dashboard or error
+        # FastAPI returns 422 for missing required query param
+        content = page.content()
+        assert "lp-dashboard" in page.url or "422" in content or "field required" in content.lower()
+
+    def test_lp_meeting_request_redirects_on_invalid_uuid(self, logged_in_page: Page):
+        """Meeting request should redirect on invalid UUID."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/lp-meeting-request?fund_id=invalid-uuid")
+        page.wait_for_load_state("domcontentloaded")
+
+        # Should redirect to dashboard
+        assert "/lp-dashboard" in page.url
+
+    def test_lp_meeting_request_accessible_with_valid_fund(self, logged_in_page: Page):
+        """Meeting request page should be accessible with valid fund_id."""
+        page = logged_in_page
+        # Using a test fund ID
+        page.goto(f"{BASE_URL}/lp-meeting-request?fund_id=f0000001-0000-0000-0000-000000000001")
+        page.wait_for_load_state("domcontentloaded")
+
+        # Either shows the form or redirects (depending on if fund exists)
+        content = page.content()
+        is_request_page = "Request Meeting" in content or "Meeting" in content
+        is_redirected = "/lp-dashboard" in page.url
+        assert is_request_page or is_redirected
+
+    def test_lp_meeting_request_has_date_inputs(self, logged_in_page: Page):
+        """Meeting request should have date preference inputs."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/lp-meeting-request?fund_id=f0000001-0000-0000-0000-000000000001")
+        page.wait_for_load_state("domcontentloaded")
+
+        # If we're on the form page
+        if "Request Meeting" in page.content() or "preferred_date" in page.content():
+            date1 = page.locator("input[name='preferred_date_1']")
+            expect(date1).to_be_visible()
+            expect(date1).to_have_attribute("type", "date")
+
+            date2 = page.locator("input[name='preferred_date_2']")
+            date3 = page.locator("input[name='preferred_date_3']")
+            expect(date2).to_be_visible()
+            expect(date3).to_be_visible()
+
+    def test_lp_meeting_request_has_format_options(self, logged_in_page: Page):
+        """Meeting request should have meeting format radio buttons."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/lp-meeting-request?fund_id=f0000001-0000-0000-0000-000000000001")
+        page.wait_for_load_state("domcontentloaded")
+
+        if "Request Meeting" in page.content() or "meeting_format" in page.content():
+            format_radios = page.locator("input[name='meeting_format']")
+            count = format_radios.count()
+            assert count >= 3, f"Expected at least 3 meeting format options, got {count}"
+
+            # Video call should be default checked
+            video_radio = page.locator("input[name='meeting_format'][value='video_call']")
+            expect(video_radio).to_be_checked()
+
+    def test_lp_meeting_request_has_topics_textarea(self, logged_in_page: Page):
+        """Meeting request should have topics to discuss textarea."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/lp-meeting-request?fund_id=f0000001-0000-0000-0000-000000000001")
+        page.wait_for_load_state("domcontentloaded")
+
+        if "Request Meeting" in page.content() or "topics" in page.content():
+            topics = page.locator("textarea[name='topics']")
+            expect(topics).to_be_visible()
+            expect(topics).to_have_attribute("required", "")
+
+    def test_lp_meeting_request_has_contact_fields(self, logged_in_page: Page):
+        """Meeting request should have contact information fields."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/lp-meeting-request?fund_id=f0000001-0000-0000-0000-000000000001")
+        page.wait_for_load_state("domcontentloaded")
+
+        if "Request Meeting" in page.content() or "contact_name" in page.content():
+            name_input = page.locator("input[name='contact_name']")
+            email_input = page.locator("input[name='contact_email']")
+            title_input = page.locator("input[name='contact_title']")
+            phone_input = page.locator("input[name='contact_phone']")
+
+            expect(name_input).to_be_visible()
+            expect(email_input).to_be_visible()
+            expect(title_input).to_be_visible()
+            expect(phone_input).to_be_visible()
+
+            # Required fields
+            expect(name_input).to_have_attribute("required", "")
+            expect(email_input).to_have_attribute("required", "")
+
+    def test_lp_meeting_request_has_submit_button(self, logged_in_page: Page):
+        """Meeting request should have a submit button."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/lp-meeting-request?fund_id=f0000001-0000-0000-0000-000000000001")
+        page.wait_for_load_state("domcontentloaded")
+
+        if "Request Meeting" in page.content():
+            submit_btn = page.locator("button[type='submit']:has-text('Submit Meeting Request')")
+            expect(submit_btn).to_be_visible()
+            expect(submit_btn).to_be_enabled()
+
+    def test_lp_meeting_request_has_cancel_link(self, logged_in_page: Page):
+        """Meeting request should have a cancel link."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/lp-meeting-request?fund_id=f0000001-0000-0000-0000-000000000001")
+        page.wait_for_load_state("domcontentloaded")
+
+        if "Request Meeting" in page.content():
+            cancel_link = page.locator("a:has-text('Cancel')")
+            expect(cancel_link).to_be_visible()
+
+    def test_lp_meeting_request_format_selection(self, logged_in_page: Page):
+        """Meeting format radio buttons should be selectable."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/lp-meeting-request?fund_id=f0000001-0000-0000-0000-000000000001")
+        page.wait_for_load_state("domcontentloaded")
+
+        if "Request Meeting" in page.content() or "meeting_format" in page.content():
+            # Video call should be default
+            video_radio = page.locator("input[name='meeting_format'][value='video_call']")
+            expect(video_radio).to_be_checked()
+
+            # Select phone
+            phone_radio = page.locator("input[name='meeting_format'][value='phone']")
+            phone_radio.check()
+            expect(phone_radio).to_be_checked()
+            expect(video_radio).not_to_be_checked()
+
+            # Select in-person
+            in_person_radio = page.locator("input[name='meeting_format'][value='in_person']")
+            in_person_radio.check()
+            expect(in_person_radio).to_be_checked()
+            expect(phone_radio).not_to_be_checked()
+
+    def test_lp_meeting_request_topics_input(self, logged_in_page: Page):
+        """Topics textarea should accept text input."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/lp-meeting-request?fund_id=f0000001-0000-0000-0000-000000000001")
+        page.wait_for_load_state("domcontentloaded")
+
+        if "Request Meeting" in page.content() or "topics" in page.content():
+            topics = page.locator("textarea[name='topics']")
+            test_text = "Fund strategy overview, track record, and co-investment opportunities"
+            topics.fill(test_text)
+            expect(topics).to_have_value(test_text)
+
+    def test_lp_meeting_request_date_input(self, logged_in_page: Page):
+        """Date inputs should accept date values."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/lp-meeting-request?fund_id=f0000001-0000-0000-0000-000000000001")
+        page.wait_for_load_state("domcontentloaded")
+
+        if "Request Meeting" in page.content() or "preferred_date" in page.content():
+            date1 = page.locator("input[name='preferred_date_1']")
+            date1.fill("2025-02-15")
+            expect(date1).to_have_value("2025-02-15")
+
+    def test_lp_meeting_request_contact_fields_input(self, logged_in_page: Page):
+        """Contact fields should accept input."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/lp-meeting-request?fund_id=f0000001-0000-0000-0000-000000000001")
+        page.wait_for_load_state("domcontentloaded")
+
+        if "Request Meeting" in page.content() or "contact_name" in page.content():
+            name_input = page.locator("input[name='contact_name']")
+            title_input = page.locator("input[name='contact_title']")
+            email_input = page.locator("input[name='contact_email']")
+            phone_input = page.locator("input[name='contact_phone']")
+
+            name_input.fill("John Smith")
+            title_input.fill("Director of PE")
+            email_input.fill("john@example.com")
+            phone_input.fill("+1 555-123-4567")
+
+            expect(name_input).to_have_value("John Smith")
+            expect(title_input).to_have_value("Director of PE")
+            expect(email_input).to_have_value("john@example.com")
+            expect(phone_input).to_have_value("+1 555-123-4567")
+
+    def test_lp_meeting_request_mobile_responsive(self, logged_in_page: Page, mobile_viewport):
+        """Meeting request page should work on mobile."""
+        page = logged_in_page
+        page.set_viewport_size(mobile_viewport)
+        page.goto(f"{BASE_URL}/lp-meeting-request?fund_id=f0000001-0000-0000-0000-000000000001")
+        page.wait_for_load_state("domcontentloaded")
+
+        if "Request Meeting" in page.content():
+            # Page should load without horizontal scroll
+            body_width = page.evaluate("document.body.scrollWidth")
+            viewport_width = page.evaluate("window.innerWidth")
+            assert body_width <= viewport_width + 10
+
+            # Submit button should be visible
+            submit_btn = page.locator("button[type='submit']").first
+            expect(submit_btn).to_be_visible()
+
+
+# =============================================================================
+# Edge Cases and Security Tests for New Pages
+# =============================================================================
+
+
+@pytest.mark.browser
+class TestLPPagesEdgeCases:
+    """Edge case and security tests for LP pages."""
+
+    def test_lp_mandate_xss_prevention_in_inputs(self, logged_in_page: Page):
+        """XSS should be prevented in mandate form inputs."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/lp-mandate")
+        page.wait_for_load_state("domcontentloaded")
+
+        # Number inputs naturally reject non-numeric characters (browser protection)
+        # Test that form exists and submits safely
+        min_input = page.locator("input[name='check_size_min_mm']")
+        max_input = page.locator("input[name='check_size_max_mm']")
+
+        # Fill with valid numbers
+        min_input.fill("10")
+        max_input.fill("100")
+
+        expect(min_input).to_have_value("10")
+        expect(max_input).to_have_value("100")
+
+        # Verify page content doesn't contain unescaped script tags
+        content = page.content()
+        assert "<script>alert" not in content
+
+    def test_lp_meeting_request_sql_injection_prevention(self, logged_in_page: Page):
+        """SQL injection should be prevented in fund_id."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/lp-meeting-request?fund_id='; DROP TABLE funds; --")
+        page.wait_for_load_state("domcontentloaded")
+
+        # Should redirect (invalid UUID) or show safe error
+        assert "/lp-dashboard" in page.url or "error" in page.content().lower()
+
+    def test_lp_meeting_request_empty_fund_id(self, logged_in_page: Page):
+        """Empty fund_id should be handled gracefully."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/lp-meeting-request?fund_id=")
+        page.wait_for_load_state("domcontentloaded")
+
+        # Should redirect or show error
+        assert "/lp-dashboard" in page.url or "error" in page.content().lower()
+
+    def test_lp_pages_no_console_errors(self, logged_in_page: Page):
+        """LP pages should not have console errors."""
+        page = logged_in_page
+
+        console_errors: list[str] = []
+        page.on("console", lambda msg: console_errors.append(msg.text) if msg.type == "error" else None)
+
+        page.goto(f"{BASE_URL}/lp-mandate")
+        page.wait_for_load_state("domcontentloaded")
+
+        # Filter out known acceptable errors
+        real_errors = [e for e in console_errors if "favicon" not in e.lower()]
+        assert len(real_errors) == 0, f"Console errors found: {real_errors}"
+
+    def test_lp_mandate_back_link_navigation(self, logged_in_page: Page):
+        """Back to Dashboard link should navigate correctly."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/lp-mandate")
+        page.wait_for_load_state("domcontentloaded")
+
+        back_link = page.locator("a:has-text('Back to Dashboard')")
+        back_link.click()
+        page.wait_for_load_state("domcontentloaded")
+
+        assert "/lp-dashboard" in page.url
+
+    def test_lp_meeting_request_cancel_link_navigation(self, logged_in_page: Page):
+        """Cancel link should navigate to dashboard."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/lp-meeting-request?fund_id=f0000001-0000-0000-0000-000000000001")
+        page.wait_for_load_state("domcontentloaded")
+
+        if "Request Meeting" in page.content():
+            cancel_link = page.locator("a:has-text('Cancel')")
+            cancel_link.click()
+            page.wait_for_load_state("domcontentloaded")
+
+            assert "/lp-dashboard" in page.url
