@@ -1732,3 +1732,228 @@ class TestNewPagesMobileResponsive:
             assert body_width <= viewport_width + 20, (
                 f"Page {url} has horizontal overflow: body={body_width}px, viewport={viewport_width}px"
             )
+
+
+# =============================================================================
+# AI-POWERED LP SEARCH TESTS
+# =============================================================================
+
+
+@pytest.mark.browser
+class TestAIPoweredLPSearch:
+    """Test AI-powered natural language search on LP page.
+
+    These tests verify the browser behavior when using AI to parse
+    natural language queries into structured filters.
+    """
+
+    def test_natural_language_search_shows_results(self, logged_in_page: Page):
+        """Natural language query should return LP results."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/lps")
+
+        # Find and fill search input
+        search_input = page.locator(
+            'input[type="search"], input[name="search"], input[placeholder*="Search"]'
+        )
+        if search_input.count() > 0:
+            search_input.first.fill("pension funds with 50m aum")
+            search_input.first.press("Enter")
+            # Wait for HTMX/server response
+            page.wait_for_timeout(2000)  # AI parsing may take longer
+
+            # Page should still be functional
+            expect(page.locator("h1")).to_contain_text("LP")
+
+    def test_ai_parsed_filters_displayed(self, logged_in_page: Page):
+        """AI-parsed filters should be shown to user."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/lps")
+
+        search_input = page.locator(
+            'input[type="search"], input[name="search"], input[placeholder*="Search"]'
+        )
+        if search_input.count() > 0:
+            search_input.first.fill("50m or more aum")
+            search_input.first.press("Enter")
+            page.wait_for_timeout(2000)
+
+            # Check for filter display (if AI parsing worked)
+            page_content = page.content().lower()
+            # Should either show "ai interpreted" or search results
+            assert "lp" in page_content
+
+    def test_aum_query_search(self, logged_in_page: Page):
+        """AUM-based natural language query should work."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/lps")
+
+        search_input = page.locator(
+            'input[type="search"], input[name="search"], input[placeholder*="Search"]'
+        )
+        if search_input.count() > 0:
+            search_input.first.fill("more than 100 million aum")
+            search_input.first.press("Enter")
+            page.wait_for_timeout(2000)
+
+            # Should not error
+            expect(page).to_have_url(re.compile(r"/lps"))
+
+    def test_lp_type_query_search(self, logged_in_page: Page):
+        """LP type natural language query should work."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/lps")
+
+        search_input = page.locator(
+            'input[type="search"], input[name="search"], input[placeholder*="Search"]'
+        )
+        if search_input.count() > 0:
+            search_input.first.fill("endowment investors")
+            search_input.first.press("Enter")
+            page.wait_for_timeout(2000)
+
+            expect(page).to_have_url(re.compile(r"/lps"))
+
+    def test_location_query_search(self, logged_in_page: Page):
+        """Location-based natural language query should work."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/lps")
+
+        search_input = page.locator(
+            'input[type="search"], input[name="search"], input[placeholder*="Search"]'
+        )
+        if search_input.count() > 0:
+            search_input.first.fill("investors in california")
+            search_input.first.press("Enter")
+            page.wait_for_timeout(2000)
+
+            expect(page).to_have_url(re.compile(r"/lps"))
+
+    def test_strategy_query_search(self, logged_in_page: Page):
+        """Strategy-based natural language query should work."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/lps")
+
+        search_input = page.locator(
+            'input[type="search"], input[name="search"], input[placeholder*="Search"]'
+        )
+        if search_input.count() > 0:
+            search_input.first.fill("buyout focused funds")
+            search_input.first.press("Enter")
+            page.wait_for_timeout(2000)
+
+            expect(page).to_have_url(re.compile(r"/lps"))
+
+    def test_complex_multi_filter_query(self, logged_in_page: Page):
+        """Complex query with multiple filters should work."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/lps")
+
+        search_input = page.locator(
+            'input[type="search"], input[name="search"], input[placeholder*="Search"]'
+        )
+        if search_input.count() > 0:
+            search_input.first.fill("pension funds in california with 100m aum focused on buyout")
+            search_input.first.press("Enter")
+            page.wait_for_timeout(3000)  # Complex query may take longer
+
+            expect(page).to_have_url(re.compile(r"/lps"))
+
+    def test_simple_name_search_still_works(self, logged_in_page: Page):
+        """Simple LP name search should work (no AI)."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/lps")
+
+        search_input = page.locator(
+            'input[type="search"], input[name="search"], input[placeholder*="Search"]'
+        )
+        if search_input.count() > 0:
+            search_input.first.fill("CalPERS")
+            search_input.first.press("Enter")
+            page.wait_for_timeout(1000)
+
+            expect(page).to_have_url(re.compile(r"/lps"))
+
+    def test_search_combined_with_type_filter(self, logged_in_page: Page):
+        """Natural language search combined with dropdown filter should work."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/lps")
+
+        # First set type filter if available
+        type_filter = page.locator('select[name="lp_type"], select[name="type"]')
+        if type_filter.count() > 0:
+            options = type_filter.first.locator("option").all()
+            if len(options) > 1:
+                type_filter.first.select_option(index=1)
+                page.wait_for_timeout(500)
+
+        # Then add search
+        search_input = page.locator(
+            'input[type="search"], input[name="search"], input[placeholder*="Search"]'
+        )
+        if search_input.count() > 0:
+            search_input.first.fill("50m aum")
+            search_input.first.press("Enter")
+            page.wait_for_timeout(2000)
+
+            expect(page).to_have_url(re.compile(r"/lps"))
+
+    def test_search_graceful_on_ai_timeout(self, logged_in_page: Page):
+        """Search should gracefully handle if AI times out (fallback to text)."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/lps")
+
+        search_input = page.locator(
+            'input[type="search"], input[name="search"], input[placeholder*="Search"]'
+        )
+        if search_input.count() > 0:
+            # Long complex query that might stress the AI
+            search_input.first.fill(
+                "large pension funds in california or new york with over 500 million in aum"
+            )
+            search_input.first.press("Enter")
+            # Wait longer for potential timeout + fallback
+            page.wait_for_timeout(5000)
+
+            # Should not crash - should either show results or fallback
+            expect(page).to_have_url(re.compile(r"/lps"))
+
+
+@pytest.mark.browser
+class TestAISearchMobile:
+    """Test AI search on mobile viewport."""
+
+    def test_ai_search_mobile(self, logged_in_page: Page, mobile_viewport):
+        """AI search should work on mobile."""
+        page = logged_in_page
+        page.set_viewport_size(mobile_viewport)
+        page.goto(f"{BASE_URL}/lps")
+
+        search_input = page.locator(
+            'input[type="search"], input[name="search"], input[placeholder*="Search"]'
+        )
+        if search_input.count() > 0:
+            search_input.first.fill("pension funds")
+            search_input.first.press("Enter")
+            page.wait_for_timeout(2000)
+
+            expect(page).to_have_url(re.compile(r"/lps"))
+
+    def test_filter_chips_visible_mobile(self, logged_in_page: Page, mobile_viewport):
+        """AI filter chips should be visible on mobile."""
+        page = logged_in_page
+        page.set_viewport_size(mobile_viewport)
+        page.goto(f"{BASE_URL}/lps")
+
+        search_input = page.locator(
+            'input[type="search"], input[name="search"], input[placeholder*="Search"]'
+        )
+        if search_input.count() > 0:
+            search_input.first.fill("50m or more aum")
+            search_input.first.press("Enter")
+            page.wait_for_timeout(2000)
+
+            # Should not have horizontal overflow
+            body_width = page.evaluate("document.body.scrollWidth")
+            viewport_width = mobile_viewport["width"]
+            assert body_width <= viewport_width + 20

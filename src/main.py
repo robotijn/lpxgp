@@ -43,6 +43,7 @@ from pydantic import BaseModel, Field
 from src import auth
 from src.config import get_settings, validate_settings_on_startup
 from src.logging_config import get_logger
+from src.search import build_lp_search_sql, is_natural_language_query, parse_lp_search_query
 
 # =============================================================================
 # User Preferences Data Model
@@ -754,7 +755,7 @@ async def lps_page(
             lp_types = [row["lp_type"] for row in cur.fetchall()]
 
             # Build query with optional filters
-            query = """
+            base_query = """
                 SELECT
                     o.id, o.name, o.hq_city, o.hq_country, o.website,
                     lp.lp_type, lp.total_aum_bn, lp.pe_allocation_pct,
@@ -762,20 +763,33 @@ async def lps_page(
                     lp.geographic_preferences, lp.strategies
                 FROM organizations o
                 JOIN lp_profiles lp ON lp.org_id = o.id
-                WHERE 1=1
+                WHERE {where_clause}
+                ORDER BY lp.total_aum_bn DESC NULLS LAST
+                LIMIT 100
             """
-            params = []
 
-            if search:
-                query += " AND (o.name ILIKE %s OR o.hq_city ILIKE %s)"
-                params.extend([f"%{search}%", f"%{search}%"])
+            # Check if search is natural language (AI parsing) or simple text
+            parsed_filters: dict[str, Any] = {}
+            if search and is_natural_language_query(search):
+                # Use AI to parse the query
+                parsed_filters = await parse_lp_search_query(search)
+                # Add lp_type from dropdown if specified
+                if lp_type:
+                    parsed_filters["lp_type"] = lp_type
+                where_clause, params = build_lp_search_sql(parsed_filters)
+            else:
+                # Simple text search
+                conditions = ["o.is_lp = TRUE"]
+                params: list[Any] = []
+                if search:
+                    conditions.append("(o.name ILIKE %s OR o.hq_city ILIKE %s)")
+                    params.extend([f"%{search}%", f"%{search}%"])
+                if lp_type:
+                    conditions.append("lp.lp_type = %s")
+                    params.append(lp_type)
+                where_clause = " AND ".join(conditions)
 
-            if lp_type:
-                query += " AND lp.lp_type = %s"
-                params.append(lp_type)
-
-            query += " ORDER BY lp.total_aum_bn DESC NULLS LAST LIMIT 100"
-
+            query = base_query.format(where_clause=where_clause)
             cur.execute(query, params)
             lps = cur.fetchall()
 
@@ -787,11 +801,13 @@ async def lps_page(
             "pages/lps.html",
             {
                 "title": "LPs - LPxGP",
+                "user": user,
                 "lps": lps,
                 "total_aum": total_aum,
                 "search": search or "",
                 "lp_type": lp_type or "",
                 "lp_types": lp_types,
+                "parsed_filters": parsed_filters,  # Show what AI extracted
             },
         )
     finally:
