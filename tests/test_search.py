@@ -300,7 +300,9 @@ class TestParseLpSearchQuery:
 
             result = await parse_lp_search_query("50m or more aum")
 
-            assert result == {"text_search": "50m or more aum"}
+            assert result["text_search"] == "50m or more aum"
+            assert result["_cache_hit"] is False
+            assert "_parse_time_ms" in result
 
     @pytest.mark.asyncio
     async def test_http_error_falls_back_to_text_search(self):
@@ -312,7 +314,8 @@ class TestParseLpSearchQuery:
 
             result = await parse_lp_search_query("pension funds")
 
-            assert result == {"text_search": "pension funds"}
+            assert result["text_search"] == "pension funds"
+            assert result["_cache_hit"] is False
 
     @pytest.mark.asyncio
     async def test_invalid_json_response_falls_back(self):
@@ -328,7 +331,8 @@ class TestParseLpSearchQuery:
 
             result = await parse_lp_search_query("weird query")
 
-            assert result == {"text_search": "weird query"}
+            assert result["text_search"] == "weird query"
+            assert result["_cache_hit"] is False
 
     @pytest.mark.asyncio
     async def test_empty_response_falls_back(self):
@@ -344,7 +348,8 @@ class TestParseLpSearchQuery:
 
             result = await parse_lp_search_query("some query")
 
-            assert result == {"text_search": "some query"}
+            assert result["text_search"] == "some query"
+            assert result["_cache_hit"] is False
 
     @pytest.mark.asyncio
     async def test_json_embedded_in_explanation(self):

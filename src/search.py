@@ -2,6 +2,8 @@
 
 This module provides natural language query parsing for LP search,
 converting queries like "50m or more aum" into structured SQL filters.
+
+Includes caching for expensive Ollama calls to improve performance.
 """
 
 from __future__ import annotations
@@ -9,20 +11,26 @@ from __future__ import annotations
 import json
 import logging
 import re
+import time
 from typing import Any
 
 import httpx
 
+from src.cache import ai_query_cache, make_cache_key
 from src.config import get_settings
 
 logger = logging.getLogger(__name__)
 
 
-async def parse_lp_search_query(query: str) -> dict[str, Any]:
+async def parse_lp_search_query(
+    query: str,
+    use_cache: bool = True,
+) -> dict[str, Any]:
     """Use Ollama to parse natural language into structured filters.
 
     Args:
         query: Natural language search query (e.g., "50m or more aum")
+        use_cache: Whether to use cache for results. Defaults to True.
 
     Returns:
         Dictionary with extracted filters:
@@ -34,12 +42,27 @@ async def parse_lp_search_query(query: str) -> dict[str, Any]:
         - check_size_min: float (in millions)
         - check_size_max: float (in millions)
         - text_search: str (fallback text to search)
+        - _cache_hit: bool (whether result was from cache)
+        - _parse_time_ms: float (time taken to parse)
 
     Example:
         >>> filters = await parse_lp_search_query("50m or more aum")
         >>> print(filters)
         {'aum_min': 0.05}
     """
+    start_time = time.time()
+
+    # Check cache first
+    cache_key = make_cache_key("lp_search", query.lower().strip())
+    if use_cache:
+        cached = ai_query_cache.get(cache_key)
+        if cached is not None:
+            result = cached.copy()
+            result["_cache_hit"] = True
+            result["_parse_time_ms"] = round((time.time() - start_time) * 1000, 2)
+            logger.info(f"Cache hit for query '{query}' ({result['_parse_time_ms']}ms)")
+            return result
+
     settings = get_settings()
 
     prompt = f"""You are a search query parser for an LP (Limited Partner) database.
@@ -83,21 +106,32 @@ JSON:"""
             # Try to extract JSON from the response
             filters = _extract_json(text)
             if filters:
-                logger.info(f"Parsed query '{query}' -> {filters}")
+                # Cache the result (without metadata)
+                ai_query_cache.set(cache_key, filters)
+
+                # Add metadata and return
+                parse_time = round((time.time() - start_time) * 1000, 2)
+                filters["_cache_hit"] = False
+                filters["_parse_time_ms"] = parse_time
+                logger.info(f"Parsed query '{query}' -> {filters} ({parse_time}ms)")
                 return filters
 
             logger.warning(f"Could not parse JSON from Ollama response: {text}")
-            return {"text_search": query}
+            parse_time = round((time.time() - start_time) * 1000, 2)
+            return {"text_search": query, "_cache_hit": False, "_parse_time_ms": parse_time}
 
     except httpx.TimeoutException:
         logger.warning("Ollama request timed out, falling back to text search")
-        return {"text_search": query}
+        parse_time = round((time.time() - start_time) * 1000, 2)
+        return {"text_search": query, "_cache_hit": False, "_parse_time_ms": parse_time}
     except httpx.HTTPError as e:
         logger.warning(f"Ollama HTTP error: {e}, falling back to text search")
-        return {"text_search": query}
+        parse_time = round((time.time() - start_time) * 1000, 2)
+        return {"text_search": query, "_cache_hit": False, "_parse_time_ms": parse_time}
     except Exception as e:
         logger.warning(f"Ollama error: {e}, falling back to text search")
-        return {"text_search": query}
+        parse_time = round((time.time() - start_time) * 1000, 2)
+        return {"text_search": query, "_cache_hit": False, "_parse_time_ms": parse_time}
 
 
 def _extract_json(text: str) -> dict[str, Any] | None:
