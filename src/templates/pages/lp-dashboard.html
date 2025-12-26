@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="min-h-screen bg-navy-50">
+    <!-- Header -->
+    <div class="bg-white border-b border-navy-100">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-navy-900">LP Dashboard</h1>
+                    <p class="text-navy-500 mt-1">Fund opportunities matching your mandate</p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <a href="/lp-watchlist" class="text-gold hover:text-gold/80 font-medium">Watchlist</a>
+                    <a href="/lp-pipeline" class="text-gold hover:text-gold/80 font-medium">Pipeline</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div class="grid grid-cols-4 gap-4 mb-6">
+            <div class="bg-white rounded-lg p-4 shadow-sm">
+                <div class="text-2xl font-bold text-gold">{{ matches|length }}</div>
+                <div class="text-sm text-navy-500">Matched Funds</div>
+            </div>
+            <div class="bg-white rounded-lg p-4 shadow-sm">
+                <div class="text-2xl font-bold text-blue-600">{{ pipeline_stats.interested }}</div>
+                <div class="text-sm text-navy-500">Interested</div>
+            </div>
+            <div class="bg-white rounded-lg p-4 shadow-sm">
+                <div class="text-2xl font-bold text-orange-600">{{ pipeline_stats.dd_in_progress }}</div>
+                <div class="text-sm text-navy-500">In DD</div>
+            </div>
+            <div class="bg-white rounded-lg p-4 shadow-sm">
+                <div class="text-2xl font-bold text-navy-600">{{ watchlist|length }}</div>
+                <div class="text-sm text-navy-500">Watching</div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-6">
+            <!-- Matched Funds -->
+            <div class="col-span-2">
+                <div class="bg-white rounded-xl shadow-sm">
+                    <div class="border-b border-navy-100 px-6 py-4">
+                        <h2 class="font-semibold text-navy-900">Fund Matches</h2>
+                    </div>
+                    {% if matches %}
+                    <div class="divide-y divide-navy-100">
+                        {% for match in matches[:10] %}
+                        <div class="p-4 hover:bg-navy-50">
+                            <div class="flex items-center justify-between mb-2">
+                                <div>
+                                    <h3 class="font-medium text-navy-900">{{ match.fund_name }}</h3>
+                                    <p class="text-sm text-navy-500">{{ match.gp_name }}</p>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-lg font-bold text-gold">{{ match.score }}%</div>
+                                    <div class="text-xs text-navy-500">match score</div>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-4 text-sm">
+                                {% if match.strategy %}
+                                <span class="px-2 py-0.5 bg-navy-100 text-navy-700 rounded">{{ match.strategy|title }}</span>
+                                {% endif %}
+                                {% if match.target_size_mm %}
+                                <span class="text-navy-500">${{ match.target_size_mm }}M</span>
+                                {% endif %}
+                                {% if match.vintage_year %}
+                                <span class="text-navy-500">{{ match.vintage_year }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="flex items-center gap-2 mt-3">
+                                <form hx-post="/api/lp/fund/{{ match.fund_id }}/interest"
+                                      hx-target="#interest-{{ match.id }}"
+                                      hx-swap="innerHTML"
+                                      class="flex gap-2">
+                                    <input type="hidden" name="interest" value="interested">
+                                    <button type="submit" class="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200">
+                                        Interested
+                                    </button>
+                                </form>
+                                <form hx-post="/api/lp/fund/{{ match.fund_id }}/interest"
+                                      hx-target="#interest-{{ match.id }}"
+                                      hx-swap="innerHTML"
+                                      class="flex gap-2">
+                                    <input type="hidden" name="interest" value="watching">
+                                    <button type="submit" class="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200">
+                                        Watch
+                                    </button>
+                                </form>
+                                <form hx-post="/api/lp/fund/{{ match.fund_id }}/interest"
+                                      hx-target="#interest-{{ match.id }}"
+                                      hx-swap="innerHTML"
+                                      class="flex gap-2">
+                                    <input type="hidden" name="interest" value="passed">
+                                    <button type="submit" class="px-3 py-1 text-xs bg-red-50 text-red-600 rounded hover:bg-red-100">
+                                        Pass
+                                    </button>
+                                </form>
+                                <span id="interest-{{ match.id }}" class="ml-2">
+                                    {% if match.lp_interest %}
+                                    <span class="px-2 py-1 text-xs rounded-full
+                                        {% if match.lp_interest == 'interested' %}bg-blue-100 text-blue-700
+                                        {% elif match.lp_interest == 'watching' %}bg-gray-100 text-gray-700
+                                        {% elif match.lp_interest == 'passed' %}bg-red-100 text-red-700
+                                        {% else %}bg-gray-100 text-gray-700{% endif %}">
+                                        {{ match.lp_interest|title }}
+                                    </span>
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="p-12 text-center">
+                        <svg class="w-16 h-16 text-navy-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                        </svg>
+                        <h3 class="text-lg font-semibold text-navy-700">No fund matches yet</h3>
+                        <p class="text-navy-500 mt-2">We'll notify you when funds matching your mandate are available</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="space-y-6">
+                <!-- Watchlist -->
+                <div class="bg-white rounded-xl shadow-sm">
+                    <div class="border-b border-navy-100 px-4 py-3 flex items-center justify-between">
+                        <h3 class="font-semibold text-navy-900">Watchlist</h3>
+                        <a href="/lp-watchlist" class="text-sm text-gold hover:text-gold/80">View all</a>
+                    </div>
+                    {% if watchlist %}
+                    <div class="divide-y divide-navy-100">
+                        {% for fund in watchlist[:5] %}
+                        <div class="p-3">
+                            <div class="font-medium text-sm text-navy-900">{{ fund.name }}</div>
+                            <div class="text-xs text-navy-500">{{ fund.gp_name }}</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="p-4 text-center text-sm text-navy-500">
+                        No funds in watchlist
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Quick Stats -->
+                <div class="bg-white rounded-xl shadow-sm p-4">
+                    <h3 class="font-semibold text-navy-900 mb-4">Pipeline Summary</h3>
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-navy-600">Interested</span>
+                            <span class="text-sm font-medium text-navy-900">{{ pipeline_stats.interested }}</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-navy-600">Reviewing</span>
+                            <span class="text-sm font-medium text-navy-900">{{ pipeline_stats.reviewing }}</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-navy-600">In DD</span>
+                            <span class="text-sm font-medium text-navy-900">{{ pipeline_stats.dd_in_progress }}</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-navy-600">Passed</span>
+                            <span class="text-sm font-medium text-navy-900">{{ pipeline_stats.passed }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

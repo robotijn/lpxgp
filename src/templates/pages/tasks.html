@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="min-h-screen bg-navy-50">
+    <!-- Header -->
+    <div class="bg-white border-b border-navy-100">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-navy-900">Tasks</h1>
+                    <p class="text-navy-500 mt-1">Track follow-ups and action items</p>
+                </div>
+                <button onclick="document.getElementById('create-task-modal').classList.remove('hidden')"
+                        class="btn-primary">
+                    + New Task
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div class="grid grid-cols-3 gap-4 mb-6">
+            <div class="bg-white rounded-lg p-4 shadow-sm">
+                <div class="text-2xl font-bold text-gold">{{ pending_count }}</div>
+                <div class="text-sm text-navy-500">Pending</div>
+            </div>
+            <div class="bg-white rounded-lg p-4 shadow-sm">
+                <div class="text-2xl font-bold text-red-500">{{ overdue_count }}</div>
+                <div class="text-sm text-navy-500">Overdue</div>
+            </div>
+            <div class="bg-white rounded-lg p-4 shadow-sm">
+                <div class="text-2xl font-bold text-navy-900">{{ tasks|length }}</div>
+                <div class="text-sm text-navy-500">Total</div>
+            </div>
+        </div>
+
+        <!-- Tasks List -->
+        <div class="bg-white rounded-xl shadow-sm">
+            {% if tasks %}
+            <div class="divide-y divide-navy-100">
+                {% for task in tasks %}
+                <div class="p-4 hover:bg-navy-50 flex items-center gap-4">
+                    <!-- Checkbox -->
+                    <div hx-put="/api/tasks/{{ task.id }}/complete"
+                         hx-target="this"
+                         hx-swap="outerHTML"
+                         class="cursor-pointer">
+                        {% if task.status == 'completed' %}
+                        <div class="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center text-white">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                        </div>
+                        {% else %}
+                        <div class="w-6 h-6 rounded-full border-2 border-navy-300 hover:border-gold"></div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Task Content -->
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2">
+                            <span class="font-medium text-navy-900 {% if task.status == 'completed' %}line-through text-navy-400{% endif %}">
+                                {{ task.title }}
+                            </span>
+                            {% if task.priority == 'urgent' %}
+                            <span class="px-2 py-0.5 text-xs bg-red-100 text-red-700 rounded-full">Urgent</span>
+                            {% elif task.priority == 'high' %}
+                            <span class="px-2 py-0.5 text-xs bg-orange-100 text-orange-700 rounded-full">High</span>
+                            {% endif %}
+                        </div>
+                        {% if task.description %}
+                        <p class="text-sm text-navy-500 mt-1">{{ task.description }}</p>
+                        {% endif %}
+                        <div class="flex items-center gap-3 mt-2 text-sm">
+                            {% if task.due_date %}
+                            <span class="{% if task.due_date < today and task.status != 'completed' %}text-red-500{% else %}text-navy-500{% endif %}">
+                                Due: {{ task.due_date.strftime('%b %d') }}
+                            </span>
+                            {% endif %}
+                            {% if task.contact_first or task.contact_last %}
+                            <span class="text-navy-400">•</span>
+                            <span class="text-navy-500">{{ task.contact_first }} {{ task.contact_last }}</span>
+                            {% elif task.company_name %}
+                            <span class="text-navy-400">•</span>
+                            <span class="text-navy-500">{{ task.company_name }}</span>
+                            {% endif %}
+                            {% if task.event_name %}
+                            <span class="text-navy-400">•</span>
+                            <span class="text-navy-500">{{ task.event_name }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Status -->
+                    <div>
+                        {% if task.status == 'completed' %}
+                        <span class="px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full">Completed</span>
+                        {% elif task.status == 'in_progress' %}
+                        <span class="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded-full">In Progress</span>
+                        {% else %}
+                        <span class="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded-full">Pending</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="p-12 text-center">
+                <svg class="w-16 h-16 text-navy-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                </svg>
+                <h3 class="text-lg font-semibold text-navy-700">No tasks yet</h3>
+                <p class="text-navy-500 mt-2">Create your first task to get started</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Create Task Modal -->
+<div id="create-task-modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+     onclick="if(event.target === this) this.classList.add('hidden')">
+    <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full mx-4" onclick="event.stopPropagation()">
+        <div class="border-b border-navy-100 px-6 py-4 flex items-center justify-between">
+            <h2 class="text-xl font-bold text-navy-900">New Task</h2>
+            <button onclick="this.closest('.fixed').classList.add('hidden')" class="text-navy-400 hover:text-navy-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        <form hx-post="/api/tasks" hx-target="#task-form-response" hx-swap="innerHTML">
+            <div class="p-6 space-y-4">
+                <div id="task-form-response"></div>
+                <div>
+                    <label class="block text-sm font-medium text-navy-700 mb-1">Title *</label>
+                    <input type="text" name="title" required class="form-input w-full"
+                           placeholder="What needs to be done?">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-navy-700 mb-1">Description</label>
+                    <textarea name="description" rows="2" class="form-input w-full"></textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-navy-700 mb-1">Due Date</label>
+                        <input type="date" name="due_date" class="form-input w-full">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-navy-700 mb-1">Priority</label>
+                        <select name="priority" class="form-input w-full">
+                            <option value="low">Low</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="high">High</option>
+                            <option value="urgent">Urgent</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="border-t border-navy-100 px-6 py-4 flex justify-end gap-3">
+                <button type="button" onclick="this.closest('.fixed').classList.add('hidden')"
+                        class="px-4 py-2 text-navy-600 hover:text-navy-800">Cancel</button>
+                <button type="submit" class="btn-primary">Create Task</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

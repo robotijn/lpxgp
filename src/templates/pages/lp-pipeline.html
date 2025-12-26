@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="min-h-screen bg-navy-50">
+    <!-- Header -->
+    <div class="bg-white border-b border-navy-100">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-navy-900">Fund Pipeline</h1>
+                    <p class="text-navy-500 mt-1">Track funds through your evaluation process</p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <a href="/lp-dashboard" class="text-navy-600 hover:text-navy-800">Dashboard</a>
+                    <a href="/lp-watchlist" class="text-gold hover:text-gold/80 font-medium">Watchlist</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Kanban Board -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div class="grid grid-cols-5 gap-4">
+            <!-- Watching -->
+            <div class="bg-gray-100 rounded-lg p-3">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="font-semibold text-gray-700">Watching</h3>
+                    <span class="bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">
+                        {{ pipeline.watching|length }}
+                    </span>
+                </div>
+                <div class="space-y-2">
+                    {% for fund in pipeline.watching %}
+                    <div class="bg-white rounded-lg p-3 shadow-sm">
+                        <div class="font-medium text-sm text-navy-900">{{ fund.name }}</div>
+                        <div class="text-xs text-navy-500">{{ fund.gp_name }}</div>
+                        {% if fund.strategy %}
+                        <span class="inline-block mt-2 px-2 py-0.5 text-xs bg-navy-100 text-navy-700 rounded">
+                            {{ fund.strategy|title }}
+                        </span>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Interested -->
+            <div class="bg-blue-50 rounded-lg p-3">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="font-semibold text-blue-700">Interested</h3>
+                    <span class="bg-blue-100 text-blue-600 text-xs px-2 py-0.5 rounded-full">
+                        {{ pipeline.interested|length }}
+                    </span>
+                </div>
+                <div class="space-y-2">
+                    {% for fund in pipeline.interested %}
+                    <div class="bg-white rounded-lg p-3 shadow-sm border-l-4 border-blue-500">
+                        <div class="font-medium text-sm text-navy-900">{{ fund.name }}</div>
+                        <div class="text-xs text-navy-500">{{ fund.gp_name }}</div>
+                        {% if fund.target_size_mm %}
+                        <div class="text-xs text-navy-500 mt-1">${{ fund.target_size_mm }}M</div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Reviewing -->
+            <div class="bg-yellow-50 rounded-lg p-3">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="font-semibold text-yellow-700">Reviewing</h3>
+                    <span class="bg-yellow-100 text-yellow-600 text-xs px-2 py-0.5 rounded-full">
+                        {{ pipeline.reviewing|length }}
+                    </span>
+                </div>
+                <div class="space-y-2">
+                    {% for fund in pipeline.reviewing %}
+                    <div class="bg-white rounded-lg p-3 shadow-sm border-l-4 border-yellow-500">
+                        <div class="font-medium text-sm text-navy-900">{{ fund.name }}</div>
+                        <div class="text-xs text-navy-500">{{ fund.gp_name }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- DD In Progress -->
+            <div class="bg-orange-50 rounded-lg p-3">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="font-semibold text-orange-700">DD In Progress</h3>
+                    <span class="bg-orange-100 text-orange-600 text-xs px-2 py-0.5 rounded-full">
+                        {{ pipeline.dd_in_progress|length }}
+                    </span>
+                </div>
+                <div class="space-y-2">
+                    {% for fund in pipeline.dd_in_progress %}
+                    <div class="bg-white rounded-lg p-3 shadow-sm border-l-4 border-orange-500">
+                        <div class="font-medium text-sm text-navy-900">{{ fund.name }}</div>
+                        <div class="text-xs text-navy-500">{{ fund.gp_name }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Passed -->
+            <div class="bg-red-50 rounded-lg p-3">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="font-semibold text-red-700">Passed</h3>
+                    <span class="bg-red-100 text-red-600 text-xs px-2 py-0.5 rounded-full">
+                        {{ pipeline.passed|length }}
+                    </span>
+                </div>
+                <div class="space-y-2">
+                    {% for fund in pipeline.passed %}
+                    <div class="bg-white rounded-lg p-3 shadow-sm border-l-4 border-red-500 opacity-60">
+                        <div class="font-medium text-sm text-navy-900">{{ fund.name }}</div>
+                        <div class="text-xs text-navy-500">{{ fund.gp_name }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Empty state -->
+        {% if not pipeline.watching and not pipeline.interested and not pipeline.reviewing and not pipeline.dd_in_progress and not pipeline.passed %}
+        <div class="bg-white rounded-xl shadow-sm p-12 text-center mt-6">
+            <svg class="w-16 h-16 text-navy-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/>
+            </svg>
+            <h3 class="text-lg font-semibold text-navy-700">No funds in pipeline</h3>
+            <p class="text-navy-500 mt-2">Start tracking funds from your dashboard</p>
+            <a href="/lp-dashboard" class="btn-primary mt-4 inline-block">Go to Dashboard</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

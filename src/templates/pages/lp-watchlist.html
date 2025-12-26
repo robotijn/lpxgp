@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="min-h-screen bg-navy-50">
+    <!-- Header -->
+    <div class="bg-white border-b border-navy-100">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-navy-900">Watchlist</h1>
+                    <p class="text-navy-500 mt-1">Funds you're monitoring</p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <a href="/lp-dashboard" class="text-navy-600 hover:text-navy-800">Dashboard</a>
+                    <a href="/lp-pipeline" class="text-gold hover:text-gold/80 font-medium">Pipeline</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Watchlist -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div class="bg-white rounded-xl shadow-sm">
+            {% if watchlist %}
+            <div class="divide-y divide-navy-100">
+                {% for fund in watchlist %}
+                <div class="p-4 hover:bg-navy-50">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="font-medium text-navy-900">{{ fund.name }}</h3>
+                            <p class="text-sm text-navy-500">{{ fund.gp_name }}{% if fund.hq_city %} • {{ fund.hq_city }}{% endif %}</p>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            {% if fund.strategy %}
+                            <span class="px-2 py-0.5 text-xs bg-navy-100 text-navy-700 rounded">{{ fund.strategy|title }}</span>
+                            {% endif %}
+                            {% if fund.target_size_mm %}
+                            <span class="text-sm text-navy-500">${{ fund.target_size_mm }}M</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3 mt-3">
+                        <form hx-post="/api/lp/fund/{{ fund.id }}/interest"
+                              hx-target="#status-{{ fund.id }}"
+                              hx-swap="innerHTML">
+                            <input type="hidden" name="interest" value="interested">
+                            <button type="submit" class="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200">
+                                Mark Interested
+                            </button>
+                        </form>
+                        <form hx-post="/api/lp/fund/{{ fund.id }}/interest"
+                              hx-target="#status-{{ fund.id }}"
+                              hx-swap="innerHTML">
+                            <input type="hidden" name="interest" value="passed">
+                            <button type="submit" class="px-3 py-1 text-xs bg-red-50 text-red-600 rounded hover:bg-red-100">
+                                Pass
+                            </button>
+                        </form>
+                        <span id="status-{{ fund.id }}">
+                            <span class="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded-full">Watching</span>
+                        </span>
+                    </div>
+                    {% if fund.notes %}
+                    <p class="text-sm text-navy-500 mt-2">{{ fund.notes }}</p>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="p-12 text-center">
+                <svg class="w-16 h-16 text-navy-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                </svg>
+                <h3 class="text-lg font-semibold text-navy-700">No funds in watchlist</h3>
+                <p class="text-navy-500 mt-2">Start watching funds from your matches to track them here</p>
+                <a href="/lp-dashboard" class="btn-primary mt-4 inline-block">View Matches</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

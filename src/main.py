@@ -4112,6 +4112,1127 @@ async def admin_company_deactivate(request: Request, org_id: str) -> JSONRespons
     return JSONResponse(content={"success": True})
 
 
+# =============================================================================
+# PHASE 2: Match Feedback & Status APIs
+# =============================================================================
+
+
+@app.post("/api/match/{match_id}/feedback", response_class=HTMLResponse)
+async def match_feedback(
+    request: Request,
+    match_id: str,
+    feedback: str = Form(...),
+    reason: str | None = Form(None),
+) -> HTMLResponse:
+    """Record feedback on a match (thumbs up/down/dismiss).
+
+    Args:
+        request: FastAPI request object.
+        match_id: Match ID (fund_lp_match id).
+        feedback: Feedback type (positive, negative, dismissed).
+        reason: Optional reason for dismissal.
+
+    Returns:
+        HTML response with updated match card or success message.
+    """
+    user = auth.get_current_user(request)
+    if not user:
+        return HTMLResponse(content="<div>Not authenticated</div>", status_code=401)
+
+    if not is_valid_uuid(match_id):
+        return HTMLResponse(
+            content='<div class="text-red-500">Invalid match ID</div>',
+            status_code=400,
+        )
+
+    conn = get_db()
+    if not conn:
+        return HTMLResponse(
+            content='<div class="text-yellow-500">Database unavailable</div>',
+            status_code=503,
+        )
+
+    try:
+        with conn.cursor() as cur:
+            # Update match with feedback
+            cur.execute(
+                """
+                UPDATE fund_lp_matches
+                SET
+                    gp_feedback = %s,
+                    gp_feedback_reason = %s,
+                    gp_feedback_at = NOW()
+                WHERE id = %s
+                RETURNING id, score, gp_feedback
+                """,
+                (feedback, reason, match_id),
+            )
+            result = cur.fetchone()
+
+            if not result:
+                return HTMLResponse(
+                    content='<div class="text-red-500">Match not found</div>',
+                    status_code=404,
+                )
+
+            conn.commit()
+
+            # Return updated feedback UI
+            feedback_icons = {
+                "positive": "👍",
+                "negative": "👎",
+                "dismissed": "❌",
+            }
+            icon = feedback_icons.get(feedback, "")
+
+            return HTMLResponse(
+                content=f"""
+                <div class="flex items-center gap-2 text-sm text-navy-600">
+                    <span>{icon}</span>
+                    <span>Feedback recorded</span>
+                </div>
+                """,
+            )
+    except Exception as e:
+        logger.error(f"Match feedback error: {e}")
+        return HTMLResponse(
+            content=f'<div class="text-red-500">Error: {e}</div>',
+            status_code=500,
+        )
+    finally:
+        conn.close()
+
+
+@app.post("/api/match/{match_id}/status", response_class=HTMLResponse)
+async def update_match_status(
+    request: Request,
+    match_id: str,
+    stage: str = Form(...),
+    notes: str | None = Form(None),
+) -> HTMLResponse:
+    """Update pipeline stage for a match.
+
+    Args:
+        request: FastAPI request object.
+        match_id: Match ID.
+        stage: Pipeline stage (new, contacted, meeting_scheduled, etc.).
+        notes: Optional notes.
+
+    Returns:
+        HTML response with updated status badge.
+    """
+    user = auth.get_current_user(request)
+    if not user:
+        return HTMLResponse(content="<div>Not authenticated</div>", status_code=401)
+
+    if not is_valid_uuid(match_id):
+        return HTMLResponse(
+            content='<div class="text-red-500">Invalid match ID</div>',
+            status_code=400,
+        )
+
+    valid_stages = [
+        "new",
+        "contacted",
+        "meeting_scheduled",
+        "meeting_held",
+        "dd_in_progress",
+        "committed",
+        "passed",
+    ]
+    if stage not in valid_stages:
+        return HTMLResponse(
+            content=f'<div class="text-red-500">Invalid stage: {stage}</div>',
+            status_code=400,
+        )
+
+    conn = get_db()
+    if not conn:
+        return HTMLResponse(
+            content='<div class="text-yellow-500">Database unavailable</div>',
+            status_code=503,
+        )
+
+    try:
+        with conn.cursor() as cur:
+            # Get fund_id and lp_org_id from match
+            cur.execute(
+                "SELECT fund_id, lp_org_id FROM fund_lp_matches WHERE id = %s",
+                (match_id,),
+            )
+            match = cur.fetchone()
+            if not match:
+                return HTMLResponse(
+                    content='<div class="text-red-500">Match not found</div>',
+                    status_code=404,
+                )
+
+            # Upsert fund_lp_status
+            cur.execute(
+                """
+                INSERT INTO fund_lp_status (fund_id, lp_org_id, pipeline_stage, notes)
+                VALUES (%s, %s, %s, %s)
+                ON CONFLICT (fund_id, lp_org_id)
+                DO UPDATE SET
+                    pipeline_stage = EXCLUDED.pipeline_stage,
+                    notes = COALESCE(EXCLUDED.notes, fund_lp_status.notes),
+                    updated_at = NOW()
+                RETURNING pipeline_stage
+                """,
+                (match["fund_id"], match["lp_org_id"], stage, notes),
+            )
+            conn.commit()
+
+            # Status badge styling
+            stage_colors = {
+                "new": "bg-gray-100 text-gray-700",
+                "contacted": "bg-blue-100 text-blue-700",
+                "meeting_scheduled": "bg-yellow-100 text-yellow-700",
+                "meeting_held": "bg-purple-100 text-purple-700",
+                "dd_in_progress": "bg-orange-100 text-orange-700",
+                "committed": "bg-green-100 text-green-700",
+                "passed": "bg-red-100 text-red-700",
+            }
+            color = stage_colors.get(stage, "bg-gray-100 text-gray-700")
+            display = stage.replace("_", " ").title()
+
+            return HTMLResponse(
+                content=f"""
+                <span class="px-2 py-1 text-xs rounded-full {color}">
+                    {display}
+                </span>
+                """,
+            )
+    except Exception as e:
+        logger.error(f"Match status update error: {e}")
+        return HTMLResponse(
+            content=f'<div class="text-red-500">Error: {e}</div>',
+            status_code=500,
+        )
+    finally:
+        conn.close()
+
+
+# =============================================================================
+# PHASE 3: CRM/IR Features - Events, Touchpoints, Tasks
+# =============================================================================
+
+
+@app.get("/events", response_class=HTMLResponse, response_model=None)
+async def events_page(request: Request) -> HTMLResponse | RedirectResponse:
+    """Events management page for IR team.
+
+    Lists all events with filtering and CRUD operations.
+    """
+    user = auth.get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    # Default empty state
+    events: list[dict[str, Any]] = []
+    upcoming_count = 0
+    past_count = 0
+
+    conn = get_db()
+    if conn:
+        try:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT
+                        e.*,
+                        COUNT(DISTINCT ea.id) as attendee_count
+                    FROM events e
+                    LEFT JOIN event_attendance ea ON ea.event_id = e.id
+                    GROUP BY e.id
+                    ORDER BY e.start_date DESC NULLS LAST
+                    """
+                )
+                events = cur.fetchall()
+
+                # Count upcoming vs past
+                from datetime import date
+
+                today = date.today()
+                for event in events:
+                    if event.get("start_date"):
+                        if event["start_date"] >= today:
+                            upcoming_count += 1
+                        else:
+                            past_count += 1
+        finally:
+            conn.close()
+
+    return templates.TemplateResponse(
+        request,
+        "pages/events.html",
+        {
+            "title": "Events - LPxGP",
+            "user": user,
+            "events": events,
+            "upcoming_count": upcoming_count,
+            "past_count": past_count,
+        },
+    )
+
+
+@app.post("/api/events", response_class=HTMLResponse)
+async def create_event(
+    request: Request,
+    name: str = Form(...),
+    event_type: str = Form("conference"),
+    start_date: str | None = Form(None),
+    end_date: str | None = Form(None),
+    city: str | None = Form(None),
+    country: str | None = Form(None),
+    notes: str | None = Form(None),
+) -> HTMLResponse:
+    """Create a new event."""
+    user = auth.get_current_user(request)
+    if not user:
+        return HTMLResponse(content="<div>Not authenticated</div>", status_code=401)
+
+    conn = get_db()
+    if not conn:
+        return HTMLResponse(
+            content='<div class="text-yellow-500">Database unavailable</div>',
+            status_code=503,
+        )
+
+    try:
+        with conn.cursor() as cur:
+            # Get user's org_id
+            cur.execute(
+                "SELECT org_id FROM people WHERE auth_user_id = %s",
+                (user.get("id"),),
+            )
+            person = cur.fetchone()
+            org_id = person["org_id"] if person else None
+
+            if not org_id:
+                # Create a default org if none exists
+                cur.execute(
+                    "SELECT id FROM organizations LIMIT 1"
+                )
+                org = cur.fetchone()
+                org_id = org["id"] if org else None
+
+            cur.execute(
+                """
+                INSERT INTO events (
+                    org_id, name, event_type, start_date, end_date,
+                    city, country, notes, status
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'planning')
+                RETURNING id
+                """,
+                (
+                    org_id,
+                    name,
+                    event_type,
+                    start_date or None,
+                    end_date or None,
+                    city,
+                    country,
+                    notes,
+                ),
+            )
+            event_id = cur.fetchone()["id"]
+            conn.commit()
+
+            return HTMLResponse(
+                content=f"""
+                <div class="text-center p-4">
+                    <div class="text-green-500 text-lg mb-2">✓ Event Created</div>
+                    <p class="text-navy-600">{name}</p>
+                    <script>
+                        setTimeout(() => window.location.href = '/events', 1500);
+                    </script>
+                </div>
+                """,
+            )
+    except Exception as e:
+        logger.error(f"Event creation error: {e}")
+        return HTMLResponse(
+            content=f'<div class="text-red-500">Error: {e}</div>',
+            status_code=500,
+        )
+    finally:
+        conn.close()
+
+
+@app.get("/api/events/{event_id}", response_class=HTMLResponse)
+async def get_event_detail(request: Request, event_id: str) -> HTMLResponse:
+    """Get event detail modal content."""
+    user = auth.get_current_user(request)
+    if not user:
+        return HTMLResponse(content="<div>Not authenticated</div>", status_code=401)
+
+    if not is_valid_uuid(event_id):
+        return HTMLResponse(
+            content='<div class="text-red-500">Invalid event ID</div>',
+            status_code=400,
+        )
+
+    conn = get_db()
+    if not conn:
+        return HTMLResponse(
+            content='<div class="text-yellow-500">Database unavailable</div>',
+            status_code=503,
+        )
+
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT e.*,
+                    COUNT(DISTINCT ea.id) as attendee_count
+                FROM events e
+                LEFT JOIN event_attendance ea ON ea.event_id = e.id
+                WHERE e.id = %s
+                GROUP BY e.id
+                """,
+                (event_id,),
+            )
+            event = cur.fetchone()
+
+            if not event:
+                return HTMLResponse(
+                    content='<div class="text-red-500">Event not found</div>',
+                    status_code=404,
+                )
+
+            # Get attendees
+            cur.execute(
+                """
+                SELECT ea.*, p.first_name, p.last_name, o.name as org_name
+                FROM event_attendance ea
+                LEFT JOIN people p ON p.id = ea.person_id
+                LEFT JOIN organizations o ON o.id = ea.company_id
+                WHERE ea.event_id = %s
+                """,
+                (event_id,),
+            )
+            attendees = cur.fetchall()
+
+            return templates.TemplateResponse(
+                request,
+                "partials/event_detail_modal.html",
+                {"event": event, "attendees": attendees},
+            )
+    finally:
+        conn.close()
+
+
+@app.delete("/api/events/{event_id}", response_class=HTMLResponse)
+async def delete_event(request: Request, event_id: str) -> HTMLResponse:
+    """Delete an event."""
+    user = auth.get_current_user(request)
+    if not user:
+        return HTMLResponse(content="<div>Not authenticated</div>", status_code=401)
+
+    if not is_valid_uuid(event_id):
+        return HTMLResponse(
+            content='<div class="text-red-500">Invalid event ID</div>',
+            status_code=400,
+        )
+
+    conn = get_db()
+    if not conn:
+        return HTMLResponse(
+            content='<div class="text-yellow-500">Database unavailable</div>',
+            status_code=503,
+        )
+
+    try:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM events WHERE id = %s", (event_id,))
+            conn.commit()
+
+            return HTMLResponse(
+                content="""
+                <div class="text-center p-4">
+                    <div class="text-green-500">Event deleted</div>
+                    <script>
+                        document.body.dispatchEvent(new Event('eventDeleted'));
+                        setTimeout(() => window.location.reload(), 1000);
+                    </script>
+                </div>
+                """,
+            )
+    except Exception as e:
+        logger.error(f"Event deletion error: {e}")
+        return HTMLResponse(
+            content=f'<div class="text-red-500">Error: {e}</div>',
+            status_code=500,
+        )
+    finally:
+        conn.close()
+
+
+@app.get("/touchpoints", response_class=HTMLResponse, response_model=None)
+async def touchpoints_page(request: Request) -> HTMLResponse | RedirectResponse:
+    """Touchpoints/interactions log page."""
+    user = auth.get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    touchpoints: list[dict[str, Any]] = []
+
+    conn = get_db()
+    if conn:
+        try:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT
+                        t.*,
+                        p.first_name, p.last_name,
+                        o.name as company_name,
+                        e.name as event_name
+                    FROM touchpoints t
+                    LEFT JOIN people p ON p.id = t.person_id
+                    LEFT JOIN organizations o ON o.id = t.company_id
+                    LEFT JOIN events e ON e.id = t.event_id
+                    ORDER BY t.occurred_at DESC
+                    LIMIT 100
+                    """
+                )
+                touchpoints = cur.fetchall()
+        finally:
+            conn.close()
+
+    return templates.TemplateResponse(
+        request,
+        "pages/touchpoints.html",
+        {
+            "title": "Touchpoints - LPxGP",
+            "user": user,
+            "touchpoints": touchpoints,
+        },
+    )
+
+
+@app.post("/api/touchpoints", response_class=HTMLResponse)
+async def create_touchpoint(
+    request: Request,
+    touchpoint_type: str = Form(...),
+    occurred_at: str = Form(...),
+    summary: str | None = Form(None),
+    person_id: str | None = Form(None),
+    company_id: str | None = Form(None),
+    sentiment: str | None = Form(None),
+    follow_up_required: bool = Form(False),
+) -> HTMLResponse:
+    """Log a new touchpoint/interaction."""
+    user = auth.get_current_user(request)
+    if not user:
+        return HTMLResponse(content="<div>Not authenticated</div>", status_code=401)
+
+    conn = get_db()
+    if not conn:
+        return HTMLResponse(
+            content='<div class="text-yellow-500">Database unavailable</div>',
+            status_code=503,
+        )
+
+    try:
+        with conn.cursor() as cur:
+            # Get user's org_id
+            cur.execute(
+                "SELECT id, org_id FROM people WHERE auth_user_id = %s",
+                (user.get("id"),),
+            )
+            person = cur.fetchone()
+            org_id = person["org_id"] if person else None
+            created_by = person["id"] if person else None
+
+            if not org_id:
+                cur.execute("SELECT id FROM organizations LIMIT 1")
+                org = cur.fetchone()
+                org_id = org["id"] if org else None
+
+            cur.execute(
+                """
+                INSERT INTO touchpoints (
+                    org_id, touchpoint_type, occurred_at, summary,
+                    person_id, company_id, sentiment, follow_up_required,
+                    created_by
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING id
+                """,
+                (
+                    org_id,
+                    touchpoint_type,
+                    occurred_at,
+                    summary,
+                    person_id if person_id and is_valid_uuid(person_id) else None,
+                    company_id if company_id and is_valid_uuid(company_id) else None,
+                    sentiment,
+                    follow_up_required,
+                    created_by,
+                ),
+            )
+            conn.commit()
+
+            return HTMLResponse(
+                content="""
+                <div class="text-center p-4">
+                    <div class="text-green-500 text-lg mb-2">✓ Touchpoint Logged</div>
+                    <script>
+                        setTimeout(() => window.location.href = '/touchpoints', 1500);
+                    </script>
+                </div>
+                """,
+            )
+    except Exception as e:
+        logger.error(f"Touchpoint creation error: {e}")
+        return HTMLResponse(
+            content=f'<div class="text-red-500">Error: {e}</div>',
+            status_code=500,
+        )
+    finally:
+        conn.close()
+
+
+@app.get("/tasks", response_class=HTMLResponse, response_model=None)
+async def tasks_page(request: Request) -> HTMLResponse | RedirectResponse:
+    """Task management page."""
+    user = auth.get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    tasks: list[dict[str, Any]] = []
+    pending_count = 0
+    overdue_count = 0
+
+    conn = get_db()
+    if conn:
+        try:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT
+                        t.*,
+                        p.first_name as contact_first, p.last_name as contact_last,
+                        o.name as company_name,
+                        e.name as event_name,
+                        ap.first_name as assigned_first, ap.last_name as assigned_last
+                    FROM tasks t
+                    LEFT JOIN people p ON p.id = t.person_id
+                    LEFT JOIN organizations o ON o.id = t.company_id
+                    LEFT JOIN events e ON e.id = t.event_id
+                    LEFT JOIN people ap ON ap.id = t.assigned_to
+                    ORDER BY
+                        CASE t.priority
+                            WHEN 'urgent' THEN 1
+                            WHEN 'high' THEN 2
+                            WHEN 'medium' THEN 3
+                            ELSE 4
+                        END,
+                        t.due_date ASC NULLS LAST
+                    """
+                )
+                tasks = cur.fetchall()
+
+                from datetime import date
+
+                today = date.today()
+                for task in tasks:
+                    if task["status"] in ("pending", "in_progress"):
+                        pending_count += 1
+                        if task.get("due_date") and task["due_date"] < today:
+                            overdue_count += 1
+        finally:
+            conn.close()
+
+    return templates.TemplateResponse(
+        request,
+        "pages/tasks.html",
+        {
+            "title": "Tasks - LPxGP",
+            "user": user,
+            "tasks": tasks,
+            "pending_count": pending_count,
+            "overdue_count": overdue_count,
+        },
+    )
+
+
+@app.post("/api/tasks", response_class=HTMLResponse)
+async def create_task(
+    request: Request,
+    title: str = Form(...),
+    description: str | None = Form(None),
+    due_date: str | None = Form(None),
+    priority: str = Form("medium"),
+    person_id: str | None = Form(None),
+    company_id: str | None = Form(None),
+) -> HTMLResponse:
+    """Create a new task."""
+    user = auth.get_current_user(request)
+    if not user:
+        return HTMLResponse(content="<div>Not authenticated</div>", status_code=401)
+
+    conn = get_db()
+    if not conn:
+        return HTMLResponse(
+            content='<div class="text-yellow-500">Database unavailable</div>',
+            status_code=503,
+        )
+
+    try:
+        with conn.cursor() as cur:
+            # Get user's org_id and person_id
+            cur.execute(
+                "SELECT id, org_id FROM people WHERE auth_user_id = %s",
+                (user.get("id"),),
+            )
+            person = cur.fetchone()
+            org_id = person["org_id"] if person else None
+            assigned_to = person["id"] if person else None
+
+            if not org_id:
+                cur.execute("SELECT id FROM organizations LIMIT 1")
+                org = cur.fetchone()
+                org_id = org["id"] if org else None
+
+            cur.execute(
+                """
+                INSERT INTO tasks (
+                    org_id, title, description, due_date, priority,
+                    person_id, company_id, assigned_to, status
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'pending')
+                RETURNING id
+                """,
+                (
+                    org_id,
+                    title,
+                    description,
+                    due_date or None,
+                    priority,
+                    person_id if person_id and is_valid_uuid(person_id) else None,
+                    company_id if company_id and is_valid_uuid(company_id) else None,
+                    assigned_to,
+                ),
+            )
+            conn.commit()
+
+            return HTMLResponse(
+                content="""
+                <div class="text-center p-4">
+                    <div class="text-green-500 text-lg mb-2">✓ Task Created</div>
+                    <script>
+                        setTimeout(() => window.location.href = '/tasks', 1500);
+                    </script>
+                </div>
+                """,
+            )
+    except Exception as e:
+        logger.error(f"Task creation error: {e}")
+        return HTMLResponse(
+            content=f'<div class="text-red-500">Error: {e}</div>',
+            status_code=500,
+        )
+    finally:
+        conn.close()
+
+
+@app.put("/api/tasks/{task_id}/complete", response_class=HTMLResponse)
+async def complete_task(request: Request, task_id: str) -> HTMLResponse:
+    """Mark a task as complete."""
+    user = auth.get_current_user(request)
+    if not user:
+        return HTMLResponse(content="<div>Not authenticated</div>", status_code=401)
+
+    if not is_valid_uuid(task_id):
+        return HTMLResponse(
+            content='<div class="text-red-500">Invalid task ID</div>',
+            status_code=400,
+        )
+
+    conn = get_db()
+    if not conn:
+        return HTMLResponse(
+            content='<div class="text-yellow-500">Database unavailable</div>',
+            status_code=503,
+        )
+
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE tasks
+                SET status = 'completed', completed_at = NOW()
+                WHERE id = %s
+                RETURNING title
+                """,
+                (task_id,),
+            )
+            result = cur.fetchone()
+            conn.commit()
+
+            if not result:
+                return HTMLResponse(
+                    content='<div class="text-red-500">Task not found</div>',
+                    status_code=404,
+                )
+
+            return HTMLResponse(
+                content="""
+                <span class="px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full">
+                    Completed ✓
+                </span>
+                """,
+            )
+    except Exception as e:
+        logger.error(f"Task complete error: {e}")
+        return HTMLResponse(
+            content=f'<div class="text-red-500">Error: {e}</div>',
+            status_code=500,
+        )
+    finally:
+        conn.close()
+
+
+# =============================================================================
+# PHASE 4: LP Dashboard & Features
+# =============================================================================
+
+
+@app.get("/lp-dashboard", response_class=HTMLResponse, response_model=None)
+async def lp_dashboard(request: Request) -> HTMLResponse | RedirectResponse:
+    """LP-specific dashboard showing fund matches and pipeline.
+
+    For LPs to view and manage incoming fund opportunities.
+    """
+    user = auth.get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    # Dashboard data
+    matches: list[dict[str, Any]] = []
+    watchlist: list[dict[str, Any]] = []
+    pipeline_stats = {
+        "interested": 0,
+        "reviewing": 0,
+        "dd_in_progress": 0,
+        "passed": 0,
+    }
+
+    conn = get_db()
+    if conn:
+        try:
+            with conn.cursor() as cur:
+                # Get LP's organization
+                cur.execute(
+                    """
+                    SELECT o.id as lp_org_id
+                    FROM people p
+                    JOIN organizations o ON o.id = p.org_id
+                    WHERE p.auth_user_id = %s AND o.is_lp = TRUE
+                    """,
+                    (user.get("id"),),
+                )
+                lp_org = cur.fetchone()
+
+                if lp_org:
+                    lp_org_id = lp_org["lp_org_id"]
+
+                    # Get fund matches for this LP
+                    cur.execute(
+                        """
+                        SELECT
+                            m.id, m.fund_id, m.score, m.explanation,
+                            m.talking_points, m.concerns,
+                            f.name as fund_name, f.target_size_mm, f.strategy,
+                            f.vintage_year,
+                            gp.name as gp_name,
+                            s.lp_interest, s.pipeline_stage
+                        FROM fund_lp_matches m
+                        JOIN funds f ON f.id = m.fund_id
+                        JOIN organizations gp ON gp.id = f.gp_org_id
+                        LEFT JOIN fund_lp_status s
+                            ON s.fund_id = m.fund_id AND s.lp_org_id = m.lp_org_id
+                        WHERE m.lp_org_id = %s
+                        ORDER BY m.score DESC
+                        LIMIT 20
+                        """,
+                        (lp_org_id,),
+                    )
+                    matches = cur.fetchall()
+
+                    # Get watchlist
+                    cur.execute(
+                        """
+                        SELECT
+                            f.id, f.name, f.target_size_mm, f.strategy,
+                            gp.name as gp_name,
+                            s.lp_interest, s.notes
+                        FROM fund_lp_status s
+                        JOIN funds f ON f.id = s.fund_id
+                        JOIN organizations gp ON gp.id = f.gp_org_id
+                        WHERE s.lp_org_id = %s AND s.lp_interest = 'watching'
+                        ORDER BY s.updated_at DESC
+                        """,
+                        (lp_org_id,),
+                    )
+                    watchlist = cur.fetchall()
+
+                    # Pipeline stats
+                    cur.execute(
+                        """
+                        SELECT lp_interest, COUNT(*) as count
+                        FROM fund_lp_status
+                        WHERE lp_org_id = %s AND lp_interest IS NOT NULL
+                        GROUP BY lp_interest
+                        """,
+                        (lp_org_id,),
+                    )
+                    for row in cur.fetchall():
+                        if row["lp_interest"] in pipeline_stats:
+                            pipeline_stats[row["lp_interest"]] = row["count"]
+        finally:
+            conn.close()
+
+    return templates.TemplateResponse(
+        request,
+        "pages/lp-dashboard.html",
+        {
+            "title": "LP Dashboard - LPxGP",
+            "user": user,
+            "matches": matches,
+            "watchlist": watchlist,
+            "pipeline_stats": pipeline_stats,
+        },
+    )
+
+
+@app.get("/lp-watchlist", response_class=HTMLResponse, response_model=None)
+async def lp_watchlist_page(request: Request) -> HTMLResponse | RedirectResponse:
+    """LP watchlist page for tracking interesting funds."""
+    user = auth.get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    watchlist: list[dict[str, Any]] = []
+
+    conn = get_db()
+    if conn:
+        try:
+            with conn.cursor() as cur:
+                # Get LP's organization
+                cur.execute(
+                    """
+                    SELECT o.id as lp_org_id
+                    FROM people p
+                    JOIN organizations o ON o.id = p.org_id
+                    WHERE p.auth_user_id = %s
+                    """,
+                    (user.get("id"),),
+                )
+                lp_org = cur.fetchone()
+
+                if lp_org:
+                    cur.execute(
+                        """
+                        SELECT
+                            f.id, f.name, f.target_size_mm, f.strategy,
+                            f.vintage_year, f.status,
+                            gp.name as gp_name, gp.hq_city, gp.hq_country,
+                            s.lp_interest, s.notes, s.updated_at
+                        FROM fund_lp_status s
+                        JOIN funds f ON f.id = s.fund_id
+                        JOIN organizations gp ON gp.id = f.gp_org_id
+                        WHERE s.lp_org_id = %s
+                            AND s.lp_interest IN ('watching', 'interested')
+                        ORDER BY s.updated_at DESC
+                        """,
+                        (lp_org["lp_org_id"],),
+                    )
+                    watchlist = cur.fetchall()
+        finally:
+            conn.close()
+
+    return templates.TemplateResponse(
+        request,
+        "pages/lp-watchlist.html",
+        {
+            "title": "Watchlist - LPxGP",
+            "user": user,
+            "watchlist": watchlist,
+        },
+    )
+
+
+@app.post("/api/lp/fund/{fund_id}/interest", response_class=HTMLResponse)
+async def update_lp_interest(
+    request: Request,
+    fund_id: str,
+    interest: str = Form(...),
+    notes: str | None = Form(None),
+) -> HTMLResponse:
+    """Update LP's interest level in a fund.
+
+    Args:
+        fund_id: Fund ID.
+        interest: Interest level (watching, interested, reviewing, passed).
+        notes: Optional notes.
+    """
+    user = auth.get_current_user(request)
+    if not user:
+        return HTMLResponse(content="<div>Not authenticated</div>", status_code=401)
+
+    if not is_valid_uuid(fund_id):
+        return HTMLResponse(
+            content='<div class="text-red-500">Invalid fund ID</div>',
+            status_code=400,
+        )
+
+    valid_interests = ["watching", "interested", "reviewing", "dd_in_progress", "passed"]
+    if interest not in valid_interests:
+        return HTMLResponse(
+            content=f'<div class="text-red-500">Invalid interest: {interest}</div>',
+            status_code=400,
+        )
+
+    conn = get_db()
+    if not conn:
+        return HTMLResponse(
+            content='<div class="text-yellow-500">Database unavailable</div>',
+            status_code=503,
+        )
+
+    try:
+        with conn.cursor() as cur:
+            # Get LP's org
+            cur.execute(
+                """
+                SELECT o.id as lp_org_id
+                FROM people p
+                JOIN organizations o ON o.id = p.org_id
+                WHERE p.auth_user_id = %s
+                """,
+                (user.get("id"),),
+            )
+            lp_org = cur.fetchone()
+
+            if not lp_org:
+                return HTMLResponse(
+                    content='<div class="text-red-500">LP org not found</div>',
+                    status_code=404,
+                )
+
+            # Upsert fund_lp_status
+            cur.execute(
+                """
+                INSERT INTO fund_lp_status (fund_id, lp_org_id, lp_interest, notes)
+                VALUES (%s, %s, %s, %s)
+                ON CONFLICT (fund_id, lp_org_id)
+                DO UPDATE SET
+                    lp_interest = EXCLUDED.lp_interest,
+                    notes = COALESCE(EXCLUDED.notes, fund_lp_status.notes),
+                    updated_at = NOW()
+                RETURNING lp_interest
+                """,
+                (fund_id, lp_org["lp_org_id"], interest, notes),
+            )
+            conn.commit()
+
+            # Interest badge styling
+            interest_colors = {
+                "watching": "bg-gray-100 text-gray-700",
+                "interested": "bg-blue-100 text-blue-700",
+                "reviewing": "bg-yellow-100 text-yellow-700",
+                "dd_in_progress": "bg-orange-100 text-orange-700",
+                "passed": "bg-red-100 text-red-700",
+            }
+            color = interest_colors.get(interest, "bg-gray-100 text-gray-700")
+            display = interest.replace("_", " ").title()
+
+            return HTMLResponse(
+                content=f"""
+                <span class="px-2 py-1 text-xs rounded-full {color}">
+                    {display}
+                </span>
+                """,
+            )
+    except Exception as e:
+        logger.error(f"LP interest update error: {e}")
+        return HTMLResponse(
+            content=f'<div class="text-red-500">Error: {e}</div>',
+            status_code=500,
+        )
+    finally:
+        conn.close()
+
+
+@app.get("/lp-pipeline", response_class=HTMLResponse, response_model=None)
+async def lp_pipeline_page(request: Request) -> HTMLResponse | RedirectResponse:
+    """LP pipeline view - kanban-style fund tracking."""
+    user = auth.get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    # Pipeline stages with funds
+    pipeline: dict[str, list[dict[str, Any]]] = {
+        "watching": [],
+        "interested": [],
+        "reviewing": [],
+        "dd_in_progress": [],
+        "passed": [],
+    }
+
+    conn = get_db()
+    if conn:
+        try:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT o.id as lp_org_id
+                    FROM people p
+                    JOIN organizations o ON o.id = p.org_id
+                    WHERE p.auth_user_id = %s
+                    """,
+                    (user.get("id"),),
+                )
+                lp_org = cur.fetchone()
+
+                if lp_org:
+                    cur.execute(
+                        """
+                        SELECT
+                            f.id, f.name, f.target_size_mm, f.strategy,
+                            gp.name as gp_name,
+                            s.lp_interest, s.notes, s.updated_at
+                        FROM fund_lp_status s
+                        JOIN funds f ON f.id = s.fund_id
+                        JOIN organizations gp ON gp.id = f.gp_org_id
+                        WHERE s.lp_org_id = %s AND s.lp_interest IS NOT NULL
+                        ORDER BY s.updated_at DESC
+                        """,
+                        (lp_org["lp_org_id"],),
+                    )
+                    for fund in cur.fetchall():
+                        stage = fund.get("lp_interest", "watching")
+                        if stage in pipeline:
+                            pipeline[stage].append(fund)
+        finally:
+            conn.close()
+
+    return templates.TemplateResponse(
+        request,
+        "pages/lp-pipeline.html",
+        {
+            "title": "Pipeline - LPxGP",
+            "user": user,
+            "pipeline": pipeline,
+        },
+    )
+
+
 # -----------------------------------------------------------------------------
 # Error Handlers
 # -----------------------------------------------------------------------------

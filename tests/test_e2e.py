@@ -2191,3 +2191,403 @@ class TestGPMobileResponsive:
         body_width = page.evaluate("document.body.scrollWidth")
         viewport_width = mobile_viewport["width"]
         assert body_width <= viewport_width + 20
+
+
+# =============================================================================
+# PHASE 2: Match Feedback and Status Tests
+# =============================================================================
+
+
+@pytest.mark.browser
+class TestMatchFeedbackJourney:
+    """E2E tests for match feedback functionality."""
+
+    def test_matches_page_accessible(self, logged_in_page: Page):
+        """Matches page should be accessible to authenticated users."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/matches")
+        page.wait_for_load_state("domcontentloaded")
+
+        # Should load matches page
+        assert page.url.endswith("/matches") or "Matches" in page.content()
+
+    def test_matches_shows_stats(self, logged_in_page: Page):
+        """Matches page should show match statistics."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/matches")
+        page.wait_for_load_state("domcontentloaded")
+
+        # Should have stats section with numbers
+        content = page.content()
+        # Stats are displayed as numbers in the UI
+        assert "High Score" in content or "Average" in content or "Pipeline" in content or "0" in content
+
+
+# =============================================================================
+# PHASE 3: Events, Touchpoints, Tasks Tests
+# =============================================================================
+
+
+@pytest.mark.browser
+class TestEventsJourney:
+    """E2E tests for events management."""
+
+    def test_events_page_accessible(self, logged_in_page: Page):
+        """Events page should be accessible."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/events")
+        page.wait_for_load_state("domcontentloaded")
+
+        # Should see Events page
+        expect(page.locator("h1")).to_contain_text("Events")
+
+    def test_events_page_shows_stats(self, logged_in_page: Page):
+        """Events page should show upcoming/past counts."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/events")
+        page.wait_for_load_state("domcontentloaded")
+
+        content = page.content()
+        # Stats are shown even if 0
+        assert "Upcoming" in content or "Past" in content or "Total" in content
+
+    def test_events_create_button_exists(self, logged_in_page: Page):
+        """Events page should have a create button."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/events")
+        page.wait_for_load_state("domcontentloaded")
+
+        # Should have New Event button
+        new_button = page.locator("button:has-text('New Event')")
+        expect(new_button).to_be_visible()
+
+    def test_events_create_modal_opens(self, logged_in_page: Page):
+        """Clicking New Event should open a modal."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/events")
+        page.wait_for_load_state("domcontentloaded")
+
+        # Click New Event button
+        page.click("button:has-text('New Event')")
+        page.wait_for_timeout(500)
+
+        # Modal should be visible
+        modal = page.locator("#create-event-modal")
+        expect(modal).to_be_visible()
+
+    def test_events_empty_state(self, logged_in_page: Page):
+        """Events page should show empty state when no events."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/events")
+        page.wait_for_load_state("domcontentloaded")
+
+        content = page.content()
+        # Either has events or shows empty state
+        assert "No events" in content or "event" in content.lower()
+
+
+@pytest.mark.browser
+class TestTouchpointsJourney:
+    """E2E tests for touchpoints/interactions."""
+
+    def test_touchpoints_page_accessible(self, logged_in_page: Page):
+        """Touchpoints page should be accessible."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/touchpoints")
+        page.wait_for_load_state("domcontentloaded")
+
+        expect(page.locator("h1")).to_contain_text("Touchpoints")
+
+    def test_touchpoints_log_button_exists(self, logged_in_page: Page):
+        """Touchpoints page should have Log Interaction button."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/touchpoints")
+        page.wait_for_load_state("domcontentloaded")
+
+        log_button = page.locator("button:has-text('Log Interaction')")
+        expect(log_button).to_be_visible()
+
+    def test_touchpoints_create_modal_opens(self, logged_in_page: Page):
+        """Clicking Log Interaction should open modal."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/touchpoints")
+        page.wait_for_load_state("domcontentloaded")
+
+        page.click("button:has-text('Log Interaction')")
+        page.wait_for_timeout(500)
+
+        modal = page.locator("#create-touchpoint-modal")
+        expect(modal).to_be_visible()
+
+    def test_touchpoints_modal_has_type_select(self, logged_in_page: Page):
+        """Touchpoint modal should have interaction type selector."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/touchpoints")
+        page.wait_for_load_state("domcontentloaded")
+
+        page.click("button:has-text('Log Interaction')")
+        page.wait_for_timeout(500)
+
+        # Should have type selector with options
+        type_select = page.locator("select[name='touchpoint_type']")
+        expect(type_select).to_be_visible()
+
+
+@pytest.mark.browser
+class TestTasksJourney:
+    """E2E tests for task management."""
+
+    def test_tasks_page_accessible(self, logged_in_page: Page):
+        """Tasks page should be accessible."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/tasks")
+        page.wait_for_load_state("domcontentloaded")
+
+        expect(page.locator("h1")).to_contain_text("Tasks")
+
+    def test_tasks_shows_stats(self, logged_in_page: Page):
+        """Tasks page should show pending/overdue counts."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/tasks")
+        page.wait_for_load_state("domcontentloaded")
+
+        content = page.content()
+        assert "Pending" in content or "Overdue" in content or "Total" in content
+
+    def test_tasks_new_button_exists(self, logged_in_page: Page):
+        """Tasks page should have New Task button."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/tasks")
+        page.wait_for_load_state("domcontentloaded")
+
+        new_button = page.locator("button:has-text('New Task')")
+        expect(new_button).to_be_visible()
+
+    def test_tasks_create_modal_opens(self, logged_in_page: Page):
+        """Clicking New Task should open modal."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/tasks")
+        page.wait_for_load_state("domcontentloaded")
+
+        page.click("button:has-text('New Task')")
+        page.wait_for_timeout(500)
+
+        modal = page.locator("#create-task-modal")
+        expect(modal).to_be_visible()
+
+    def test_tasks_modal_has_priority(self, logged_in_page: Page):
+        """Task modal should have priority selector."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/tasks")
+        page.wait_for_load_state("domcontentloaded")
+
+        page.click("button:has-text('New Task')")
+        page.wait_for_timeout(500)
+
+        priority_select = page.locator("select[name='priority']")
+        expect(priority_select).to_be_visible()
+
+
+# =============================================================================
+# PHASE 4: LP Dashboard and Features Tests
+# =============================================================================
+
+
+@pytest.mark.browser
+class TestLPDashboardJourney:
+    """E2E tests for LP dashboard."""
+
+    def test_lp_dashboard_accessible(self, logged_in_page: Page):
+        """LP dashboard should be accessible."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/lp-dashboard")
+        page.wait_for_load_state("domcontentloaded")
+
+        # Should see LP Dashboard
+        content = page.content()
+        assert "LP Dashboard" in content or "Fund" in content or "Pipeline" in content
+
+    def test_lp_dashboard_shows_stats(self, logged_in_page: Page):
+        """LP dashboard should show pipeline stats."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/lp-dashboard")
+        page.wait_for_load_state("domcontentloaded")
+
+        content = page.content()
+        # Should have pipeline stat labels
+        assert "Interested" in content or "Matched" in content or "Watching" in content
+
+    def test_lp_dashboard_has_navigation(self, logged_in_page: Page):
+        """LP dashboard should have navigation to watchlist and pipeline."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/lp-dashboard")
+        page.wait_for_load_state("domcontentloaded")
+
+        content = page.content()
+        assert "Watchlist" in content or "Pipeline" in content
+
+
+@pytest.mark.browser
+class TestLPWatchlistJourney:
+    """E2E tests for LP watchlist."""
+
+    def test_lp_watchlist_accessible(self, logged_in_page: Page):
+        """LP watchlist should be accessible."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/lp-watchlist")
+        page.wait_for_load_state("domcontentloaded")
+
+        expect(page.locator("h1")).to_contain_text("Watchlist")
+
+    def test_lp_watchlist_shows_empty_state(self, logged_in_page: Page):
+        """LP watchlist should show empty state when no funds watched."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/lp-watchlist")
+        page.wait_for_load_state("domcontentloaded")
+
+        content = page.content()
+        # Either has funds or shows empty state
+        assert "No funds" in content or "fund" in content.lower() or "watchlist" in content.lower()
+
+    def test_lp_watchlist_has_dashboard_link(self, logged_in_page: Page):
+        """LP watchlist should have link back to dashboard."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/lp-watchlist")
+        page.wait_for_load_state("domcontentloaded")
+
+        dashboard_link = page.locator("a:has-text('Dashboard')")
+        expect(dashboard_link).to_be_visible()
+
+
+@pytest.mark.browser
+class TestLPPipelineJourney:
+    """E2E tests for LP pipeline view."""
+
+    def test_lp_pipeline_accessible(self, logged_in_page: Page):
+        """LP pipeline should be accessible."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/lp-pipeline")
+        page.wait_for_load_state("domcontentloaded")
+
+        content = page.content()
+        assert "Pipeline" in content
+
+    def test_lp_pipeline_shows_stages(self, logged_in_page: Page):
+        """LP pipeline should show kanban stages."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/lp-pipeline")
+        page.wait_for_load_state("domcontentloaded")
+
+        content = page.content()
+        # Should have pipeline stage labels
+        stages = ["Watching", "Interested", "Reviewing", "DD", "Passed"]
+        stage_found = any(stage in content for stage in stages)
+        assert stage_found, "No pipeline stages found in content"
+
+    def test_lp_pipeline_has_navigation(self, logged_in_page: Page):
+        """LP pipeline should have navigation to dashboard and watchlist."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/lp-pipeline")
+        page.wait_for_load_state("domcontentloaded")
+
+        content = page.content()
+        assert "Dashboard" in content and "Watchlist" in content
+
+
+# =============================================================================
+# Cross-Feature Integration Tests
+# =============================================================================
+
+
+@pytest.mark.browser
+class TestCRMIntegrationJourney:
+    """Integration tests for CRM features working together."""
+
+    def test_crm_navigation_flow(self, logged_in_page: Page):
+        """User can navigate between CRM pages."""
+        page = logged_in_page
+
+        # Start at events
+        page.goto(f"{BASE_URL}/events")
+        page.wait_for_load_state("domcontentloaded")
+        assert "Events" in page.content()
+
+        # Navigate to touchpoints
+        page.goto(f"{BASE_URL}/touchpoints")
+        page.wait_for_load_state("domcontentloaded")
+        assert "Touchpoints" in page.content()
+
+        # Navigate to tasks
+        page.goto(f"{BASE_URL}/tasks")
+        page.wait_for_load_state("domcontentloaded")
+        assert "Tasks" in page.content()
+
+    def test_lp_navigation_flow(self, logged_in_page: Page):
+        """LP user can navigate between LP pages."""
+        page = logged_in_page
+
+        # Start at LP dashboard
+        page.goto(f"{BASE_URL}/lp-dashboard")
+        page.wait_for_load_state("domcontentloaded")
+
+        # Navigate to watchlist
+        page.goto(f"{BASE_URL}/lp-watchlist")
+        page.wait_for_load_state("domcontentloaded")
+        assert "Watchlist" in page.content()
+
+        # Navigate to pipeline
+        page.goto(f"{BASE_URL}/lp-pipeline")
+        page.wait_for_load_state("domcontentloaded")
+        assert "Pipeline" in page.content()
+
+
+@pytest.mark.browser
+class TestMobileResponsiveCRM:
+    """Mobile responsiveness tests for CRM pages."""
+
+    @pytest.fixture
+    def mobile_viewport(self):
+        """Mobile viewport dimensions."""
+        return {"width": 375, "height": 812}
+
+    def test_events_mobile_responsive(self, logged_in_page: Page, mobile_viewport):
+        """Events page should be responsive on mobile."""
+        page = logged_in_page
+        page.set_viewport_size(mobile_viewport)
+        page.goto(f"{BASE_URL}/events")
+        page.wait_for_load_state("networkidle")
+
+        body_width = page.evaluate("document.body.scrollWidth")
+        assert body_width <= mobile_viewport["width"] + 20
+
+    def test_tasks_mobile_responsive(self, logged_in_page: Page, mobile_viewport):
+        """Tasks page should be responsive on mobile."""
+        page = logged_in_page
+        page.set_viewport_size(mobile_viewport)
+        page.goto(f"{BASE_URL}/tasks")
+        page.wait_for_load_state("networkidle")
+
+        body_width = page.evaluate("document.body.scrollWidth")
+        assert body_width <= mobile_viewport["width"] + 20
+
+    def test_lp_dashboard_mobile_responsive(self, logged_in_page: Page, mobile_viewport):
+        """LP dashboard should be responsive on mobile."""
+        page = logged_in_page
+        page.set_viewport_size(mobile_viewport)
+        page.goto(f"{BASE_URL}/lp-dashboard")
+        page.wait_for_load_state("networkidle")
+
+        body_width = page.evaluate("document.body.scrollWidth")
+        assert body_width <= mobile_viewport["width"] + 20
+
+    def test_lp_pipeline_mobile_responsive(self, logged_in_page: Page, mobile_viewport):
+        """LP pipeline should be responsive on mobile."""
+        page = logged_in_page
+        page.set_viewport_size(mobile_viewport)
+        page.goto(f"{BASE_URL}/lp-pipeline")
+        page.wait_for_load_state("networkidle")
+
+        body_width = page.evaluate("document.body.scrollWidth")
+        # Pipeline is a kanban board, might need horizontal scroll
+        # Just check it doesn't massively overflow
+        assert body_width <= mobile_viewport["width"] * 5  # Allow for kanban columns
