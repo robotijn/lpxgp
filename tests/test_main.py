@@ -5256,7 +5256,6 @@ class TestXSSHardening:
     @pytest.mark.parametrize("payload", XSS_PAYLOADS)
     def test_search_xss_prevention(self, authenticated_client, payload):
         """Search results should escape XSS payloads."""
-        import html
         response = authenticated_client.get(f"/lps?search={payload}")
         assert response.status_code == 200
         # The payload should NOT appear raw in the response
@@ -5402,9 +5401,10 @@ class TestAuthenticationHardening:
         )
         # Both should show same generic error
         # Should NOT say "email not found" or "user does not exist"
-        assert "email not found" not in response1.text.lower()
-        assert "user not found" not in response1.text.lower()
-        assert "does not exist" not in response1.text.lower()
+        for response in [response1, response2]:
+            assert "email not found" not in response.text.lower()
+            assert "user not found" not in response.text.lower()
+            assert "does not exist" not in response.text.lower()
 
     def test_logout_clears_session_server_side(self, client):
         """Logout should invalidate session on server, not just clear cookie."""
@@ -5717,8 +5717,8 @@ class TestAPIAbuseProtection:
 # =============================================================================
 
 
-class TestSecurityHeaders:
-    """Security header tests.
+class TestAPISecurityHeaders:
+    """API security header tests.
 
     Tests:
     - Content-Type headers

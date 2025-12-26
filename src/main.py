@@ -57,14 +57,14 @@ from src.search import (
 # =============================================================================
 
 
-def serialize_row(row: dict) -> dict:
+def serialize_row(row: dict[str, Any]) -> dict[str, Any]:
     """Convert a database row dict to JSON-serializable format.
 
     Converts UUID objects to strings and Decimal to float for JSON serialization.
     """
     from decimal import Decimal
 
-    result = {}
+    result: dict[str, Any] = {}
     for key, value in row.items():
         if isinstance(value, UUID):
             result[key] = str(value)
@@ -954,7 +954,8 @@ async def api_v1_lps(
                 WHERE {where_clause}
             """
             cur.execute(count_query, params)
-            total = cur.fetchone()["total"]
+            count_row = cur.fetchone()
+            total = count_row["total"] if count_row else 0
 
             # Fetch paginated results
             offset = (page - 1) * per_page
@@ -1062,7 +1063,8 @@ async def api_v1_gps(
                 WHERE {where_clause}
             """
             cur.execute(count_query, params)
-            total = cur.fetchone()["total"]
+            count_row = cur.fetchone()
+            total = count_row["total"] if count_row else 0
 
             # Fetch paginated results
             offset = (page - 1) * per_page
@@ -1173,7 +1175,8 @@ async def api_v1_funds(
                 WHERE {where_clause}
             """
             cur.execute(count_query, params)
-            total = cur.fetchone()["total"]
+            count_row = cur.fetchone()
+            total = count_row["total"] if count_row else 0
 
             # Fetch paginated results
             offset = (page - 1) * per_page
