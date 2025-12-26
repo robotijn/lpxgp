@@ -68,7 +68,7 @@ def authenticated_client_with_db() -> Generator[TestClient, None, None]:
     mock_conn.cursor.return_value = mock_cursor
 
     with patch("src.auth.get_current_user", return_value=mock_user):
-        with patch("src.main.get_db", return_value=mock_conn):
+        with patch("src.routers.lps.get_db", return_value=mock_conn):
             yield TestClient(app)
 
 
@@ -77,7 +77,7 @@ class TestLpsAiSearchRouteIntegration:
 
     def test_simple_search_does_not_trigger_ai(self, authenticated_client_with_db):
         """Simple LP name search should not use AI parsing."""
-        with patch("src.main.parse_lp_search_query") as mock_parse:
+        with patch("src.routers.lps.parse_lp_search_query") as mock_parse:
             response = authenticated_client_with_db.get("/lps?search=CalPERS")
 
             # AI parser should NOT be called for simple names
@@ -88,7 +88,7 @@ class TestLpsAiSearchRouteIntegration:
         """Natural language query should trigger AI parsing."""
         mock_filters = {"aum_min": 0.05}
 
-        with patch("src.main.parse_lp_search_query", new_callable=AsyncMock) as mock_parse:
+        with patch("src.routers.lps.parse_lp_search_query", new_callable=AsyncMock) as mock_parse:
             mock_parse.return_value = mock_filters
 
             response = authenticated_client_with_db.get("/lps?search=50m+or+more+aum")
@@ -101,7 +101,7 @@ class TestLpsAiSearchRouteIntegration:
         """Parsed filters from AI should be displayed in the HTML response."""
         mock_filters = {"aum_min": 0.05, "lp_type": "pension"}
 
-        with patch("src.main.parse_lp_search_query", new_callable=AsyncMock) as mock_parse:
+        with patch("src.routers.lps.parse_lp_search_query", new_callable=AsyncMock) as mock_parse:
             mock_parse.return_value = mock_filters
 
             response = authenticated_client_with_db.get(
@@ -121,7 +121,7 @@ class TestLpsAiSearchRouteIntegration:
             "strategies": ["buyout"],
         }
 
-        with patch("src.main.parse_lp_search_query", new_callable=AsyncMock) as mock_parse:
+        with patch("src.routers.lps.parse_lp_search_query", new_callable=AsyncMock) as mock_parse:
             mock_parse.return_value = mock_filters
 
             response = authenticated_client_with_db.get(
@@ -136,7 +136,7 @@ class TestLpsAiSearchRouteIntegration:
         # When AI fails, it returns text_search fallback
         fallback_filters = {"text_search": "50m or more aum"}
 
-        with patch("src.main.parse_lp_search_query", new_callable=AsyncMock) as mock_parse:
+        with patch("src.routers.lps.parse_lp_search_query", new_callable=AsyncMock) as mock_parse:
             mock_parse.return_value = fallback_filters
 
             response = authenticated_client_with_db.get("/lps?search=50m+or+more+aum")
@@ -148,7 +148,7 @@ class TestLpsAiSearchRouteIntegration:
         """LP type from dropdown should be combined with AI filters."""
         mock_filters = {"aum_min": 0.05}
 
-        with patch("src.main.parse_lp_search_query", new_callable=AsyncMock) as mock_parse:
+        with patch("src.routers.lps.parse_lp_search_query", new_callable=AsyncMock) as mock_parse:
             mock_parse.return_value = mock_filters
 
             response = authenticated_client_with_db.get(
@@ -159,7 +159,7 @@ class TestLpsAiSearchRouteIntegration:
 
     def test_empty_search_does_not_trigger_ai(self, authenticated_client_with_db):
         """Empty search should not trigger AI parsing."""
-        with patch("src.main.parse_lp_search_query") as mock_parse:
+        with patch("src.routers.lps.parse_lp_search_query") as mock_parse:
             response = authenticated_client_with_db.get("/lps")
 
             mock_parse.assert_not_called()
@@ -167,7 +167,7 @@ class TestLpsAiSearchRouteIntegration:
 
     def test_short_query_does_not_trigger_ai(self, authenticated_client_with_db):
         """Short queries (< 5 chars) should not trigger AI."""
-        with patch("src.main.parse_lp_search_query") as mock_parse:
+        with patch("src.routers.lps.parse_lp_search_query") as mock_parse:
             response = authenticated_client_with_db.get("/lps?search=abc")
 
             mock_parse.assert_not_called()
@@ -181,8 +181,8 @@ class TestLpsAiSearchSqlGeneration:
         """AUM filter should generate >= condition."""
         mock_filters = {"aum_min": 0.05}
 
-        with patch("src.main.parse_lp_search_query", new_callable=AsyncMock) as mock_parse:
-            with patch("src.main.build_lp_search_sql") as mock_build:
+        with patch("src.routers.lps.parse_lp_search_query", new_callable=AsyncMock) as mock_parse:
+            with patch("src.routers.lps.build_lp_search_sql") as mock_build:
                 mock_parse.return_value = mock_filters
                 mock_build.return_value = ("o.is_lp = TRUE AND lp.total_aum_bn >= %s", [0.05])
 
@@ -197,8 +197,8 @@ class TestLpsAiSearchSqlGeneration:
         """Location filter should generate ILIKE condition."""
         mock_filters = {"location": "California"}
 
-        with patch("src.main.parse_lp_search_query", new_callable=AsyncMock) as mock_parse:
-            with patch("src.main.build_lp_search_sql") as mock_build:
+        with patch("src.routers.lps.parse_lp_search_query", new_callable=AsyncMock) as mock_parse:
+            with patch("src.routers.lps.build_lp_search_sql") as mock_build:
                 mock_parse.return_value = mock_filters
                 mock_build.return_value = (
                     "o.is_lp = TRUE AND (o.hq_city ILIKE %s OR o.hq_country ILIKE %s)",
@@ -234,7 +234,7 @@ class TestLpsNaturalLanguageDetection:
         self, authenticated_client_with_db, query: str, should_use_ai: bool
     ):
         """Verify correct queries trigger AI parsing."""
-        with patch("src.main.parse_lp_search_query", new_callable=AsyncMock) as mock_parse:
+        with patch("src.routers.lps.parse_lp_search_query", new_callable=AsyncMock) as mock_parse:
             mock_parse.return_value = {"text_search": query}
 
             authenticated_client_with_db.get(f"/lps?search={query.replace(' ', '+')}")
@@ -250,7 +250,7 @@ class TestLpsSearchEdgeCases:
 
     def test_special_characters_in_search(self, authenticated_client_with_db):
         """Special characters should be handled safely."""
-        with patch("src.main.parse_lp_search_query", new_callable=AsyncMock) as mock_parse:
+        with patch("src.routers.lps.parse_lp_search_query", new_callable=AsyncMock) as mock_parse:
             mock_parse.return_value = {"text_search": "50m+ aum & more"}
 
             response = authenticated_client_with_db.get(
@@ -263,7 +263,7 @@ class TestLpsSearchEdgeCases:
         """SQL injection attempts should be parameterized."""
         malicious_query = "'; DROP TABLE organizations; --"
 
-        with patch("src.main.parse_lp_search_query", new_callable=AsyncMock) as mock_parse:
+        with patch("src.routers.lps.parse_lp_search_query", new_callable=AsyncMock) as mock_parse:
             mock_parse.return_value = {"text_search": malicious_query}
 
             response = authenticated_client_with_db.get(
@@ -277,7 +277,7 @@ class TestLpsSearchEdgeCases:
         """Very long search queries should be handled."""
         long_query = "pension funds " * 50  # ~700 chars
 
-        with patch("src.main.parse_lp_search_query", new_callable=AsyncMock) as mock_parse:
+        with patch("src.routers.lps.parse_lp_search_query", new_callable=AsyncMock) as mock_parse:
             mock_parse.return_value = {"text_search": long_query.strip()}
 
             response = authenticated_client_with_db.get(
@@ -288,7 +288,7 @@ class TestLpsSearchEdgeCases:
 
     def test_unicode_in_search(self, authenticated_client_with_db):
         """Unicode characters in search should work."""
-        with patch("src.main.parse_lp_search_query", new_callable=AsyncMock) as mock_parse:
+        with patch("src.routers.lps.parse_lp_search_query", new_callable=AsyncMock) as mock_parse:
             mock_parse.return_value = {"text_search": "funds in europe"}
 
             response = authenticated_client_with_db.get("/lps?search=funds+in+europe")
