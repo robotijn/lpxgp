@@ -2687,3 +2687,213 @@ class TestMobileResponsiveCRM:
         # Pipeline is a kanban board, might need horizontal scroll
         # Just check it doesn't massively overflow
         assert body_width <= mobile_viewport["width"] * 5  # Allow for kanban columns
+
+
+# =============================================================================
+# REST API V1 E2E TESTS
+# =============================================================================
+
+
+@pytest.mark.browser
+class TestRestApiV1E2E:
+    """E2E tests for REST API v1 endpoints.
+
+    Tests the APIs from the browser using JavaScript fetch.
+    Requires:
+    - Live dev server running
+    - Database populated with LP/GP/Fund data
+    """
+
+    def test_api_v1_lps_returns_json(self, logged_in_page: Page):
+        """API /api/v1/lps should return valid JSON."""
+        page = logged_in_page
+        result = page.evaluate("""
+            async () => {
+                const response = await fetch('/api/v1/lps');
+                return {
+                    status: response.status,
+                    contentType: response.headers.get('content-type'),
+                    data: await response.json()
+                };
+            }
+        """)
+        assert result["status"] == 200
+        assert "application/json" in result["contentType"]
+        assert "data" in result["data"]
+        assert "total" in result["data"]
+
+    def test_api_v1_gps_returns_json(self, logged_in_page: Page):
+        """API /api/v1/gps should return valid JSON."""
+        page = logged_in_page
+        result = page.evaluate("""
+            async () => {
+                const response = await fetch('/api/v1/gps');
+                return {
+                    status: response.status,
+                    contentType: response.headers.get('content-type'),
+                    data: await response.json()
+                };
+            }
+        """)
+        assert result["status"] == 200
+        assert "application/json" in result["contentType"]
+        assert "data" in result["data"]
+        assert "total" in result["data"]
+
+    def test_api_v1_funds_returns_json(self, logged_in_page: Page):
+        """API /api/v1/funds should return valid JSON."""
+        page = logged_in_page
+        result = page.evaluate("""
+            async () => {
+                const response = await fetch('/api/v1/funds');
+                return {
+                    status: response.status,
+                    contentType: response.headers.get('content-type'),
+                    data: await response.json()
+                };
+            }
+        """)
+        assert result["status"] == 200
+        assert "application/json" in result["contentType"]
+        assert "data" in result["data"]
+        assert "total" in result["data"]
+
+    def test_api_v1_lps_with_search(self, logged_in_page: Page):
+        """API /api/v1/lps should support search parameter."""
+        page = logged_in_page
+        result = page.evaluate("""
+            async () => {
+                const response = await fetch('/api/v1/lps?search=pension');
+                return {
+                    status: response.status,
+                    data: await response.json()
+                };
+            }
+        """)
+        assert result["status"] == 200
+        assert "data" in result["data"]
+
+    def test_api_v1_gps_with_strategy(self, logged_in_page: Page):
+        """API /api/v1/gps should support strategy filter."""
+        page = logged_in_page
+        result = page.evaluate("""
+            async () => {
+                const response = await fetch('/api/v1/gps?strategy=buyout');
+                return {
+                    status: response.status,
+                    data: await response.json()
+                };
+            }
+        """)
+        assert result["status"] == 200
+        assert "data" in result["data"]
+
+    def test_api_v1_funds_with_pagination(self, logged_in_page: Page):
+        """API /api/v1/funds should support pagination."""
+        page = logged_in_page
+        result = page.evaluate("""
+            async () => {
+                const response = await fetch('/api/v1/funds?page=1&per_page=5');
+                return {
+                    status: response.status,
+                    data: await response.json()
+                };
+            }
+        """)
+        assert result["status"] == 200
+        assert result["data"]["page"] == 1
+        assert result["data"]["per_page"] == 5
+
+    def test_api_v1_requires_auth(self, page: Page):
+        """API endpoints should require authentication."""
+        page.goto(f"{BASE_URL}/login")  # Fresh page, not logged in
+        page.wait_for_load_state("domcontentloaded")
+
+        result = page.evaluate("""
+            async () => {
+                const response = await fetch('/api/v1/lps');
+                return { status: response.status };
+            }
+        """)
+        # Should return 401 Unauthorized
+        assert result["status"] == 401
+
+
+@pytest.mark.browser
+class TestRLSIsolationE2E:
+    """E2E tests for Row-Level Security isolation."""
+
+    def test_gp_user_sees_dashboard(self, logged_in_page: Page):
+        """GP user should see their dashboard."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/dashboard")
+        page.wait_for_load_state("domcontentloaded")
+        assert "Dashboard" in page.content()
+
+    def test_gp_user_can_browse_lps(self, logged_in_page: Page):
+        """GP user should be able to browse LPs."""
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/lps")
+        page.wait_for_load_state("domcontentloaded")
+        assert "LPs" in page.content() or "LP" in page.content()
+
+    def test_admin_can_access_admin_panel(self, page: Page):
+        """Admin user should access admin panel."""
+        page.goto(f"{BASE_URL}/login")
+        page.fill('input[name="email"]', "admin@demo.com")
+        page.fill('input[name="password"]', "admin123")
+        page.click('button[type="submit"]')
+        page.wait_for_url(f"{BASE_URL}/dashboard")
+
+        page.goto(f"{BASE_URL}/admin")
+        page.wait_for_load_state("domcontentloaded")
+        assert "Admin" in page.content()
+
+
+@pytest.mark.browser
+class TestSessionManagementE2E:
+    """E2E tests for session management."""
+
+    def test_logout_clears_session(self, page: Page):
+        """Logout should clear session and redirect to login."""
+        # Login first
+        page.goto(f"{BASE_URL}/login")
+        page.fill('input[name="email"]', "gp@demo.com")
+        page.fill('input[name="password"]', "demo123")
+        page.click('button[type="submit"]')
+        page.wait_for_url(f"{BASE_URL}/dashboard")
+
+        # Verify logged in
+        assert "Dashboard" in page.content()
+
+        # Logout
+        page.goto(f"{BASE_URL}/logout")
+        page.wait_for_load_state("domcontentloaded")
+
+        # Should be redirected to home or login
+        assert page.url in [f"{BASE_URL}/", f"{BASE_URL}/login"]
+
+    def test_protected_page_redirects_when_not_logged_in(self, page: Page):
+        """Protected pages should redirect to login when not authenticated."""
+        page.goto(f"{BASE_URL}/dashboard")
+        page.wait_for_load_state("domcontentloaded")
+
+        # Should redirect to login
+        assert "/login" in page.url
+
+    def test_session_persists_across_navigation(self, logged_in_page: Page):
+        """Session should persist across page navigation."""
+        page = logged_in_page
+
+        # Navigate to multiple pages
+        page.goto(f"{BASE_URL}/dashboard")
+        page.wait_for_load_state("domcontentloaded")
+        assert "Dashboard" in page.content()
+
+        page.goto(f"{BASE_URL}/lps")
+        page.wait_for_load_state("domcontentloaded")
+        assert page.url == f"{BASE_URL}/lps"
+
+        page.goto(f"{BASE_URL}/funds")
+        page.wait_for_load_state("domcontentloaded")
+        assert page.url == f"{BASE_URL}/funds"

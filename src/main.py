@@ -53,6 +53,29 @@ from src.search import (
 )
 
 # =============================================================================
+# Helper Functions
+# =============================================================================
+
+
+def serialize_row(row: dict) -> dict:
+    """Convert a database row dict to JSON-serializable format.
+
+    Converts UUID objects to strings and Decimal to float for JSON serialization.
+    """
+    from decimal import Decimal
+
+    result = {}
+    for key, value in row.items():
+        if isinstance(value, UUID):
+            result[key] = str(value)
+        elif isinstance(value, Decimal):
+            result[key] = float(value)
+        else:
+            result[key] = value
+    return result
+
+
+# =============================================================================
 # User Preferences Data Model
 # =============================================================================
 
@@ -823,6 +846,366 @@ async def lps_page(
                 "lp_types": lp_types,
                 "parsed_filters": parsed_filters,  # Show what AI extracted
             },
+        )
+    finally:
+        conn.close()
+
+
+# =============================================================================
+# REST API V1: LP Search
+# M1 Requirement: GET /api/v1/lps with filters
+# =============================================================================
+
+
+@app.get("/api/v1/lps", response_class=JSONResponse)
+async def api_v1_lps(
+    request: Request,
+    search: str | None = Query(None),
+    lp_type: str | None = Query(None),
+    aum_min: float | None = Query(None, description="Minimum AUM in billions"),
+    aum_max: float | None = Query(None, description="Maximum AUM in billions"),
+    location: str | None = Query(None),
+    strategy: str | None = Query(None),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+) -> JSONResponse:
+    """REST API endpoint for LP search.
+
+    Returns JSON for programmatic access.
+    Supports filtering by type, AUM, location, strategy.
+    Supports pagination.
+
+    Args:
+        search: Text search or natural language query
+        lp_type: Filter by LP type (pension, endowment, etc.)
+        aum_min: Minimum AUM in billions
+        aum_max: Maximum AUM in billions
+        location: Filter by city or country
+        strategy: Filter by investment strategy
+        page: Page number (1-indexed)
+        per_page: Results per page (max 100)
+
+    Returns:
+        JSON with data, total, page, per_page fields
+    """
+    user = auth.get_current_user(request)
+    if not user:
+        return JSONResponse(
+            status_code=401,
+            content={"error": "Authentication required", "code": "UNAUTHORIZED"},
+        )
+
+    # Validate page number
+    if page < 1:
+        page = 1
+
+    conn = get_db()
+    if not conn:
+        return JSONResponse(
+            content={
+                "data": [],
+                "total": 0,
+                "page": page,
+                "per_page": per_page,
+            }
+        )
+
+    try:
+        with conn.cursor() as cur:
+            # Build filters
+            conditions = ["o.is_lp = TRUE"]
+            params: list[Any] = []
+
+            # Text search
+            if search:
+                conditions.append("(o.name ILIKE %s OR o.hq_city ILIKE %s)")
+                params.extend([f"%{search}%", f"%{search}%"])
+
+            # LP type filter
+            if lp_type:
+                conditions.append("lp.lp_type = %s")
+                params.append(lp_type)
+
+            # AUM filters
+            if aum_min is not None:
+                conditions.append("lp.total_aum_bn >= %s")
+                params.append(aum_min)
+            if aum_max is not None:
+                conditions.append("lp.total_aum_bn <= %s")
+                params.append(aum_max)
+
+            # Location filter
+            if location:
+                conditions.append("(o.hq_city ILIKE %s OR o.hq_country ILIKE %s)")
+                params.extend([f"%{location}%", f"%{location}%"])
+
+            # Strategy filter
+            if strategy:
+                conditions.append("%s = ANY(lp.strategies)")
+                params.append(strategy)
+
+            where_clause = " AND ".join(conditions)
+
+            # Count total
+            count_query = f"""
+                SELECT COUNT(*) as total
+                FROM organizations o
+                JOIN lp_profiles lp ON lp.org_id = o.id
+                WHERE {where_clause}
+            """
+            cur.execute(count_query, params)
+            total = cur.fetchone()["total"]
+
+            # Fetch paginated results
+            offset = (page - 1) * per_page
+            data_query = f"""
+                SELECT
+                    o.id, o.name, o.hq_city, o.hq_country, o.website,
+                    lp.lp_type, lp.total_aum_bn, lp.pe_allocation_pct,
+                    lp.check_size_min_mm, lp.check_size_max_mm,
+                    lp.geographic_preferences, lp.strategies
+                FROM organizations o
+                JOIN lp_profiles lp ON lp.org_id = o.id
+                WHERE {where_clause}
+                ORDER BY lp.total_aum_bn DESC NULLS LAST
+                LIMIT %s OFFSET %s
+            """
+            cur.execute(data_query, [*params, per_page, offset])
+            rows = cur.fetchall()
+
+            # Convert to list of dicts
+            data = [serialize_row(dict(row)) for row in rows]
+
+            return JSONResponse(
+                content={
+                    "data": data,
+                    "total": total,
+                    "page": page,
+                    "per_page": per_page,
+                }
+            )
+    except Exception as e:
+        logger.error(f"API v1 LP search error: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"error": "Internal server error", "code": "SERVER_ERROR"},
+        )
+    finally:
+        conn.close()
+
+
+# =============================================================================
+# REST API V1: GP Search
+# =============================================================================
+
+
+@app.get("/api/v1/gps", response_class=JSONResponse)
+async def api_v1_gps(
+    request: Request,
+    search: str | None = Query(None),
+    strategy: str | None = Query(None),
+    location: str | None = Query(None),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+) -> JSONResponse:
+    """REST API endpoint for GP search.
+
+    Returns JSON for programmatic access.
+    Supports filtering by strategy, location.
+    Supports pagination.
+    """
+    user = auth.get_current_user(request)
+    if not user:
+        return JSONResponse(
+            status_code=401,
+            content={"error": "Authentication required", "code": "UNAUTHORIZED"},
+        )
+
+    if page < 1:
+        page = 1
+
+    conn = get_db()
+    if not conn:
+        return JSONResponse(
+            content={
+                "data": [],
+                "total": 0,
+                "page": page,
+                "per_page": per_page,
+            }
+        )
+
+    try:
+        with conn.cursor() as cur:
+            conditions = ["o.is_gp = TRUE"]
+            params: list[Any] = []
+
+            if search:
+                conditions.append("(o.name ILIKE %s OR o.hq_city ILIKE %s)")
+                params.extend([f"%{search}%", f"%{search}%"])
+
+            if strategy:
+                conditions.append("gp.investment_philosophy ILIKE %s")
+                params.append(f"%{strategy}%")
+
+            if location:
+                conditions.append("(o.hq_city ILIKE %s OR o.hq_country ILIKE %s)")
+                params.extend([f"%{location}%", f"%{location}%"])
+
+            where_clause = " AND ".join(conditions)
+
+            # Count total
+            count_query = f"""
+                SELECT COUNT(*) as total
+                FROM organizations o
+                JOIN gp_profiles gp ON gp.org_id = o.id
+                WHERE {where_clause}
+            """
+            cur.execute(count_query, params)
+            total = cur.fetchone()["total"]
+
+            # Fetch paginated results
+            offset = (page - 1) * per_page
+            data_query = f"""
+                SELECT
+                    o.id, o.name, o.hq_city, o.hq_country, o.website,
+                    gp.investment_philosophy, gp.team_size, gp.years_investing,
+                    (SELECT COUNT(*) FROM funds f WHERE f.org_id = o.id) as fund_count
+                FROM organizations o
+                JOIN gp_profiles gp ON gp.org_id = o.id
+                WHERE {where_clause}
+                ORDER BY o.name
+                LIMIT %s OFFSET %s
+            """
+            cur.execute(data_query, [*params, per_page, offset])
+            rows = cur.fetchall()
+
+            data = [serialize_row(dict(row)) for row in rows]
+
+            return JSONResponse(
+                content={
+                    "data": data,
+                    "total": total,
+                    "page": page,
+                    "per_page": per_page,
+                }
+            )
+    except Exception as e:
+        logger.error(f"API v1 GP search error: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"error": "Internal server error", "code": "SERVER_ERROR"},
+        )
+    finally:
+        conn.close()
+
+
+# =============================================================================
+# REST API V1: Fund Search
+# =============================================================================
+
+
+@app.get("/api/v1/funds", response_class=JSONResponse)
+async def api_v1_funds(
+    request: Request,
+    search: str | None = Query(None),
+    strategy: str | None = Query(None),
+    status: str | None = Query(None),
+    vintage_year: int | None = Query(None),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+) -> JSONResponse:
+    """REST API endpoint for Fund search.
+
+    Returns JSON for programmatic access.
+    Supports filtering by strategy, status, vintage_year.
+    Supports pagination.
+    """
+    user = auth.get_current_user(request)
+    if not user:
+        return JSONResponse(
+            status_code=401,
+            content={"error": "Authentication required", "code": "UNAUTHORIZED"},
+        )
+
+    if page < 1:
+        page = 1
+
+    conn = get_db()
+    if not conn:
+        return JSONResponse(
+            content={
+                "data": [],
+                "total": 0,
+                "page": page,
+                "per_page": per_page,
+            }
+        )
+
+    try:
+        with conn.cursor() as cur:
+            conditions = ["1=1"]
+            params: list[Any] = []
+
+            if search:
+                conditions.append("(f.name ILIKE %s OR o.name ILIKE %s)")
+                params.extend([f"%{search}%", f"%{search}%"])
+
+            if strategy:
+                conditions.append("f.strategy = %s")
+                params.append(strategy)
+
+            if status:
+                conditions.append("f.status = %s")
+                params.append(status)
+
+            if vintage_year:
+                conditions.append("f.vintage_year = %s")
+                params.append(vintage_year)
+
+            where_clause = " AND ".join(conditions)
+
+            # Count total
+            count_query = f"""
+                SELECT COUNT(*) as total
+                FROM funds f
+                JOIN organizations o ON o.id = f.org_id
+                WHERE {where_clause}
+            """
+            cur.execute(count_query, params)
+            total = cur.fetchone()["total"]
+
+            # Fetch paginated results
+            offset = (page - 1) * per_page
+            data_query = f"""
+                SELECT
+                    f.id, f.name, f.strategy, f.status, f.vintage_year,
+                    f.target_size_mm, f.hard_cap_mm, f.check_size_min_mm,
+                    o.id as org_id, o.name as org_name
+                FROM funds f
+                JOIN organizations o ON o.id = f.org_id
+                WHERE {where_clause}
+                ORDER BY f.vintage_year DESC NULLS LAST, f.name
+                LIMIT %s OFFSET %s
+            """
+            cur.execute(data_query, [*params, per_page, offset])
+            rows = cur.fetchall()
+
+            data = [serialize_row(dict(row)) for row in rows]
+
+            return JSONResponse(
+                content={
+                    "data": data,
+                    "total": total,
+                    "page": page,
+                    "per_page": per_page,
+                }
+            )
+    except Exception as e:
+        logger.error(f"API v1 Fund search error: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"error": "Internal server error", "code": "SERVER_ERROR"},
         )
     finally:
         conn.close()
