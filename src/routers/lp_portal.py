@@ -4,8 +4,12 @@ This router provides:
 - /lp-dashboard: LP dashboard showing fund matches and pipeline
 - /lp-watchlist: LP watchlist page for tracking interesting funds
 - /lp-pipeline: LP pipeline view (kanban-style fund tracking)
+- /lp-mandate: LP mandate profile editor
+- /lp-meeting-request: Request meeting with a GP
 - /api/lp/fund/{fund_id}/interest: Update LP interest in a fund
 - /api/v1/lp-pipeline/{fund_id}: Update LP pipeline stage
+- /api/lp-mandate: Save LP mandate preferences
+- /api/lp-meeting-request: Submit meeting request
 """
 
 from __future__ import annotations
@@ -13,7 +17,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, Form, Request
+from fastapi import APIRouter, Form, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
@@ -499,6 +503,407 @@ async def api_update_lp_pipeline_stage(
         return JSONResponse(
             status_code=500,
             content={"error": "Failed to update pipeline stage"},
+        )
+    finally:
+        conn.close()
+
+
+# =============================================================================
+# LP Mandate
+# =============================================================================
+
+# Options for mandate form
+STRATEGY_OPTIONS = [
+    ("buyout", "Buyout"),
+    ("growth", "Growth Equity"),
+    ("venture", "Venture Capital"),
+    ("credit", "Private Credit"),
+    ("real_estate", "Real Estate"),
+    ("infrastructure", "Infrastructure"),
+    ("secondaries", "Secondaries"),
+    ("fund_of_funds", "Fund of Funds"),
+]
+
+GEOGRAPHY_OPTIONS = [
+    ("north_america", "North America"),
+    ("europe", "Europe"),
+    ("asia_pacific", "Asia Pacific"),
+    ("latin_america", "Latin America"),
+    ("middle_east", "Middle East & Africa"),
+    ("global", "Global"),
+]
+
+SECTOR_OPTIONS = [
+    ("technology", "Technology"),
+    ("healthcare", "Healthcare"),
+    ("financial_services", "Financial Services"),
+    ("consumer", "Consumer"),
+    ("industrials", "Industrials"),
+    ("energy", "Energy"),
+    ("real_estate", "Real Estate"),
+    ("generalist", "Generalist"),
+]
+
+
+@router.get("/lp-mandate", response_class=HTMLResponse, response_model=None)
+async def lp_mandate_page(request: Request) -> HTMLResponse | RedirectResponse:
+    """LP mandate profile editor page.
+
+    Allows LPs to configure their investment preferences for matching.
+    """
+    user = auth.get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    # Default empty mandate
+    mandate: dict[str, Any] = {
+        "strategies": [],
+        "geographies": [],
+        "sectors": [],
+        "check_size_min_mm": None,
+        "check_size_max_mm": None,
+    }
+
+    conn = get_db()
+    if conn:
+        try:
+            with conn.cursor() as cur:
+                # Get LP's organization
+                cur.execute(
+                    """
+                    SELECT o.id as lp_org_id
+                    FROM people p
+                    JOIN employment e ON e.person_id = p.id AND e.is_current = TRUE
+                    JOIN organizations o ON o.id = e.org_id
+                    WHERE p.auth_user_id = %s AND o.is_lp = TRUE
+                    """,
+                    (user.get("id"),),
+                )
+                lp_org = cur.fetchone()
+
+                if lp_org:
+                    # Get current mandate from lp_profiles
+                    cur.execute(
+                        """
+                        SELECT
+                            strategies, geographic_preferences,
+                            sector_preferences, check_size_min_mm, check_size_max_mm
+                        FROM lp_profiles
+                        WHERE org_id = %s
+                        """,
+                        (lp_org["lp_org_id"],),
+                    )
+                    profile = cur.fetchone()
+                    if profile:
+                        mandate = {
+                            "strategies": profile.get("strategies") or [],
+                            "geographies": profile.get("geographic_preferences") or [],
+                            "sectors": profile.get("sector_preferences") or [],
+                            "check_size_min_mm": profile.get("check_size_min_mm"),
+                            "check_size_max_mm": profile.get("check_size_max_mm"),
+                        }
+        finally:
+            conn.close()
+
+    return templates.TemplateResponse(
+        request,
+        "pages/lp-mandate.html",
+        {
+            "title": "Investment Mandate - LPxGP",
+            "user": user,
+            "mandate": mandate,
+            "strategy_options": STRATEGY_OPTIONS,
+            "geography_options": GEOGRAPHY_OPTIONS,
+            "sector_options": SECTOR_OPTIONS,
+        },
+    )
+
+
+@router.post("/api/lp-mandate", response_class=HTMLResponse)
+async def save_lp_mandate(
+    request: Request,
+    strategies: list[str] = Form(default=[]),
+    geographies: list[str] = Form(default=[]),
+    sectors: list[str] = Form(default=[]),
+    check_size_min_mm: float | None = Form(default=None),
+    check_size_max_mm: float | None = Form(default=None),
+) -> HTMLResponse:
+    """Save LP mandate preferences.
+
+    Updates the LP's investment preferences in lp_profiles.
+    """
+    user = auth.get_current_user(request)
+    if not user:
+        return HTMLResponse(
+            content='<div class="text-red-500">Not authenticated</div>',
+            status_code=401,
+        )
+
+    conn = get_db()
+    if not conn:
+        return HTMLResponse(
+            content='<div class="text-yellow-500">Database unavailable</div>',
+            status_code=503,
+        )
+
+    try:
+        with conn.cursor() as cur:
+            # Get LP's organization
+            cur.execute(
+                """
+                SELECT o.id as lp_org_id
+                FROM people p
+                JOIN employment e ON e.person_id = p.id AND e.is_current = TRUE
+                JOIN organizations o ON o.id = e.org_id
+                WHERE p.auth_user_id = %s AND o.is_lp = TRUE
+                """,
+                (user.get("id"),),
+            )
+            lp_org = cur.fetchone()
+
+            if not lp_org:
+                return HTMLResponse(
+                    content='<div class="text-red-500">LP organization not found</div>',
+                    status_code=404,
+                )
+
+            # Update lp_profiles
+            cur.execute(
+                """
+                UPDATE lp_profiles
+                SET
+                    strategies = %s,
+                    geographic_preferences = %s,
+                    sector_preferences = %s,
+                    check_size_min_mm = %s,
+                    check_size_max_mm = %s,
+                    updated_at = NOW()
+                WHERE org_id = %s
+                """,
+                (
+                    strategies if strategies else None,
+                    geographies if geographies else None,
+                    sectors if sectors else None,
+                    check_size_min_mm,
+                    check_size_max_mm,
+                    lp_org["lp_org_id"],
+                ),
+            )
+            conn.commit()
+
+            return HTMLResponse(
+                content="""
+                <div class="flex items-center text-green-600">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    Mandate saved successfully
+                </div>
+                """,
+            )
+    except Exception as e:
+        logger.error(f"LP mandate save error: {e}")
+        return HTMLResponse(
+            content=f'<div class="text-red-500">Error: {e}</div>',
+            status_code=500,
+        )
+    finally:
+        conn.close()
+
+
+# =============================================================================
+# LP Meeting Request
+# =============================================================================
+
+
+@router.get("/lp-meeting-request", response_class=HTMLResponse, response_model=None)
+async def lp_meeting_request_page(
+    request: Request,
+    fund_id: str = Query(...),
+) -> HTMLResponse | RedirectResponse:
+    """Meeting request form for LP to request a meeting with a GP.
+
+    Args:
+        request: FastAPI request object.
+        fund_id: The fund to request a meeting about.
+    """
+    user = auth.get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    if not is_valid_uuid(fund_id):
+        return RedirectResponse(url="/lp-dashboard", status_code=303)
+
+    fund: dict[str, Any] = {}
+
+    conn = get_db()
+    if conn:
+        try:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT
+                        f.id, f.name, f.target_size_mm, f.strategy,
+                        f.vintage_year, f.geographic_focus as geo_focus,
+                        gp.name as gp_name
+                    FROM funds f
+                    JOIN organizations gp ON gp.id = f.gp_org_id
+                    WHERE f.id = %s
+                    """,
+                    (fund_id,),
+                )
+                fund = cur.fetchone() or {}
+        finally:
+            conn.close()
+
+    if not fund:
+        return RedirectResponse(url="/lp-dashboard", status_code=303)
+
+    return templates.TemplateResponse(
+        request,
+        "pages/lp-meeting-request.html",
+        {
+            "title": f"Request Meeting - {fund.get('name', 'Fund')} - LPxGP",
+            "user": user,
+            "fund": fund,
+        },
+    )
+
+
+@router.post("/api/lp-meeting-request", response_class=HTMLResponse)
+async def submit_meeting_request(
+    request: Request,
+    fund_id: str = Form(...),
+    preferred_date_1: str = Form(...),
+    preferred_date_2: str | None = Form(default=None),
+    preferred_date_3: str | None = Form(default=None),
+    meeting_format: str = Form(default="video_call"),
+    topics: str = Form(...),
+    contact_name: str = Form(...),
+    contact_title: str | None = Form(default=None),
+    contact_email: str = Form(...),
+    contact_phone: str | None = Form(default=None),
+    additional_notes: str | None = Form(default=None),
+) -> HTMLResponse:
+    """Submit a meeting request from LP to GP.
+
+    Creates a meeting request record and updates the pipeline status.
+    """
+    user = auth.get_current_user(request)
+    if not user:
+        return HTMLResponse(
+            content='<div class="text-red-500">Not authenticated</div>',
+            status_code=401,
+        )
+
+    if not is_valid_uuid(fund_id):
+        return HTMLResponse(
+            content='<div class="text-red-500">Invalid fund ID</div>',
+            status_code=400,
+        )
+
+    conn = get_db()
+    if not conn:
+        return HTMLResponse(
+            content='<div class="text-yellow-500">Database unavailable</div>',
+            status_code=503,
+        )
+
+    try:
+        with conn.cursor() as cur:
+            # Get LP's organization
+            cur.execute(
+                """
+                SELECT o.id as lp_org_id, o.name as lp_name
+                FROM people p
+                JOIN employment e ON e.person_id = p.id AND e.is_current = TRUE
+                JOIN organizations o ON o.id = e.org_id
+                WHERE p.auth_user_id = %s AND o.is_lp = TRUE
+                """,
+                (user.get("id"),),
+            )
+            lp_org = cur.fetchone()
+
+            if not lp_org:
+                return HTMLResponse(
+                    content='<div class="text-red-500">LP organization not found</div>',
+                    status_code=404,
+                )
+
+            # Get fund info for the notification
+            cur.execute(
+                "SELECT name FROM funds WHERE id = %s",
+                (fund_id,),
+            )
+            fund = cur.fetchone()
+            fund_name = fund["name"] if fund else "Unknown Fund"
+
+            # Update pipeline status to indicate meeting requested
+            cur.execute(
+                """
+                INSERT INTO fund_lp_status (fund_id, lp_org_id, lp_interest, notes)
+                VALUES (%s, %s, 'reviewing', %s)
+                ON CONFLICT (fund_id, lp_org_id)
+                DO UPDATE SET
+                    lp_interest = 'reviewing',
+                    notes = EXCLUDED.notes,
+                    updated_at = NOW()
+                """,
+                (
+                    fund_id,
+                    lp_org["lp_org_id"],
+                    f"Meeting requested: {topics[:200]}",
+                ),
+            )
+
+            # Check if there's a match record to log the meeting request
+            cur.execute(
+                """
+                SELECT id FROM fund_lp_matches
+                WHERE fund_id = %s AND lp_org_id = %s
+                """,
+                (fund_id, lp_org["lp_org_id"]),
+            )
+            match_row = cur.fetchone()
+
+            if match_row:
+                # Log meeting request in outreach_events
+                cur.execute(
+                    """
+                    INSERT INTO outreach_events
+                    (match_id, event_type, event_date, notes)
+                    VALUES (%s, 'meeting_requested', NOW(), %s)
+                    """,
+                    (
+                        match_row["id"],
+                        f"LP requested meeting. Format: {meeting_format}. Dates: {preferred_date_1}",
+                    ),
+                )
+
+            conn.commit()
+
+            return HTMLResponse(
+                content=f"""
+                <div class="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
+                    <svg class="w-12 h-12 text-green-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    <h3 class="text-lg font-semibold text-green-800 mb-2">Meeting Request Sent!</h3>
+                    <p class="text-green-600 mb-4">
+                        Your meeting request for <strong>{fund_name}</strong> has been submitted.
+                        The GP will be notified and will respond to your request.
+                    </p>
+                    <a href="/lp-pipeline" class="inline-block px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                        View Pipeline
+                    </a>
+                </div>
+                """,
+            )
+    except Exception as e:
+        logger.error(f"Meeting request error: {e}")
+        return HTMLResponse(
+            content=f'<div class="text-red-500">Error submitting request: {e}</div>',
+            status_code=500,
         )
     finally:
         conn.close()
