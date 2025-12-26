@@ -25,6 +25,7 @@ from src.routers.crm import router as crm_router
 from src.routers.funds import router as funds_router
 from src.routers.gps import router as gps_router
 from src.routers.health import router as health_router
+from src.routers.insights import router as insights_router
 from src.routers.lp_portal import router as lp_portal_router
 from src.routers.lps import router as lps_router
 from src.routers.matches import router as matches_router
@@ -41,6 +42,7 @@ __all__ = [
     "funds_router",
     "gps_router",
     "health_router",
+    "insights_router",
     "lp_portal_router",
     "lps_router",
     "matches_router",

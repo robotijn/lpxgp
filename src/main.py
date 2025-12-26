@@ -49,6 +49,7 @@ from src.routers import (
     funds_router,
     gps_router,
     health_router,
+    insights_router,
     lp_portal_router,
     lps_router,
     matches_router,
@@ -269,6 +270,7 @@ app.include_router(pitch_router)
 app.include_router(crm_router)
 app.include_router(pipeline_router)
 app.include_router(lp_portal_router)
+app.include_router(insights_router)
 
 
 # =============================================================================
