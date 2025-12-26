@@ -1975,7 +1975,23 @@ class TestAISearchReturnsResults:
         BDD: Given I am on the LP search page
              When I search for "pension funds with 100m aum"
              Then I should see LP results (not "No LPs found")
+
+        Note: Skipped in CI where Ollama is not available.
         """
+        import os
+
+        import httpx
+
+        # Skip in CI environment where Ollama isn't running
+        if os.environ.get("CI") or os.environ.get("GITHUB_ACTIONS"):
+            # Check if Ollama is actually reachable
+            try:
+                response = httpx.get("http://localhost:11434/api/tags", timeout=2.0)
+                if response.status_code != 200:
+                    pytest.skip("Ollama not available in CI")
+            except Exception:
+                pytest.skip("Ollama not available in CI")
+
         page = logged_in_page
         page.goto(f"{BASE_URL}/lps")
         page.wait_for_load_state("networkidle")
