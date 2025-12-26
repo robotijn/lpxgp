@@ -61,13 +61,13 @@
                     <h3 class="font-medium text-navy-900 text-sm">{{ stage.name }}</h3>
                 </div>
                 <span class="px-2 py-0.5 text-xs font-medium bg-white rounded-full text-navy-600">
-                    {{ stage.items|length }}
+                    {{ stage.cards|length }}
                 </span>
             </div>
 
             <!-- Cards -->
             <div class="space-y-3 min-h-[100px]" id="cards-{{ stage.id }}">
-                {% for item in stage.items %}
+                {% for item in stage.cards %}
                 <div class="bg-white rounded-lg shadow-sm border border-navy-100 p-3 cursor-move hover:shadow-md transition-shadow"
                      draggable="true"
                      ondragstart="drag(event)"

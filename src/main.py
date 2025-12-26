@@ -1687,15 +1687,15 @@ async def pipeline_page(
 
     # Define pipeline stages with colors
     stages = [
-        {"id": "recommended", "name": "Recommended", "color": "bg-gray-400", "items": []},
-        {"id": "gp_interested", "name": "Interested", "color": "bg-blue-400", "items": []},
-        {"id": "gp_pursuing", "name": "Pursuing", "color": "bg-indigo-400", "items": []},
-        {"id": "lp_reviewing", "name": "LP Reviewing", "color": "bg-yellow-400", "items": []},
-        {"id": "mutual_interest", "name": "Mutual Interest", "color": "bg-green-400", "items": []},
-        {"id": "in_diligence", "name": "In DD", "color": "bg-purple-400", "items": []},
-        {"id": "invested", "name": "Invested", "color": "bg-emerald-500", "items": []},
-        {"id": "gp_passed", "name": "GP Passed", "color": "bg-red-300", "items": []},
-        {"id": "lp_passed", "name": "LP Passed", "color": "bg-red-400", "items": []},
+        {"id": "recommended", "name": "Recommended", "color": "bg-gray-400", "cards": []},
+        {"id": "gp_interested", "name": "Interested", "color": "bg-blue-400", "cards": []},
+        {"id": "gp_pursuing", "name": "Pursuing", "color": "bg-indigo-400", "cards": []},
+        {"id": "lp_reviewing", "name": "LP Reviewing", "color": "bg-yellow-400", "cards": []},
+        {"id": "mutual_interest", "name": "Mutual Interest", "color": "bg-green-400", "cards": []},
+        {"id": "in_diligence", "name": "In DD", "color": "bg-purple-400", "cards": []},
+        {"id": "invested", "name": "Invested", "color": "bg-emerald-500", "cards": []},
+        {"id": "gp_passed", "name": "GP Passed", "color": "bg-red-300", "cards": []},
+        {"id": "lp_passed", "name": "LP Passed", "color": "bg-red-400", "cards": []},
     ]
 
     funds: list[dict[str, Any]] = []
@@ -1755,7 +1755,7 @@ async def pipeline_page(
                     stage_id = item["pipeline_stage"]
                     for stage in stages:
                         if stage["id"] == stage_id:
-                            stage["items"].append({
+                            stage["cards"].append({
                                 "fund_id": str(item["fund_id"]),
                                 "lp_id": str(item["lp_id"]),
                                 "lp_name": item["lp_name"],
