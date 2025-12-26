@@ -21,7 +21,9 @@
 {% block header_right %}
 <div class="flex items-center space-x-3">
     <span class="hidden md:inline px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full font-medium">GP View</span>
+    {% if user.role in ['admin', 'fa'] %}
     <a href="/lp-dashboard" class="text-sm text-navy-500 hover:text-navy-700 hidden md:inline">Switch to LP</a>
+    {% endif %}
     <a href="/settings" class="text-navy-600 hover:text-navy-900 text-sm hidden md:inline">
         {{ user.name }}
     </a>
