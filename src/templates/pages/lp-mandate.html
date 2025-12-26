@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block nav %}
+<nav class="hidden md:flex ml-10 space-x-8">
+    <a href="/lp-dashboard" class="text-navy-600 hover:text-navy-900 text-sm">Dashboard</a>
+    <a href="/gps" class="text-navy-600 hover:text-navy-900 text-sm">Find GPs</a>
+    <a href="/funds" class="text-navy-600 hover:text-navy-900 text-sm">Browse Funds</a>
+    <a href="/lp-watchlist" class="text-navy-600 hover:text-navy-900 text-sm">Watchlist</a>
+    <a href="/lp-pipeline" class="text-navy-600 hover:text-navy-900 text-sm">Pipeline</a>
+    <a href="/lp-mandate" class="text-gold font-medium text-sm">Mandate</a>
+</nav>
+{% endblock %}
+
+{% block mobile_nav %}
+<a href="/lp-dashboard" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Dashboard</a>
+<a href="/gps" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Find GPs</a>
+<a href="/funds" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Browse Funds</a>
+<a href="/lp-watchlist" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Watchlist</a>
+<a href="/lp-pipeline" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Pipeline</a>
+<a href="/lp-mandate" class="block py-2 px-3 rounded-lg bg-gold/10 text-gold font-medium">Mandate</a>
+{% endblock %}
+
+{% block header_right %}
+<div class="flex items-center space-x-3">
+    <span class="hidden md:inline px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded-full font-medium">LP View</span>
+    <a href="/dashboard" class="text-sm text-navy-500 hover:text-navy-700">Switch to GP</a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-navy-50">
+    <!-- Header -->
+    <div class="bg-white border-b border-navy-100">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-navy-900">Investment Mandate</h1>
+                    <p class="text-navy-500 mt-1">Configure your investment preferences to find matching funds</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Form -->
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <form hx-post="/api/lp-mandate"
+              hx-target="#form-response"
+              hx-swap="innerHTML"
+              class="space-y-8">
+
+            <!-- Strategy Preferences -->
+            <div class="card p-6">
+                <h2 class="text-lg font-semibold text-navy-900 mb-4">Strategy Preferences</h2>
+                <p class="text-sm text-navy-500 mb-4">Select the investment strategies you're interested in</p>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {% for value, label in strategy_options %}
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox"
+                               name="strategies"
+                               value="{{ value }}"
+                               {% if value in mandate.strategies %}checked{% endif %}
+                               class="rounded border-navy-300 text-gold focus:ring-gold">
+                        <span class="text-sm text-navy-700">{{ label }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Check Size -->
+            <div class="card p-6">
+                <h2 class="text-lg font-semibold text-navy-900 mb-4">Check Size</h2>
+                <p class="text-sm text-navy-500 mb-4">Specify your typical investment range (in millions USD)</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-navy-700 mb-2">Minimum Check Size ($M)</label>
+                        <input type="number"
+                               name="check_size_min_mm"
+                               value="{{ mandate.check_size_min_mm or '' }}"
+                               min="0"
+                               step="0.1"
+                               placeholder="e.g., 10"
+                               class="form-input">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-navy-700 mb-2">Maximum Check Size ($M)</label>
+                        <input type="number"
+                               name="check_size_max_mm"
+                               value="{{ mandate.check_size_max_mm or '' }}"
+                               min="0"
+                               step="0.1"
+                               placeholder="e.g., 100"
+                               class="form-input">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Geography Preferences -->
+            <div class="card p-6">
+                <h2 class="text-lg font-semibold text-navy-900 mb-4">Geography Preferences</h2>
+                <p class="text-sm text-navy-500 mb-4">Select the regions you prefer to invest in</p>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {% for value, label in geography_options %}
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox"
+                               name="geographies"
+                               value="{{ value }}"
+                               {% if value in mandate.geographies %}checked{% endif %}
+                               class="rounded border-navy-300 text-gold focus:ring-gold">
+                        <span class="text-sm text-navy-700">{{ label }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Sector Preferences -->
+            <div class="card p-6">
+                <h2 class="text-lg font-semibold text-navy-900 mb-4">Sector Preferences</h2>
+                <p class="text-sm text-navy-500 mb-4">Select the sectors you're interested in</p>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {% for value, label in sector_options %}
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox"
+                               name="sectors"
+                               value="{{ value }}"
+                               {% if value in mandate.sectors %}checked{% endif %}
+                               class="rounded border-navy-300 text-gold focus:ring-gold">
+                        <span class="text-sm text-navy-700">{{ label }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Submit -->
+            <div class="flex items-center justify-between">
+                <div id="form-response"></div>
+                <button type="submit" class="btn-primary">
+                    <span class="htmx-indicator mr-2">
+                        <svg class="animate-spin h-4 w-4 inline" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </span>
+                    Save Mandate
+                </button>
+            </div>
+        </form>
+
+        <!-- Back Link -->
+        <div class="mt-8">
+            <a href="/lp-dashboard" class="text-gold hover:text-gold-600 text-sm font-medium">
+                &larr; Back to Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

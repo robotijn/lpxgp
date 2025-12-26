@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block nav %}
+<nav class="hidden md:flex ml-10 space-x-8">
+    <a href="/dashboard" class="text-navy-600 hover:text-navy-900 text-sm">Dashboard</a>
+    <a href="/matches" class="text-navy-600 hover:text-navy-900 text-sm">Matches</a>
+    <a href="/funds" class="text-navy-600 hover:text-navy-900 text-sm">Funds</a>
+    <a href="/lps" class="text-navy-600 hover:text-navy-900 text-sm">LPs</a>
+    <a href="/shortlist" class="text-navy-600 hover:text-navy-900 text-sm">Shortlist</a>
+</nav>
+{% endblock %}
+
+{% block mobile_nav %}
+<a href="/dashboard" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Dashboard</a>
+<a href="/matches" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Matches</a>
+<a href="/funds" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Funds</a>
+<a href="/lps" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">LPs</a>
+<a href="/shortlist" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Shortlist</a>
+{% endblock %}
+
+{% block header_right %}
+<div class="flex items-center space-x-4">
+    <a href="/settings" class="text-gold font-medium text-sm hidden md:inline">
+        {{ user.name }}
+    </a>
+    <a href="/logout" class="btn-secondary text-sm">Sign Out</a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 py-8">
+    <!-- Page Header -->
+    <div class="mb-8">
+        <h1 class="text-2xl font-bold text-navy-900">Team Management</h1>
+        <p class="text-navy-500 mt-1">Invite team members to collaborate on your account</p>
+    </div>
+
+    <!-- Settings Navigation -->
+    <div class="flex space-x-4 mb-6 border-b border-navy-200">
+        <a href="/settings" class="pb-3 px-1 text-navy-600 hover:text-navy-900">
+            Account
+        </a>
+        <a href="/settings/team" class="pb-3 px-1 text-gold border-b-2 border-gold font-medium">
+            Team
+        </a>
+    </div>
+
+    <!-- Current Team Members -->
+    <div class="card p-6 mb-6">
+        <h2 class="text-lg font-semibold text-navy-900 mb-4">Team Members</h2>
+        <div class="divide-y">
+            {% for member in team_members %}
+            <div class="py-4 flex items-center justify-between {% if loop.first %}pt-0{% endif %}">
+                <div class="flex items-center space-x-4">
+                    <div class="w-10 h-10 rounded-full bg-navy-100 flex items-center justify-center">
+                        <span class="text-navy-600 font-medium">{{ member.name[0]|upper }}</span>
+                    </div>
+                    <div>
+                        <p class="font-medium text-navy-900">{{ member.name }}</p>
+                        <p class="text-sm text-navy-500">{{ member.email }}</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <span class="px-2 py-1 text-xs bg-navy-100 text-navy-700 rounded uppercase">{{ member.role }}</span>
+                    {% if member.is_current %}
+                    <span class="text-sm text-navy-400">(You)</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Invite Form -->
+    <div class="card p-6 mb-6">
+        <h2 class="text-lg font-semibold text-navy-900 mb-4">Invite Team Member</h2>
+        <form hx-post="/api/team/invite"
+              hx-target="#invite-result"
+              hx-swap="innerHTML"
+              class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-navy-700 mb-1">Email Address</label>
+                <input type="email"
+                       name="email"
+                       required
+                       placeholder="colleague@company.com"
+                       class="form-input w-full">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-navy-700 mb-1">Role</label>
+                <select name="role" class="form-input w-full">
+                    <option value="gp">GP (Fund Manager)</option>
+                    <option value="lp">LP (Limited Partner)</option>
+                </select>
+                <p class="text-sm text-navy-400 mt-1">GPs can manage funds and view matches. LPs can view fund opportunities.</p>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-navy-700 mb-1">Personal Message (optional)</label>
+                <textarea name="message"
+                          rows="2"
+                          placeholder="Add a personal note to your invite..."
+                          class="form-input w-full"></textarea>
+            </div>
+            <div class="flex justify-end">
+                <button type="submit" class="btn-primary">
+                    Send Invite
+                </button>
+            </div>
+        </form>
+        <div id="invite-result" class="mt-4"></div>
+    </div>
+
+    <!-- Pending Invites -->
+    <div class="card p-6 mb-6">
+        <h2 class="text-lg font-semibold text-navy-900 mb-4">Pending Invites</h2>
+        {% if pending_invites %}
+        <div class="divide-y">
+            {% for invite in pending_invites %}
+            <div class="py-4 flex items-center justify-between">
+                <div>
+                    <p class="font-medium text-navy-900">{{ invite.email }}</p>
+                    <p class="text-sm text-navy-500">Role: {{ invite.role|upper }} · Sent: {{ invite.sent_at[:10] }}</p>
+                </div>
+                <span class="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded">Pending</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-navy-500 text-center py-4">No pending invites</p>
+        {% endif %}
+    </div>
+
+    <!-- Back Link -->
+    <div class="mt-8">
+        <a href="/settings" class="text-gold hover:text-gold-600 text-sm font-medium">
+            &larr; Back to Settings
+        </a>
+    </div>
+</div>
+{% endblock %}

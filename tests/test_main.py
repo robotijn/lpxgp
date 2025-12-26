@@ -5397,7 +5397,7 @@ class TestLPPipelinePageAccess:
         # Check for LP pipeline stages
         lp_stages = ["Watching", "Interested", "Reviewing", "DD"]
         stages_found = sum(1 for stage in lp_stages if stage in content)
-        assert stages_found >= 2, f"Expected to find at least 2 LP stages"
+        assert stages_found >= 2, "Expected to find at least 2 LP stages"
 
 
 # =============================================================================

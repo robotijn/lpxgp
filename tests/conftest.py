@@ -28,7 +28,9 @@ from unittest.mock import MagicMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
-from src.main import _shortlists, _user_preferences, app
+from src.main import app
+from src.preferences import _user_preferences
+from src.shortlists import _shortlists
 
 if TYPE_CHECKING:
     from playwright.sync_api import BrowserContext, Page
