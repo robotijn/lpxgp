@@ -23,11 +23,15 @@ import pytest
 from psycopg.rows import dict_row
 
 from src.cache import (
+    CacheVersionManager,
+    DataVersion,
+    VersionedLRUCache,
     ai_query_cache,
     clear_all_caches,
     get_cache_stats,
     match_score_cache,
     search_results_cache,
+    version_manager,
 )
 from src.config import get_settings
 from src.matching import calculate_match_score
@@ -591,6 +595,207 @@ class TestCachingBehavior:
 # =============================================================================
 # Performance Summary
 # =============================================================================
+
+
+# =============================================================================
+# Version-Based Cache Invalidation Tests
+# =============================================================================
+
+
+class TestDataVersion:
+    """Test DataVersion computation."""
+
+    def test_compute_version_from_stats(self):
+        """DataVersion should create consistent checksums."""
+        v1 = DataVersion.compute("lp", 10000, "2024-01-15T10:30:00")
+        v2 = DataVersion.compute("lp", 10000, "2024-01-15T10:30:00")
+
+        assert v1.checksum == v2.checksum
+        assert v1.row_count == 10000
+        assert v1.entity_type == "lp"
+
+    def test_different_counts_different_checksum(self):
+        """Different row counts should produce different checksums."""
+        v1 = DataVersion.compute("lp", 10000, "2024-01-15T10:30:00")
+        v2 = DataVersion.compute("lp", 10001, "2024-01-15T10:30:00")
+
+        assert v1.checksum != v2.checksum
+
+    def test_different_timestamps_different_checksum(self):
+        """Different timestamps should produce different checksums."""
+        v1 = DataVersion.compute("lp", 10000, "2024-01-15T10:30:00")
+        v2 = DataVersion.compute("lp", 10000, "2024-01-15T10:31:00")
+
+        assert v1.checksum != v2.checksum
+
+
+class TestCacheVersionManager:
+    """Test CacheVersionManager functionality."""
+
+    def test_update_from_db_stats(self):
+        """Version manager should track stats correctly."""
+        manager = CacheVersionManager(poll_interval=60)
+
+        stats = {
+            "lp": {"count": 10000, "last_modified": "2024-01-15T10:30:00"},
+            "gp": {"count": 5000, "last_modified": "2024-01-15T09:00:00"},
+        }
+
+        changed = manager.update_from_db(stats)
+        # First update is not considered a "change"
+        assert changed is False
+        assert "lp" in manager.versions
+        assert "gp" in manager.versions
+        assert manager.versions["lp"].row_count == 10000
+
+    def test_detect_data_change(self):
+        """Version manager should detect when data changes."""
+        manager = CacheVersionManager(poll_interval=60)
+
+        # Initial state
+        manager.update_from_db({
+            "lp": {"count": 10000, "last_modified": "2024-01-15T10:30:00"},
+        })
+        initial_checksum = manager.combined_checksum
+
+        # Data changes
+        changed = manager.update_from_db({
+            "lp": {"count": 10001, "last_modified": "2024-01-15T10:31:00"},
+        })
+
+        assert changed is True
+        assert manager.combined_checksum != initial_checksum
+
+    def test_has_entity_changed(self):
+        """Should detect when specific entity changed."""
+        manager = CacheVersionManager(poll_interval=60)
+
+        manager.update_from_db({
+            "lp": {"count": 10000, "last_modified": None},
+        })
+
+        # Get checksum at cache time
+        cached_checksum = manager.get_checksums()["lp"]
+
+        # Same checksum should not be considered changed
+        assert manager.has_entity_changed("lp", cached_checksum) is False
+
+        # Different checksum should be considered changed
+        assert manager.has_entity_changed("lp", "different") is True
+
+    def test_is_stale(self):
+        """Should correctly report staleness."""
+        manager = CacheVersionManager(poll_interval=1)  # 1 second
+
+        manager.update_from_db({"lp": {"count": 100, "last_modified": None}})
+
+        # Just updated, should not be stale
+        assert manager.is_stale() is False
+
+        # Wait and check again
+        time.sleep(1.1)
+        assert manager.is_stale() is True
+
+
+class TestVersionedLRUCache:
+    """Test VersionedLRUCache with invalidation."""
+
+    def test_basic_get_set(self):
+        """Basic get/set should work without version manager."""
+        cache: VersionedLRUCache[str] = VersionedLRUCache(
+            entity_types=["lp"],
+            max_size=10,
+            name="test",
+        )
+
+        cache.set("key1", "value1")
+        assert cache.get("key1") == "value1"
+
+    def test_invalidation_on_version_change(self):
+        """Cache should invalidate when version changes."""
+        cache: VersionedLRUCache[str] = VersionedLRUCache(
+            entity_types=["lp"],
+            max_size=10,
+            ttl_seconds=300,
+            name="test",
+        )
+        manager = CacheVersionManager(poll_interval=60)
+
+        # Set initial version
+        manager.update_from_db({"lp": {"count": 100, "last_modified": None}})
+
+        # Cache a value
+        cache.set("key1", "value1", manager)
+        assert cache.get("key1", manager) == "value1"
+
+        # Data changes
+        manager.update_from_db({"lp": {"count": 101, "last_modified": None}})
+
+        # Cache should now return None (invalidated)
+        assert cache.get("key1", manager) is None
+
+    def test_cache_hit_when_version_unchanged(self):
+        """Cache should hit when version is unchanged."""
+        cache: VersionedLRUCache[str] = VersionedLRUCache(
+            entity_types=["lp"],
+            max_size=10,
+            name="test",
+        )
+        manager = CacheVersionManager(poll_interval=60)
+
+        manager.update_from_db({"lp": {"count": 100, "last_modified": None}})
+        cache.set("key1", "value1", manager)
+
+        # Same version - should hit
+        assert cache.get("key1", manager) == "value1"
+        assert cache.stats.hits == 1
+
+    def test_invalidate_by_entity(self):
+        """Should invalidate all entries for an entity type."""
+        cache: VersionedLRUCache[str] = VersionedLRUCache(
+            entity_types=["lp", "gp"],
+            max_size=10,
+            name="test",
+        )
+
+        cache.set("key1", "value1")
+        cache.set("key2", "value2")
+        assert len(cache) == 2
+
+        invalidated = cache.invalidate_by_entity("lp")
+        assert invalidated == 2
+        assert len(cache) == 0
+
+
+class TestVersionedCacheWithDatabase:
+    """Test versioned cache with real database."""
+
+    def test_fetch_versions_from_db(self, db_connection):
+        """Should fetch version info from database."""
+        from src.cache import fetch_db_versions_sync
+
+        stats = fetch_db_versions_sync(db_connection)
+
+        print(f"\n  Database versions:")
+        for entity, data in stats.items():
+            print(f"    {entity}: count={data['count']}")
+
+        assert "lp" in stats
+        assert "gp" in stats
+        assert stats["lp"]["count"] > 0
+
+    def test_refresh_versions_if_stale(self, db_connection):
+        """Should refresh versions when stale."""
+        from src.cache import refresh_versions_if_stale, version_manager
+
+        # Force stale
+        version_manager._last_poll = 0
+
+        changed = refresh_versions_if_stale(db_connection)
+
+        # First refresh shouldn't report "changed"
+        assert version_manager.combined_checksum != ""
+        print(f"\n  Combined checksum: {version_manager.combined_checksum}")
 
 
 class TestPerformanceSummary:
