@@ -414,3 +414,129 @@ class TestSqlGenerationIntegration:
         assert any("DROP TABLE" in str(p) for p in params)
         # Should use %s placeholder
         assert "ILIKE %s" in where
+
+
+# =============================================================================
+# Tests for Bad Model Responses (like smaller models)
+# =============================================================================
+
+
+class TestBadModelResponses:
+    """Tests for handling bad responses from smaller/weaker LLM models."""
+
+    def _create_mock_response(self, json_data: dict) -> MagicMock:
+        """Create a mock httpx Response."""
+        mock_response = MagicMock()
+        mock_response.json.return_value = json_data
+        mock_response.raise_for_status.return_value = None
+        return mock_response
+
+    @pytest.mark.asyncio
+    async def test_null_response_falls_back_to_text_search(self):
+        """Model returning 'null' should fall back to text search.
+
+        This catches the deepseek-r1:1.5b issue where it returns null.
+        """
+        mock_response = self._create_mock_response({
+            "response": "null"
+        })
+
+        with patch("src.search.httpx.AsyncClient") as mock_client:
+            mock_instance = AsyncMock()
+            mock_client.return_value.__aenter__.return_value = mock_instance
+            mock_instance.post.return_value = mock_response
+
+            result = await parse_lp_search_query("50m or more aum")
+
+            # Should fall back to text search, not crash
+            assert result.get("text_search") == "50m or more aum"
+            assert result.get("_cache_hit") is False
+
+    @pytest.mark.asyncio
+    async def test_markdown_wrapped_json_extracted(self):
+        """Model returning JSON wrapped in markdown should be extracted.
+
+        Some models return ```json\n{...}\n```
+        """
+        mock_response = self._create_mock_response({
+            "response": '```json\n{"aum_min": 0.05}\n```'
+        })
+
+        with patch("src.search.httpx.AsyncClient") as mock_client:
+            mock_instance = AsyncMock()
+            mock_client.return_value.__aenter__.return_value = mock_instance
+            mock_instance.post.return_value = mock_response
+
+            result = await parse_lp_search_query("50m aum")
+
+            assert result.get("aum_min") == 0.05
+
+    @pytest.mark.asyncio
+    async def test_thinking_tags_with_json_extracted(self):
+        """Model with <think> tags should still extract JSON.
+
+        deepseek-r1 models include <think>...</think> before the answer.
+        """
+        mock_response = self._create_mock_response({
+            "response": '<think>The user wants 50M which is 0.05B</think>\n{"aum_min": 0.05}'
+        })
+
+        with patch("src.search.httpx.AsyncClient") as mock_client:
+            mock_instance = AsyncMock()
+            mock_client.return_value.__aenter__.return_value = mock_instance
+            mock_instance.post.return_value = mock_response
+
+            result = await parse_lp_search_query("50m aum")
+
+            assert result.get("aum_min") == 0.05
+
+    def test_lp_type_as_list_handled_gracefully(self):
+        """Model returning lp_type as list should not break SQL.
+
+        Bad models might return {"lp_type": ["pension", "endowment"]}
+        instead of {"lp_type": "pension"}
+        """
+        # This is a bad filter - lp_type should be scalar
+        filters = {"lp_type": ["pension", "endowment"]}
+
+        # Should not crash - SQL generation should handle it
+        # (even if the query might not return expected results)
+        where, params = build_lp_search_sql(filters)
+
+        # Query should still be valid syntax
+        assert "o.is_lp = TRUE" in where
+        assert "lp.lp_type = %s" in where
+
+    def test_aum_as_none_ignored(self):
+        """Model returning aum_min: None should be ignored.
+
+        Bad response: {"aum_min": null, "lp_type": "pension"}
+        """
+        filters = {"aum_min": None, "lp_type": "pension"}
+        where, params = build_lp_search_sql(filters)
+
+        # aum_min: None should be ignored
+        assert "total_aum_bn" not in where
+        # lp_type should still work
+        assert "lp.lp_type = %s" in where
+        assert "pension" in params
+
+    def test_empty_string_location_ignored(self):
+        """Model returning empty location should be ignored."""
+        filters = {"location": "", "aum_min": 0.05}
+        where, params = build_lp_search_sql(filters)
+
+        # Empty location should not create ILIKE condition
+        assert "hq_city" not in where
+        # aum_min should still work
+        assert "total_aum_bn >= %s" in where
+
+    def test_empty_list_strategies_ignored(self):
+        """Model returning empty strategies list should be ignored."""
+        filters = {"strategies": [], "aum_min": 0.05}
+        where, params = build_lp_search_sql(filters)
+
+        # Empty list should not create array overlap
+        assert "strategies &&" not in where
+        # aum_min should still work
+        assert "total_aum_bn >= %s" in where

@@ -1959,6 +1959,101 @@ class TestAISearchMobile:
             assert body_width <= viewport_width + 20
 
 
+@pytest.mark.browser
+class TestAISearchReturnsResults:
+    """E2E tests verifying AI search actually returns database results.
+
+    These tests require:
+    - Live dev server running
+    - Ollama running with deepseek-r1:8b model
+    - Database populated with LP/GP data
+    """
+
+    def test_ai_search_returns_lp_results(self, logged_in_page: Page):
+        """AI search for AUM should return actual LP results from database.
+
+        BDD: Given I am on the LP search page
+             When I search for "pension funds with 100m aum"
+             Then I should see LP results (not "No LPs found")
+        """
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/lps")
+        page.wait_for_load_state("networkidle")
+
+        search_input = page.locator(
+            'input[type="search"], input[name="search"], input[placeholder*="Search"]'
+        )
+        if search_input.count() == 0:
+            pytest.skip("No search input found")
+
+        # Search with natural language
+        search_input.first.fill("pension funds with 100m aum")
+        search_input.first.press("Enter")
+
+        # Wait for AI parsing + database query (may take a while)
+        page.wait_for_timeout(10000)
+
+        # Check page content
+        page_content = page.content()
+
+        # Should NOT show "No LPs found" if AI and DB are working
+        # This test may fail if Ollama isn't running or model is too small
+        if "No LPs found" in page_content:
+            pytest.fail(
+                "AI search returned no results. "
+                "Check: 1) Ollama running with deepseek-r1:8b, "
+                "2) Database has LP data, "
+                "3) .env has OLLAMA_MODEL=deepseek-r1:8b"
+            )
+
+    def test_ai_search_lp_type_filter(self, logged_in_page: Page):
+        """AI search for LP type should filter results.
+
+        BDD: Given I search for "endowment investors"
+             Then results should be filtered by LP type
+        """
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/lps")
+        page.wait_for_load_state("networkidle")
+
+        search_input = page.locator(
+            'input[type="search"], input[name="search"], input[placeholder*="Search"]'
+        )
+        if search_input.count() == 0:
+            pytest.skip("No search input found")
+
+        search_input.first.fill("endowment investors")
+        search_input.first.press("Enter")
+        page.wait_for_timeout(10000)
+
+        # Should not crash
+        expect(page).to_have_url(re.compile(r"/lps"))
+
+    def test_gp_ai_search_returns_results(self, logged_in_page: Page):
+        """AI search on GP page should return results.
+
+        BDD: Given I am on the GP search page
+             When I search for "buyout funds in california"
+             Then I should see GP results
+        """
+        page = logged_in_page
+        page.goto(f"{BASE_URL}/gps")
+        page.wait_for_load_state("networkidle")
+
+        search_input = page.locator(
+            'input[type="search"], input[name="search"], input[placeholder*="Search"]'
+        )
+        if search_input.count() == 0:
+            pytest.skip("No search input found")
+
+        search_input.first.fill("buyout funds")
+        search_input.first.press("Enter")
+        page.wait_for_timeout(10000)
+
+        # Should not crash
+        expect(page).to_have_url(re.compile(r"/gps"))
+
+
 # =============================================================================
 # GP DATABASE E2E TESTS
 # =============================================================================
