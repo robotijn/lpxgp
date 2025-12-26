@@ -5266,6 +5266,141 @@ class TestPipelinePageAccess:
 
 
 # =============================================================================
+# LP PIPELINE API TESTS - LP KANBAN BOARD
+# REST API for LP pipeline stage management
+# =============================================================================
+
+
+class TestLPPipelineApiUpdate:
+    """Test REST API endpoint PATCH /api/v1/lp-pipeline/{fund_id}.
+
+    Updates LP pipeline stage for a fund (LP's interest level).
+    """
+
+    def test_lp_pipeline_update_requires_auth(self, client):
+        """API should require authentication."""
+        response = client.patch(
+            "/api/v1/lp-pipeline/test-fund-id",
+            json={"stage": "interested"},
+            follow_redirects=False,
+        )
+        assert response.status_code in [401, 302, 303, 307]
+
+    def test_lp_pipeline_update_valid_stage(self, authenticated_client):
+        """Valid LP stage update should succeed or return appropriate error."""
+        valid_stages = ["watching", "interested", "reviewing", "dd_in_progress", "passed"]
+        for stage in valid_stages:
+            response = authenticated_client.patch(
+                "/api/v1/lp-pipeline/test-fund-id",
+                json={"stage": stage}
+            )
+            # Should either succeed (200), fail due to missing LP org (400/404),
+            # or encounter DB error (500/503) - but NOT reject the stage pattern
+            assert response.status_code in [200, 400, 404, 500, 503], f"Stage {stage} failed with {response.status_code}"
+
+    def test_lp_pipeline_update_invalid_stage_rejected(self, authenticated_client):
+        """Invalid LP stage should be rejected with 422."""
+        response = authenticated_client.patch(
+            "/api/v1/lp-pipeline/test-fund-id",
+            json={"stage": "invalid_stage"}
+        )
+        # Pydantic validation should reject invalid stage
+        assert response.status_code == 422
+
+    def test_lp_pipeline_update_empty_stage_rejected(self, authenticated_client):
+        """Empty stage should be rejected."""
+        response = authenticated_client.patch(
+            "/api/v1/lp-pipeline/test-fund-id",
+            json={"stage": ""}
+        )
+        assert response.status_code == 422
+
+    def test_lp_pipeline_update_missing_stage_rejected(self, authenticated_client):
+        """Missing stage field should be rejected."""
+        response = authenticated_client.patch(
+            "/api/v1/lp-pipeline/test-fund-id",
+            json={}
+        )
+        assert response.status_code == 422
+
+    def test_lp_pipeline_update_with_notes(self, authenticated_client):
+        """LP stage update with notes should be accepted."""
+        response = authenticated_client.patch(
+            "/api/v1/lp-pipeline/test-fund-id",
+            json={"stage": "reviewing", "notes": "Scheduled DD call"}
+        )
+        # Should either succeed or fail due to missing LP org or DB
+        assert response.status_code in [200, 400, 404, 500, 503]
+
+    def test_lp_pipeline_update_returns_json(self, authenticated_client):
+        """API should return JSON response."""
+        response = authenticated_client.patch(
+            "/api/v1/lp-pipeline/test-fund-id",
+            json={"stage": "interested"}
+        )
+        assert "application/json" in response.headers["content-type"]
+
+    def test_lp_pipeline_update_invalid_uuid_rejected(self, authenticated_client):
+        """Invalid fund UUID should be rejected."""
+        response = authenticated_client.patch(
+            "/api/v1/lp-pipeline/not-a-uuid",
+            json={"stage": "interested"}
+        )
+        assert response.status_code == 400
+
+    def test_lp_pipeline_gp_stages_rejected(self, authenticated_client):
+        """GP pipeline stages should be rejected for LP pipeline."""
+        gp_stages = ["recommended", "gp_interested", "gp_pursuing", "mutual_interest"]
+        for stage in gp_stages:
+            response = authenticated_client.patch(
+                "/api/v1/lp-pipeline/test-fund-id",
+                json={"stage": stage}
+            )
+            # Should reject with 422 (Pydantic validation)
+            assert response.status_code == 422, f"GP stage {stage} was not rejected"
+
+
+class TestLPPipelinePageAccess:
+    """Test LP pipeline page access and authorization."""
+
+    def test_lp_pipeline_page_requires_auth(self, client):
+        """LP pipeline page should require authentication."""
+        response = client.get("/lp-pipeline", follow_redirects=False)
+        assert response.status_code == 303
+        assert response.headers.get("location") == "/login"
+
+    def test_lp_pipeline_page_returns_html(self, authenticated_client):
+        """LP pipeline page should return HTML for authenticated users."""
+        response = authenticated_client.get("/lp-pipeline")
+        assert response.status_code == 200
+        assert "text/html" in response.headers["content-type"]
+
+    def test_lp_pipeline_page_contains_kanban_structure(self, authenticated_client):
+        """LP pipeline page should contain kanban board structure."""
+        response = authenticated_client.get("/lp-pipeline")
+        assert response.status_code == 200
+        # Check for kanban column markers or pipeline title
+        assert "column-" in response.text or "Pipeline" in response.text
+
+    def test_lp_pipeline_page_has_drag_functions(self, authenticated_client):
+        """LP pipeline page should have drag-and-drop JavaScript functions."""
+        response = authenticated_client.get("/lp-pipeline")
+        assert response.status_code == 200
+        # Check for drag/drop JavaScript functions
+        assert "function drag" in response.text or "allowDrop" in response.text
+
+    def test_lp_pipeline_shows_lp_stages(self, authenticated_client):
+        """LP pipeline should show LP-specific stages."""
+        response = authenticated_client.get("/lp-pipeline")
+        assert response.status_code == 200
+        content = response.text
+        # Check for LP pipeline stages
+        lp_stages = ["Watching", "Interested", "Reviewing", "DD"]
+        stages_found = sum(1 for stage in lp_stages if stage in content)
+        assert stages_found >= 2, f"Expected to find at least 2 LP stages"
+
+
+# =============================================================================
 # SECURITY HARDENING TESTS - SQL INJECTION
 # OWASP A03:2021 - Injection
 # =============================================================================

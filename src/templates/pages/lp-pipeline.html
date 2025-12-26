@@ -33,7 +33,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <h1 class="text-2xl font-bold text-navy-900">Fund Pipeline</h1>
-                    <p class="text-navy-500 mt-1">Track funds through your evaluation process</p>
+                    <p class="text-navy-500 mt-1">Drag cards to update your evaluation stage</p>
                 </div>
                 <a href="/gps" class="btn-primary">
                     <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -47,18 +47,28 @@
 
     <!-- Kanban Board -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div class="grid grid-cols-5 gap-4">
+        <div class="flex gap-4 overflow-x-auto pb-4" style="min-height: calc(100vh - 250px);">
             <!-- Watching -->
-            <div class="bg-gray-100 rounded-lg p-3">
+            <div class="flex-shrink-0 w-64 bg-gray-100 rounded-lg p-3"
+                 id="column-watching"
+                 ondragover="allowDrop(event)"
+                 ondrop="drop(event, 'watching')">
                 <div class="flex items-center justify-between mb-3">
-                    <h3 class="font-semibold text-gray-700">Watching</h3>
-                    <span class="bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">
+                    <div class="flex items-center">
+                        <span class="w-3 h-3 rounded-full mr-2 bg-gray-400"></span>
+                        <h3 class="font-semibold text-gray-700">Watching</h3>
+                    </div>
+                    <span class="bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full" id="count-watching">
                         {{ pipeline.watching|length }}
                     </span>
                 </div>
-                <div class="space-y-2">
+                <div class="space-y-2 min-h-[100px]" id="cards-watching">
                     {% for fund in pipeline.watching %}
-                    <div class="bg-white rounded-lg p-3 shadow-sm">
+                    <div class="bg-white rounded-lg p-3 shadow-sm cursor-move hover:shadow-md transition-shadow"
+                         draggable="true"
+                         ondragstart="drag(event)"
+                         id="card-{{ fund.id }}"
+                         data-fund-id="{{ fund.id }}">
                         <div class="font-medium text-sm text-navy-900">{{ fund.name }}</div>
                         <div class="text-xs text-navy-500">{{ fund.gp_name }}</div>
                         {% if fund.strategy %}
@@ -72,16 +82,26 @@
             </div>
 
             <!-- Interested -->
-            <div class="bg-blue-50 rounded-lg p-3">
+            <div class="flex-shrink-0 w-64 bg-blue-50 rounded-lg p-3"
+                 id="column-interested"
+                 ondragover="allowDrop(event)"
+                 ondrop="drop(event, 'interested')">
                 <div class="flex items-center justify-between mb-3">
-                    <h3 class="font-semibold text-blue-700">Interested</h3>
-                    <span class="bg-blue-100 text-blue-600 text-xs px-2 py-0.5 rounded-full">
+                    <div class="flex items-center">
+                        <span class="w-3 h-3 rounded-full mr-2 bg-blue-400"></span>
+                        <h3 class="font-semibold text-blue-700">Interested</h3>
+                    </div>
+                    <span class="bg-blue-100 text-blue-600 text-xs px-2 py-0.5 rounded-full" id="count-interested">
                         {{ pipeline.interested|length }}
                     </span>
                 </div>
-                <div class="space-y-2">
+                <div class="space-y-2 min-h-[100px]" id="cards-interested">
                     {% for fund in pipeline.interested %}
-                    <div class="bg-white rounded-lg p-3 shadow-sm border-l-4 border-blue-500">
+                    <div class="bg-white rounded-lg p-3 shadow-sm border-l-4 border-blue-500 cursor-move hover:shadow-md transition-shadow"
+                         draggable="true"
+                         ondragstart="drag(event)"
+                         id="card-{{ fund.id }}"
+                         data-fund-id="{{ fund.id }}">
                         <div class="font-medium text-sm text-navy-900">{{ fund.name }}</div>
                         <div class="text-xs text-navy-500">{{ fund.gp_name }}</div>
                         {% if fund.target_size_mm %}
@@ -93,16 +113,26 @@
             </div>
 
             <!-- Reviewing -->
-            <div class="bg-yellow-50 rounded-lg p-3">
+            <div class="flex-shrink-0 w-64 bg-yellow-50 rounded-lg p-3"
+                 id="column-reviewing"
+                 ondragover="allowDrop(event)"
+                 ondrop="drop(event, 'reviewing')">
                 <div class="flex items-center justify-between mb-3">
-                    <h3 class="font-semibold text-yellow-700">Reviewing</h3>
-                    <span class="bg-yellow-100 text-yellow-600 text-xs px-2 py-0.5 rounded-full">
+                    <div class="flex items-center">
+                        <span class="w-3 h-3 rounded-full mr-2 bg-yellow-400"></span>
+                        <h3 class="font-semibold text-yellow-700">Reviewing</h3>
+                    </div>
+                    <span class="bg-yellow-100 text-yellow-600 text-xs px-2 py-0.5 rounded-full" id="count-reviewing">
                         {{ pipeline.reviewing|length }}
                     </span>
                 </div>
-                <div class="space-y-2">
+                <div class="space-y-2 min-h-[100px]" id="cards-reviewing">
                     {% for fund in pipeline.reviewing %}
-                    <div class="bg-white rounded-lg p-3 shadow-sm border-l-4 border-yellow-500">
+                    <div class="bg-white rounded-lg p-3 shadow-sm border-l-4 border-yellow-500 cursor-move hover:shadow-md transition-shadow"
+                         draggable="true"
+                         ondragstart="drag(event)"
+                         id="card-{{ fund.id }}"
+                         data-fund-id="{{ fund.id }}">
                         <div class="font-medium text-sm text-navy-900">{{ fund.name }}</div>
                         <div class="text-xs text-navy-500">{{ fund.gp_name }}</div>
                     </div>
@@ -111,16 +141,26 @@
             </div>
 
             <!-- DD In Progress -->
-            <div class="bg-orange-50 rounded-lg p-3">
+            <div class="flex-shrink-0 w-64 bg-orange-50 rounded-lg p-3"
+                 id="column-dd_in_progress"
+                 ondragover="allowDrop(event)"
+                 ondrop="drop(event, 'dd_in_progress')">
                 <div class="flex items-center justify-between mb-3">
-                    <h3 class="font-semibold text-orange-700">DD In Progress</h3>
-                    <span class="bg-orange-100 text-orange-600 text-xs px-2 py-0.5 rounded-full">
+                    <div class="flex items-center">
+                        <span class="w-3 h-3 rounded-full mr-2 bg-orange-400"></span>
+                        <h3 class="font-semibold text-orange-700">DD In Progress</h3>
+                    </div>
+                    <span class="bg-orange-100 text-orange-600 text-xs px-2 py-0.5 rounded-full" id="count-dd_in_progress">
                         {{ pipeline.dd_in_progress|length }}
                     </span>
                 </div>
-                <div class="space-y-2">
+                <div class="space-y-2 min-h-[100px]" id="cards-dd_in_progress">
                     {% for fund in pipeline.dd_in_progress %}
-                    <div class="bg-white rounded-lg p-3 shadow-sm border-l-4 border-orange-500">
+                    <div class="bg-white rounded-lg p-3 shadow-sm border-l-4 border-orange-500 cursor-move hover:shadow-md transition-shadow"
+                         draggable="true"
+                         ondragstart="drag(event)"
+                         id="card-{{ fund.id }}"
+                         data-fund-id="{{ fund.id }}">
                         <div class="font-medium text-sm text-navy-900">{{ fund.name }}</div>
                         <div class="text-xs text-navy-500">{{ fund.gp_name }}</div>
                     </div>
@@ -129,16 +169,26 @@
             </div>
 
             <!-- Passed -->
-            <div class="bg-red-50 rounded-lg p-3">
+            <div class="flex-shrink-0 w-64 bg-red-50 rounded-lg p-3"
+                 id="column-passed"
+                 ondragover="allowDrop(event)"
+                 ondrop="drop(event, 'passed')">
                 <div class="flex items-center justify-between mb-3">
-                    <h3 class="font-semibold text-red-700">Passed</h3>
-                    <span class="bg-red-100 text-red-600 text-xs px-2 py-0.5 rounded-full">
+                    <div class="flex items-center">
+                        <span class="w-3 h-3 rounded-full mr-2 bg-red-400"></span>
+                        <h3 class="font-semibold text-red-700">Passed</h3>
+                    </div>
+                    <span class="bg-red-100 text-red-600 text-xs px-2 py-0.5 rounded-full" id="count-passed">
                         {{ pipeline.passed|length }}
                     </span>
                 </div>
-                <div class="space-y-2">
+                <div class="space-y-2 min-h-[100px]" id="cards-passed">
                     {% for fund in pipeline.passed %}
-                    <div class="bg-white rounded-lg p-3 shadow-sm border-l-4 border-red-500 opacity-60">
+                    <div class="bg-white rounded-lg p-3 shadow-sm border-l-4 border-red-500 opacity-60 cursor-move hover:shadow-md transition-shadow"
+                         draggable="true"
+                         ondragstart="drag(event)"
+                         id="card-{{ fund.id }}"
+                         data-fund-id="{{ fund.id }}">
                         <div class="font-medium text-sm text-navy-900">{{ fund.name }}</div>
                         <div class="text-xs text-navy-500">{{ fund.gp_name }}</div>
                     </div>
@@ -155,10 +205,95 @@
                       d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/>
             </svg>
             <h3 class="text-lg font-semibold text-navy-700">No funds in pipeline</h3>
-            <p class="text-navy-500 mt-2">Start tracking funds from your dashboard</p>
+            <p class="text-navy-500 mt-2">Start tracking funds from your dashboard or watchlist</p>
             <a href="/lp-dashboard" class="btn-primary mt-4 inline-block">Go to Dashboard</a>
         </div>
         {% endif %}
     </div>
 </div>
+
+<style>
+.dragging {
+    opacity: 0.5;
+    transform: rotate(2deg);
+}
+.drag-over {
+    background-color: rgba(212, 168, 75, 0.1);
+    border: 2px dashed #d4a84b;
+}
+</style>
+
+<script>
+let draggedCard = null;
+
+function drag(event) {
+    draggedCard = event.target;
+    event.target.classList.add('dragging');
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', event.target.id);
+}
+
+function allowDrop(event) {
+    event.preventDefault();
+    event.currentTarget.classList.add('drag-over');
+}
+
+function drop(event, newStage) {
+    event.preventDefault();
+    event.currentTarget.classList.remove('drag-over');
+
+    if (!draggedCard) return;
+
+    const fundId = draggedCard.dataset.fundId;
+    const cardsContainer = document.getElementById('cards-' + newStage);
+
+    // Move card visually
+    cardsContainer.appendChild(draggedCard);
+    draggedCard.classList.remove('dragging');
+
+    // Update counts
+    updateColumnCounts();
+
+    // Update backend
+    fetch(`/api/v1/lp-pipeline/${fundId}`, {
+        method: 'PATCH',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ stage: newStage })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (!data.success) {
+            console.error('Failed to update stage:', data.error);
+            // Could revert the move here
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+
+    draggedCard = null;
+}
+
+function updateColumnCounts() {
+    const stages = ['watching', 'interested', 'reviewing', 'dd_in_progress', 'passed'];
+    stages.forEach(stage => {
+        const count = document.getElementById('cards-' + stage).children.length;
+        document.getElementById('count-' + stage).textContent = count;
+    });
+}
+
+// Remove drag-over styling when leaving
+document.querySelectorAll('[id^="column-"]').forEach(column => {
+    column.addEventListener('dragleave', (e) => {
+        if (!column.contains(e.relatedTarget)) {
+            column.classList.remove('drag-over');
+        }
+    });
+    column.addEventListener('dragend', () => {
+        column.classList.remove('drag-over');
+    });
+});
+</script>
 {% endblock %}

@@ -178,7 +178,7 @@ class PipelineStageUpdateRequest(BaseModel):
     notes: str | None = None
 
 
-# Valid pipeline stages for validation
+# Valid pipeline stages for validation (GP perspective)
 VALID_PIPELINE_STAGES = [
     "recommended",
     "gp_interested",
@@ -190,6 +190,26 @@ VALID_PIPELINE_STAGES = [
     "lp_passed",
     "invested",
 ]
+
+# Valid LP pipeline stages (LP perspective on funds)
+VALID_LP_PIPELINE_STAGES = [
+    "watching",
+    "interested",
+    "reviewing",
+    "dd_in_progress",
+    "passed",
+]
+
+
+class LPPipelineStageUpdateRequest(BaseModel):
+    """Request body for updating LP pipeline stage."""
+
+    stage: str = Field(
+        ...,
+        description="LP Pipeline stage",
+        pattern="^(watching|interested|reviewing|dd_in_progress|passed)$",
+    )
+    notes: str | None = None
 
 
 # In-memory shortlist storage: user_id -> list of ShortlistItems
@@ -6215,6 +6235,112 @@ async def lp_pipeline_page(request: Request) -> HTMLResponse | RedirectResponse:
             "pipeline": pipeline,
         },
     )
+
+
+@app.patch("/api/v1/lp-pipeline/{fund_id}", response_class=JSONResponse)
+async def api_update_lp_pipeline_stage(
+    request: Request,
+    fund_id: str,
+    body: LPPipelineStageUpdateRequest,
+) -> JSONResponse:
+    """Update LP pipeline stage for a fund (LP interest level).
+
+    REST API endpoint for updating LP's interest stage in a fund.
+
+    Args:
+        request: FastAPI request object.
+        fund_id: Fund ID.
+        body: Request body with stage and optional notes.
+
+    Returns:
+        JSON response with updated status.
+    """
+    user = auth.get_current_user(request)
+    if not user:
+        return JSONResponse(
+            status_code=401,
+            content={"error": "Authentication required"},
+        )
+
+    if not is_valid_uuid(fund_id):
+        return JSONResponse(
+            status_code=400,
+            content={"error": "Invalid fund_id format"},
+        )
+
+    if body.stage not in VALID_LP_PIPELINE_STAGES:
+        return JSONResponse(
+            status_code=400,
+            content={
+                "error": f"Invalid stage: {body.stage}",
+                "valid_stages": VALID_LP_PIPELINE_STAGES,
+            },
+        )
+
+    conn = get_db()
+    if not conn:
+        return JSONResponse(
+            status_code=503,
+            content={"error": "Database unavailable"},
+        )
+
+    try:
+        with conn.cursor() as cur:
+            # Get LP's organization through employment
+            cur.execute(
+                """
+                SELECT o.id as lp_org_id
+                FROM people p
+                JOIN employment e ON e.person_id = p.id AND e.is_current = TRUE
+                JOIN organizations o ON o.id = e.org_id
+                WHERE p.auth_user_id = %s
+                """,
+                (user.get("id"),),
+            )
+            lp_org = cur.fetchone()
+
+            if not lp_org:
+                return JSONResponse(
+                    status_code=404,
+                    content={"error": "LP organization not found"},
+                )
+
+            lp_org_id = lp_org["lp_org_id"]
+
+            # Upsert fund_lp_status with LP interest
+            cur.execute(
+                """
+                INSERT INTO fund_lp_status (fund_id, lp_org_id, lp_interest, notes)
+                VALUES (%s, %s, %s, %s)
+                ON CONFLICT (fund_id, lp_org_id)
+                DO UPDATE SET
+                    lp_interest = EXCLUDED.lp_interest,
+                    notes = COALESCE(EXCLUDED.notes, fund_lp_status.notes),
+                    updated_at = NOW()
+                RETURNING id, lp_interest, notes, updated_at
+                """,
+                (fund_id, lp_org_id, body.stage, body.notes),
+            )
+            result = cur.fetchone()
+            conn.commit()
+
+            return JSONResponse(
+                content={
+                    "success": True,
+                    "stage": result["lp_interest"],
+                    "notes": result["notes"],
+                    "updated_at": str(result["updated_at"]) if result["updated_at"] else None,
+                }
+            )
+
+    except Exception as e:
+        conn.rollback()
+        return JSONResponse(
+            status_code=500,
+            content={"error": "Failed to update pipeline stage"},
+        )
+    finally:
+        conn.close()
 
 
 # -----------------------------------------------------------------------------
