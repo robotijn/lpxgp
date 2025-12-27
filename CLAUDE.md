@@ -297,21 +297,37 @@ LLM-generated content (via OpenRouter):
 
 ## Testing Approach
 
-**CRITICAL: ALWAYS RUN ALL TESTS - NEVER SKIP ANY**
+### CRITICAL: ALWAYS RUN ALL TESTS - NEVER SKIP ANY
 
-When running tests, always run the full test suite including browser tests:
+This is non-negotiable. Every time you make changes:
+
 ```bash
+# RUN THIS - ALL TESTS, NO EXCEPTIONS
 uv run pytest tests/ -v --tb=short
 ```
 
-Do NOT skip browser tests (Playwright) - they catch real issues that unit tests miss.
+**Rules:**
+1. **NEVER** use `-m "not browser"` or `-m "not slow"` to skip tests
+2. **NEVER** skip tests because they're slow - they test real functionality
+3. **NEVER** skip E2E/Playwright tests - they catch issues unit tests miss
+4. **ALWAYS** run the full suite before committing
+5. If a test fails, **fix the code**, not the test
+6. If a test is flaky, **fix the test**, don't skip it
 
-TDD workflow:
+**Test Count:** 1600+ tests (unit + E2E). All must pass.
+
+### TDD Workflow
 1. Write test first (see docs/prd/test-specifications.md)
 2. Run `uv run pytest` - should fail
 3. Implement minimum code to pass
 4. Refactor while green
 5. Run ALL tests before considering work complete
+
+### Test Categories
+- **Unit tests** (`test_*.py`): Fast, mocked, test logic
+- **E2E tests** (`test_e2e_*.py`): Playwright browser tests, test real UI
+- **Integration tests**: Test full flows with database
+- **Property tests** (`test_*_properties.py`): Hypothesis-based fuzzing
 
 ## Learning Approach
 
