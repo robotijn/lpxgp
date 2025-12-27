@@ -166,6 +166,12 @@ source /tmp/pdf-env/bin/activate && python docs/product-doc/build_pdf.py
 - No auto-send functionality - copy to clipboard only
 - Fund profiles: GP must confirm AI-extracted information
 
+### Data Safety (CRITICAL)
+- **NEVER write, modify, or delete source data** in /docs/data/, Metabase, or Google Sheets
+- These contain real production data - treat as READ-ONLY
+- **Always make copies** to work with locally or in our own Supabase database
+- When ingesting data: copy first, then transform the copy
+
 ## Project Structure
 
 ```

@@ -1,0 +1,3 @@
+# Real data from Metabase - do not commit
+*.csv
+metadata.json

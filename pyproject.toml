@@ -30,6 +30,10 @@ dependencies = [
     "structlog>=24.4.0",  # Structured logging with field redaction
     "pytest-xdist>=3.8.0",
     "psycopg2-binary>=2.9.11",
+    "pandas>=2.3.3",
+    "openpyxl>=3.1.5",
+    "requests>=2.32.5",
+    "supabase>=2.27.0",
 ]
 
 [project.optional-dependencies]
