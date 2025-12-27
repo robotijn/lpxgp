@@ -75,9 +75,11 @@ testpaths = ["tests"]
 addopts = "-n auto -m 'not browser' --dist=loadgroup -q"
 markers = [
     "browser: marks tests as requiring a browser (deselect with '-m \"not browser\"')",
+    "slow: marks tests as slow/performance tests (deselect with '-m \"not slow\"')",
 ]
 
 [dependency-groups]
 dev = [
+    "hypothesis>=6.148.8",
     "mypy>=1.19.1",
 ]

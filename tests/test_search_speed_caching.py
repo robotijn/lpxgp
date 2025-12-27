@@ -9,6 +9,7 @@ Tests measure:
 - Cache hit/miss behavior
 
 Run with: uv run pytest tests/test_search_speed_caching.py -v -s
+Skip slow tests: uv run pytest -m "not slow"
 """
 
 from __future__ import annotations
@@ -68,6 +69,7 @@ def clear_caches():
 # =============================================================================
 
 
+@pytest.mark.slow
 class TestDatabaseStats:
     """Verify we have enough data for meaningful performance tests.
 
@@ -121,6 +123,7 @@ class TestDatabaseStats:
 # =============================================================================
 
 
+@pytest.mark.slow
 class TestKeywordSearchSpeed:
     """Test keyword (text) search performance."""
 
@@ -217,6 +220,7 @@ class TestKeywordSearchSpeed:
 # =============================================================================
 
 
+@pytest.mark.slow
 class TestAISearchSpeed:
     """Test AI-powered natural language search performance."""
 
@@ -329,6 +333,7 @@ class TestAISearchSpeed:
 # =============================================================================
 
 
+@pytest.mark.slow
 class TestGPToLPMatchingSpeed:
     """Test matching speed: Find LPs for a given GP/Fund."""
 
@@ -464,6 +469,7 @@ class TestGPToLPMatchingSpeed:
 # =============================================================================
 
 
+@pytest.mark.slow
 class TestLPToGPMatchingSpeed:
     """Test matching speed: Find GPs/Funds for a given LP."""
 
@@ -770,6 +776,7 @@ class TestVersionedLRUCache:
         assert len(cache) == 0
 
 
+@pytest.mark.slow
 class TestVersionedCacheWithDatabase:
     """Test versioned cache with real database."""
 
@@ -801,6 +808,7 @@ class TestVersionedCacheWithDatabase:
         print(f"\n  Combined checksum: {version_manager.combined_checksum}")
 
 
+@pytest.mark.slow
 class TestPerformanceSummary:
     """Generate a summary of all performance metrics."""
 
