@@ -100,8 +100,10 @@ def get_org_id_by_external(client: Client, external_id: str, source: str = "ipem
     try:
         response = client.table("organizations").select("id").eq(
             "external_source", source
-        ).eq("external_id", external_id).single().execute()
+        ).eq("external_id", external_id).limit(1).execute()
 
-        return response.data.get("id") if response.data else None
+        if response.data and len(response.data) > 0:
+            return response.data[0].get("id")
+        return None
     except Exception:
         return None
