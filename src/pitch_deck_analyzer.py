@@ -719,8 +719,9 @@ def get_matching_insights(
         insights["headline_metrics"]["target_size"] = (
             f"${fund_terms['target_size_mm']:.0f}M"
         )
-    if track_record.get("prior_funds"):
-        insights["headline_metrics"]["fund_number"] = f"Fund {track_record['prior_funds'] + 1}"
+    if track_record.get("prior_funds") is not None:
+        prior_funds = track_record.get("prior_funds") or 0
+        insights["headline_metrics"]["fund_number"] = f"Fund {prior_funds + 1}"
 
     # Strengths
     if (track_record.get("gross_irr_pct") or 0) >= 25:

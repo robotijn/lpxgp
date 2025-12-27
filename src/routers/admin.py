@@ -942,7 +942,7 @@ async def admin_funds_page(
 
     per_page = 25
     funds: list[dict[str, Any]] = []
-    stats = {"total": 0, "active": 0, "fundraising": 0, "total_aum_bn": 0}
+    stats: dict[str, int | float] = {"total": 0, "active": 0, "fundraising": 0, "total_aum_bn": 0.0}
 
     mock_funds: list[dict[str, Any]] = [
         {"id": "fund-001", "name": "Growth Fund III", "org_id": "org-001", "org_name": "Acme Capital", "strategy": "growth_equity", "target_size_mm": 500, "vintage": 2024, "status": "fundraising", "description": "Mid-market growth equity fund"},

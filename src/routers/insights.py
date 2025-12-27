@@ -476,11 +476,12 @@ async def get_activity_timeline(
         # Build timeline HTML
         html_parts = ['<div class="space-y-3">']
         for activity in activities[:15]:
+            activity_type = activity.get("type") or ""
             icon = {
                 "touchpoint": "📞",
                 "stage_change": "📊",
                 "interest": "💡",
-            }.get(activity.get("type"), "📌")
+            }.get(activity_type, "📌")
 
             subtype = (activity.get("subtype") or "").replace("_", " ").title()
             notes = activity.get("notes") or ""
