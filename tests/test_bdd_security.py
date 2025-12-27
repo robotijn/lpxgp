@@ -144,10 +144,10 @@ class TestLPSearchEdgeCases:
             search_input.first.fill("XyzNonExistentLP123")
             logged_in_page.wait_for_timeout(500)
 
-            # Check for no results or message
-            page_content = logged_in_page.content().lower()
-            # Should not show error, may show empty state
-            assert "error" not in page_content or "no lp" in page_content
+            # Check for no error messages in visible content
+            # (CSS may contain 'error' class names which is fine)
+            error_messages = logged_in_page.locator(".error-message, .alert-error, [role='alert']")
+            assert error_messages.count() == 0 or not error_messages.first.is_visible()
 
     def test_search_with_special_characters_is_safe(self, logged_in_page: Page):
         """

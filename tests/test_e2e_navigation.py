@@ -115,22 +115,22 @@ class TestNewPagesNavigation:
 
         # Start at LPs page
         page.goto(f"{BASE_URL}/lps")
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
 
         # Navigate to LP detail (using sample ID)
         page.goto(f"{BASE_URL}/lps/a1000001-0000-0000-0000-000000000001")
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
         assert "/lps/" in page.url
 
         # Click to see match analysis
         match_link = page.locator('a[href*="/matches"]').first
         if match_link.is_visible():
             match_link.click()
-            page.wait_for_load_state("networkidle")
+            page.wait_for_load_state("domcontentloaded")
 
         # Navigate to pitch generator
         page.goto(f"{BASE_URL}/pitch?lp_id=a1000001-0000-0000-0000-000000000001")
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
         assert "/pitch" in page.url
 
     def test_outreach_links_to_related_pages(self, logged_in_page: Page):
@@ -141,7 +141,7 @@ class TestNewPagesNavigation:
         """
         page = logged_in_page
         page.goto(f"{BASE_URL}/outreach")
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
 
         # Check for shortlist link
         shortlist_link = page.locator('a[href="/shortlist"]')
@@ -168,7 +168,7 @@ class TestNewPagesMobileResponsive:
         page = logged_in_page
         page.set_viewport_size(mobile_viewport)
         page.goto(f"{BASE_URL}/lps/a1000001-0000-0000-0000-000000000001")
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
 
         # Page should load and be usable
         assert page.locator("h1").count() > 0
@@ -178,7 +178,7 @@ class TestNewPagesMobileResponsive:
         page = logged_in_page
         page.set_viewport_size(mobile_viewport)
         page.goto(f"{BASE_URL}/funds/0f000001-0000-0000-0000-000000000001")
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
 
         # Page should load and be usable
         assert page.locator("h1").count() > 0
@@ -188,7 +188,7 @@ class TestNewPagesMobileResponsive:
         page = logged_in_page
         page.set_viewport_size(mobile_viewport)
         page.goto(f"{BASE_URL}/matches/a1000001-0000-0000-0000-000000000001")
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
 
         # Page should load and be usable
         page_content = page.content()
@@ -199,7 +199,7 @@ class TestNewPagesMobileResponsive:
         page = logged_in_page
         page.set_viewport_size(mobile_viewport)
         page.goto(f"{BASE_URL}/outreach")
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
 
         expect(page.locator("h1")).to_contain_text("Outreach")
 
@@ -208,7 +208,7 @@ class TestNewPagesMobileResponsive:
         page = logged_in_page
         page.set_viewport_size(mobile_viewport)
         page.goto(f"{BASE_URL}/pitch")
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
 
         page_content = page.content()
         assert "Pitch" in page_content or "Generator" in page_content
@@ -228,7 +228,7 @@ class TestNewPagesMobileResponsive:
 
         for url in pages_to_test:
             page.goto(f"{BASE_URL}{url}")
-            page.wait_for_load_state("networkidle")
+            page.wait_for_load_state("domcontentloaded")
 
             body_width = page.evaluate("document.body.scrollWidth")
             viewport_width = mobile_viewport["width"]

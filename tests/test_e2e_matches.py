@@ -134,7 +134,7 @@ class TestMatchDetailJourney:
         """
         page = logged_in_page
         page.goto(f"{BASE_URL}/matches/a1000001-0000-0000-0000-000000000001")
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
 
         page_content = page.content()
         assert "Score" in page_content or "score" in page_content
@@ -147,7 +147,7 @@ class TestMatchDetailJourney:
         """
         page = logged_in_page
         page.goto(f"{BASE_URL}/matches/a1000001-0000-0000-0000-000000000001")
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
 
         page_content = page.content()
         assert "AI" in page_content or "Analysis" in page_content or "Strong Match" in page_content
@@ -160,7 +160,7 @@ class TestMatchDetailJourney:
         """
         page = logged_in_page
         page.goto(f"{BASE_URL}/matches/a1000001-0000-0000-0000-000000000001")
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
 
         page_content = page.content()
         assert "Talking" in page_content or "Points" in page_content or "Highlight" in page_content
@@ -173,7 +173,7 @@ class TestMatchDetailJourney:
         """
         page = logged_in_page
         page.goto(f"{BASE_URL}/matches/a1000001-0000-0000-0000-000000000001")
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
 
         pitch_link = page.locator('a[href*="/pitch"]')
         expect(pitch_link.first).to_be_visible()
@@ -186,7 +186,7 @@ class TestMatchDetailJourney:
         """
         page = logged_in_page
         page.goto(f"{BASE_URL}/matches/a1000001-0000-0000-0000-000000000001")
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
 
         shortlist_btn = page.locator('button:has-text("Shortlist")')
         expect(shortlist_btn.first).to_be_visible()
@@ -200,7 +200,7 @@ class TestMatchDetailJourney:
         """
         page = logged_in_page
         page.goto(f"{BASE_URL}/matches/a1000001-0000-0000-0000-000000000001")
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
 
         copy_btn = page.locator('button:has-text("Copy")')
         if copy_btn.count() > 0:

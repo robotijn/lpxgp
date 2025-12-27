@@ -283,7 +283,7 @@ class TestMobileResponsiveCRM:
         page = logged_in_page
         page.set_viewport_size(mobile_viewport)
         page.goto(f"{BASE_URL}/events")
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
 
         body_width = page.evaluate("document.body.scrollWidth")
         assert body_width <= mobile_viewport["width"] + 20
@@ -293,7 +293,7 @@ class TestMobileResponsiveCRM:
         page = logged_in_page
         page.set_viewport_size(mobile_viewport)
         page.goto(f"{BASE_URL}/tasks")
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
 
         body_width = page.evaluate("document.body.scrollWidth")
         assert body_width <= mobile_viewport["width"] + 20
@@ -303,7 +303,7 @@ class TestMobileResponsiveCRM:
         page = logged_in_page
         page.set_viewport_size(mobile_viewport)
         page.goto(f"{BASE_URL}/lp-dashboard")
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
 
         body_width = page.evaluate("document.body.scrollWidth")
         assert body_width <= mobile_viewport["width"] + 20
@@ -313,7 +313,7 @@ class TestMobileResponsiveCRM:
         page = logged_in_page
         page.set_viewport_size(mobile_viewport)
         page.goto(f"{BASE_URL}/lp-pipeline")
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
 
         body_width = page.evaluate("document.body.scrollWidth")
         # Pipeline is a kanban board, might need horizontal scroll

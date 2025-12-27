@@ -88,7 +88,7 @@ class TestMobileJourney:
         page.fill('input[name="password"]', "demo123")
         with page.expect_navigation():
             page.click('button[type="submit"]')
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
 
     def test_navigation_accessible_on_mobile(self, page: Page, mobile_viewport):
         """Navigation should be accessible on mobile."""
@@ -98,7 +98,7 @@ class TestMobileJourney:
         page.fill('input[name="password"]', "demo123")
         with page.expect_navigation():
             page.click('button[type="submit"]')
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
 
         page.goto(f"{BASE_URL}/funds")
 
@@ -118,7 +118,7 @@ class TestMobileJourney:
         page.fill('input[name="password"]', "demo123")
         with page.expect_navigation():
             page.click('button[type="submit"]')
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
 
         pages_to_test = ["/funds", "/lps", "/matches", "/dashboard"]
 

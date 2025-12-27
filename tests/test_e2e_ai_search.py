@@ -303,7 +303,7 @@ class TestAISearchReturnsResults:
         """
         page = logged_in_page
         page.goto(f"{BASE_URL}/lps")
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
 
         search_input = page.locator(
             'input[type="search"], input[name="search"], input[placeholder*="Search"]'
@@ -336,7 +336,7 @@ class TestAISearchReturnsResults:
         """
         page = logged_in_page
         page.goto(f"{BASE_URL}/lps")
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
 
         search_input = page.locator(
             'input[type="search"], input[name="search"], input[placeholder*="Search"]'
@@ -359,7 +359,7 @@ class TestAISearchReturnsResults:
         """
         page = logged_in_page
         page.goto(f"{BASE_URL}/gps")
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
 
         search_input = page.locator(
             'input[type="search"], input[name="search"], input[placeholder*="Search"]'

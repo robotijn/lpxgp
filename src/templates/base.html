@@ -431,11 +431,17 @@
         'j': () => navigateList(1),
         'k': () => navigateList(-1),
         'Escape': () => {
-            // Close any open modals
+            // Close any open modals (supports both .open pattern and visible modals)
             const modal = document.querySelector('[data-modal].open, .modal.open');
             if (modal) {
                 modal.classList.remove('open');
                 modal.classList.add('hidden');
+                return true;
+            }
+            // Also close modals that use hidden class pattern (e.g., #create-fund-modal)
+            const visibleModal = document.querySelector('#create-fund-modal:not(.hidden), #person-modal:not(.hidden), #schedule-modal:not(.hidden)');
+            if (visibleModal) {
+                visibleModal.classList.add('hidden');
                 return true;
             }
             // Blur focused input

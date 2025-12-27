@@ -67,7 +67,7 @@ class TestGPDatabaseJourney:
         """GP database page should be accessible when logged in."""
         page = logged_in_page
         page.goto(f"{BASE_URL}/gps")
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
 
         expect(page).to_have_url(f"{BASE_URL}/gps")
         expect(page.locator("h1")).to_contain_text("GP")
@@ -76,7 +76,7 @@ class TestGPDatabaseJourney:
         """GP page should show statistics."""
         page = logged_in_page
         page.goto(f"{BASE_URL}/gps")
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
 
         page_content = page.content()
         # Should show some statistics
@@ -86,7 +86,7 @@ class TestGPDatabaseJourney:
         """GP page should have search functionality."""
         page = logged_in_page
         page.goto(f"{BASE_URL}/gps")
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
 
         search_input = page.locator(
             'input[type="search"], input[name="search"], input[placeholder*="Search"]'
@@ -97,7 +97,7 @@ class TestGPDatabaseJourney:
         """GP page should have strategy filter dropdown."""
         page = logged_in_page
         page.goto(f"{BASE_URL}/gps")
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
 
         strategy_filter = page.locator('select[name="strategy"]')
         if strategy_filter.count() > 0:
@@ -107,7 +107,7 @@ class TestGPDatabaseJourney:
         """GP page should have create GP button."""
         page = logged_in_page
         page.goto(f"{BASE_URL}/gps")
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
 
         create_btn = page.locator("button:has-text('New GP'), button:has-text('Add GP')")
         if create_btn.count() > 0:
@@ -253,7 +253,7 @@ class TestGPMobileResponsive:
         page = logged_in_page
         page.set_viewport_size(mobile_viewport)
         page.goto(f"{BASE_URL}/gps")
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
 
         expect(page.locator("h1")).to_contain_text("GP")
 
@@ -278,7 +278,7 @@ class TestGPMobileResponsive:
         page = logged_in_page
         page.set_viewport_size(mobile_viewport)
         page.goto(f"{BASE_URL}/gps")
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
 
         body_width = page.evaluate("document.body.scrollWidth")
         viewport_width = mobile_viewport["width"]
@@ -383,7 +383,7 @@ class TestGPPipelineMobileResponsive:
         page = logged_in_page
         page.set_viewport_size(mobile_viewport)
         page.goto(f"{BASE_URL}/pipeline")
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
 
         # Pipeline is a kanban board, might need horizontal scroll
         # Just check it loads and has content
@@ -395,7 +395,7 @@ class TestGPPipelineMobileResponsive:
         page = logged_in_page
         page.set_viewport_size(mobile_viewport)
         page.goto(f"{BASE_URL}/pipeline")
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
 
         # Page should be functional on mobile
         body_width = page.evaluate("document.body.scrollWidth")

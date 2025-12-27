@@ -15,11 +15,29 @@ Test Categories:
     - Fund detail page (view, edit, matches)
 """
 
+from collections.abc import Generator
+
 import pytest
 from playwright.sync_api import Page, expect
 
 # Base URL for the running server
 BASE_URL = "http://localhost:8000"
+
+
+# =============================================================================
+# FIXTURES
+# =============================================================================
+
+
+@pytest.fixture
+def logged_in_page(page: Page) -> Generator[Page, None, None]:
+    """Fixture that provides a page logged in as GP demo user."""
+    page.goto(f"{BASE_URL}/login")
+    page.fill('input[name="email"]', "gp@demo.com")
+    page.fill('input[name="password"]', "demo123")
+    page.click('button[type="submit"]')
+    page.wait_for_url(f"{BASE_URL}/dashboard")
+    yield page
 
 
 # =============================================================================
@@ -99,13 +117,13 @@ class TestFundDetailJourney:
         """
         page = logged_in_page
         page.goto(f"{BASE_URL}/funds")
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
 
         # Find and click a fund link
         fund_links = page.locator('a[href*="/funds/"]')
         if fund_links.count() > 0:
             fund_links.first.click()
-            page.wait_for_load_state("networkidle")
+            page.wait_for_load_state("domcontentloaded")
 
             # Should be on fund detail page
             assert "/funds/" in page.url
@@ -118,7 +136,7 @@ class TestFundDetailJourney:
         """
         page = logged_in_page
         page.goto(f"{BASE_URL}/funds/0f000001-0000-0000-0000-000000000001")
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
 
         page_content = page.content()
         assert "Overview" in page_content or "Target" in page_content
@@ -131,7 +149,7 @@ class TestFundDetailJourney:
         """
         page = logged_in_page
         page.goto(f"{BASE_URL}/funds/0f000001-0000-0000-0000-000000000001")
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
 
         page_content = page.content()
         assert "Track Record" in page_content or "MOIC" in page_content or "IRR" in page_content
@@ -144,7 +162,7 @@ class TestFundDetailJourney:
         """
         page = logged_in_page
         page.goto(f"{BASE_URL}/funds/0f000001-0000-0000-0000-000000000001")
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
 
         # Look for "View Matches" button (not nav link)
         matches_link = page.locator('a:has-text("View Matches")')
@@ -158,7 +176,7 @@ class TestFundDetailJourney:
         """
         page = logged_in_page
         page.goto(f"{BASE_URL}/funds/0f000001-0000-0000-0000-000000000001")
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
 
         edit_link = page.locator('a:has-text("Edit")')
         expect(edit_link.first).to_be_visible()
@@ -171,7 +189,7 @@ class TestFundDetailJourney:
         """
         page = logged_in_page
         page.goto(f"{BASE_URL}/funds/0f000001-0000-0000-0000-000000000001")
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
 
         page_content = page.content()
         assert "Fundraising" in page_content or "Raised" in page_content or "Progress" in page_content

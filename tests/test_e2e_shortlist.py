@@ -43,7 +43,7 @@ def logged_in_page(page: Page) -> Generator[Page, None, None]:
 
     # Fill login form
     page.fill('input[name="email"]', "gp@demo.com")
-    page.fill('input[name="password"]', "demo1234")
+    page.fill('input[name="password"]', "demo123")
     page.click('button[type="submit"]')
 
     # Wait for redirect to dashboard
