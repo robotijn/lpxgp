@@ -1286,6 +1286,116 @@ async def admin_settings_page(request: Request) -> HTMLResponse | RedirectRespon
 
 
 # =============================================================================
+# GP Health Dashboard
+# =============================================================================
+
+
+@router.get("/admin/gp-health", response_class=HTMLResponse, response_model=None)
+async def admin_gp_health_page(
+    request: Request,
+    period: str = "30d",
+) -> HTMLResponse | RedirectResponse:
+    """GP Health dashboard showing pipeline funnel and conversion metrics."""
+    user = auth.get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    if not is_admin(user):
+        return RedirectResponse(url="/dashboard", status_code=303)
+
+    # Mock funnel data - in production, this would come from the database
+    funnel = {
+        "recommendations": 1250,
+        "recommendations_growth": 12,
+        "shortlisted": 425,
+        "shortlisted_pct": 34,
+        "contacted": 180,
+        "contacted_pct": 14,
+        "meetings": 72,
+        "meetings_pct": 6,
+        "meetings_rate": 40,
+        "dd": 28,
+        "dd_pct": 2,
+        "dd_rate": 39,
+        "committed": 8,
+        "committed_pct": 1,
+        "committed_amount": 156,
+    }
+
+    conversions = {
+        "rec_to_short": 34,
+        "short_to_contact": 42,
+        "contact_to_meeting": 40,
+        "meeting_to_dd": 39,
+        "dd_to_commit": 29,
+    }
+
+    # Mutual interest detection - GPs who shortlisted LPs that also watchlisted their funds
+    mutual_interests = [
+        {
+            "lp_id": "lp-001",
+            "lp_name": "CalPERS",
+            "gp_name": "Acme Capital",
+            "fund_id": "fund-001",
+            "fund_name": "Growth Fund III",
+            "detected_at": "2 hours ago",
+        },
+        {
+            "lp_id": "lp-002",
+            "lp_name": "Ontario Teachers'",
+            "gp_name": "Beta Ventures",
+            "fund_id": "fund-002",
+            "fund_name": "Tech Fund II",
+            "detected_at": "1 day ago",
+        },
+        {
+            "lp_id": "lp-003",
+            "lp_name": "Yale Endowment",
+            "gp_name": "Acme Capital",
+            "fund_id": "fund-001",
+            "fund_name": "Growth Fund III",
+            "detected_at": "3 days ago",
+        },
+    ]
+
+    top_gps = [
+        {"name": "Acme Capital", "conversion": 32},
+        {"name": "Delta Capital", "conversion": 28},
+        {"name": "Gamma Partners", "conversion": 24},
+        {"name": "Beta Ventures", "conversion": 18},
+        {"name": "Epsilon Fund", "conversion": 15},
+    ]
+
+    bottlenecks = [
+        {
+            "stage": "Contact → Meeting",
+            "severity": "high",
+            "message": "40% conversion is below target of 50%. Consider improving outreach messaging.",
+        },
+        {
+            "stage": "DD → Commit",
+            "severity": "medium",
+            "message": "29% conversion suggests some deals stalling in DD. Review LP concerns.",
+        },
+    ]
+
+    return templates.TemplateResponse(
+        request,
+        "pages/admin/gp-health.html",
+        {
+            "title": "GP Health - Admin - LPxGP",
+            "user": user,
+            "period": period,
+            "funnel": funnel,
+            "conversions": conversions,
+            "mutual_interests": mutual_interests,
+            "top_gps": top_gps,
+            "bottlenecks": bottlenecks,
+        },
+    )
+
+
+# =============================================================================
 # People Export
 # =============================================================================
 

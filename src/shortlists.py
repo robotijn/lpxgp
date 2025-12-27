@@ -170,3 +170,147 @@ def clear_user_shortlist(user_id: str) -> int:
     count = len(_shortlists[user_id])
     _shortlists[user_id] = []
     return count
+
+
+# =============================================================================
+# LP Watchlist (for LP users watching funds)
+# =============================================================================
+
+
+class WatchlistItem(BaseModel):
+    """Represents a fund saved to an LP user's watchlist.
+
+    Attributes:
+        fund_id: The unique identifier of the fund.
+        gp_id: The GP organization that owns the fund.
+        notes: User notes about why this fund was watchlisted.
+        added_at: ISO timestamp when the fund was added.
+    """
+
+    fund_id: str
+    gp_id: str | None = None
+    notes: str = ""
+    added_at: str = Field(default_factory=lambda: "")
+
+
+# In-memory watchlist storage: lp_user_id -> list of WatchlistItems
+_watchlists: dict[str, list[WatchlistItem]] = {}
+
+
+def get_lp_watchlist(user_id: str) -> list[WatchlistItem]:
+    """Get the watchlist for an LP user."""
+    return _watchlists.get(user_id, [])
+
+
+def add_to_watchlist(user_id: str, item: WatchlistItem) -> WatchlistItem:
+    """Add a fund to an LP user's watchlist."""
+    if user_id not in _watchlists:
+        _watchlists[user_id] = []
+
+    for existing in _watchlists[user_id]:
+        if existing.fund_id == item.fund_id:
+            raise ValueError("Fund already in watchlist")
+
+    item.added_at = datetime.now(UTC).isoformat()
+    _watchlists[user_id].append(item)
+    return item
+
+
+def is_fund_in_watchlist(user_id: str, fund_id: str) -> bool:
+    """Check if a fund is in the LP user's watchlist."""
+    if user_id not in _watchlists:
+        return False
+    return any(item.fund_id == fund_id for item in _watchlists[user_id])
+
+
+# =============================================================================
+# Mutual Interest Detection
+# =============================================================================
+
+
+class MutualInterest(BaseModel):
+    """Represents a mutual interest between GP and LP.
+
+    When a GP shortlists an LP, and that LP has the GP's fund
+    in their watchlist, we have mutual interest.
+    """
+
+    lp_id: str
+    lp_name: str
+    gp_id: str
+    gp_name: str
+    fund_id: str
+    fund_name: str
+    detected_at: str
+
+
+# Cache of detected mutual interests
+_mutual_interests: list[MutualInterest] = []
+
+
+def detect_mutual_interests(
+    gp_shortlists: dict[str, list[ShortlistItem]],
+    lp_watchlists: dict[str, list[WatchlistItem]],
+    lp_info: dict[str, dict],
+    gp_info: dict[str, dict],
+    fund_info: dict[str, dict],
+) -> list[MutualInterest]:
+    """Detect mutual interest between GPs and LPs.
+
+    Args:
+        gp_shortlists: GP user_id -> list of shortlisted LPs
+        lp_watchlists: LP user_id -> list of watchlisted funds
+        lp_info: LP user_id -> {name, lp_id}
+        gp_info: GP user_id -> {name, gp_id}
+        fund_info: fund_id -> {name, gp_id}
+
+    Returns:
+        List of MutualInterest objects.
+    """
+    results: list[MutualInterest] = []
+
+    # For each GP's shortlisted LP
+    for gp_user_id, shortlist in gp_shortlists.items():
+        gp = gp_info.get(gp_user_id, {})
+
+        for item in shortlist:
+            lp_id = item.lp_id
+            # Check if any LP user has the GP's fund in their watchlist
+            for lp_user_id, watchlist in lp_watchlists.items():
+                lp = lp_info.get(lp_user_id, {})
+                if lp.get("lp_id") != lp_id:
+                    continue
+
+                for watched in watchlist:
+                    fund = fund_info.get(watched.fund_id, {})
+                    if fund.get("gp_id") == gp.get("gp_id"):
+                        results.append(
+                            MutualInterest(
+                                lp_id=lp_id,
+                                lp_name=lp.get("name", "Unknown LP"),
+                                gp_id=gp.get("gp_id", ""),
+                                gp_name=gp.get("name", "Unknown GP"),
+                                fund_id=watched.fund_id,
+                                fund_name=fund.get("name", "Unknown Fund"),
+                                detected_at=datetime.now(UTC).isoformat(),
+                            )
+                        )
+
+    return results
+
+
+def get_mutual_interest_for_lp(lp_id: str) -> list[MutualInterest]:
+    """Get all mutual interests involving a specific LP."""
+    return [mi for mi in _mutual_interests if mi.lp_id == lp_id]
+
+
+def get_mutual_interest_for_fund(fund_id: str) -> list[MutualInterest]:
+    """Get all mutual interests involving a specific fund."""
+    return [mi for mi in _mutual_interests if mi.fund_id == fund_id]
+
+
+def has_mutual_interest(lp_id: str, fund_id: str) -> bool:
+    """Check if there's mutual interest between an LP and fund."""
+    return any(
+        mi.lp_id == lp_id and mi.fund_id == fund_id for mi in _mutual_interests
+    )

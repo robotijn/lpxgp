@@ -1,0 +1,277 @@
+{% extends "base.html" %}
+
+{% block nav %}
+<nav class="hidden md:flex ml-10 space-x-8">
+    <a href="/admin" class="text-navy-600 dark:text-navy-300 hover:text-navy-900 dark:hover:text-white text-sm">Overview</a>
+    <a href="/admin/companies" class="text-navy-600 dark:text-navy-300 hover:text-navy-900 dark:hover:text-white text-sm">Companies</a>
+    <a href="/admin/gp-health" class="text-gold font-medium text-sm">GP Health</a>
+    <a href="/admin/data-health" class="text-navy-600 dark:text-navy-300 hover:text-navy-900 dark:hover:text-white text-sm">Data Health</a>
+    <a href="/admin/activity" class="text-navy-600 dark:text-navy-300 hover:text-navy-900 dark:hover:text-white text-sm">Activity</a>
+</nav>
+{% endblock %}
+
+{% block header_right %}
+<div class="flex items-center space-x-4">
+    <span class="px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-800 rounded">Admin</span>
+    <a href="/settings" class="text-gold font-medium text-sm hidden md:inline">{{ user.name }}</a>
+    <a href="/logout" class="btn-secondary text-sm">Sign Out</a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+    {% set breadcrumbs = [{"label": "Admin", "url": "/admin"}, {"label": "GP Health"}] %}
+    {% include "partials/breadcrumb.html" %}
+
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-navy-900 dark:text-white">GP Health Dashboard</h1>
+            <p class="text-navy-500 dark:text-navy-400 mt-1">Pipeline performance and conversion metrics</p>
+        </div>
+        <div class="flex space-x-3">
+            <select class="form-input text-sm" onchange="location.href='?period=' + this.value">
+                <option value="30d" {{ 'selected' if period == '30d' else '' }}>Last 30 Days</option>
+                <option value="90d" {{ 'selected' if period == '90d' else '' }}>Last 90 Days</option>
+                <option value="all" {{ 'selected' if period == 'all' else '' }}>All Time</option>
+            </select>
+            <a href="/api/admin/export/gp-health" class="btn-secondary">
+                <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                </svg>
+                Export
+            </a>
+        </div>
+    </div>
+
+    <!-- Overall Stats -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div class="card p-4">
+            <p class="text-sm text-navy-500 dark:text-navy-400">Total Recommendations</p>
+            <p class="text-2xl font-bold text-navy-900 dark:text-white mt-1">{{ funnel.recommendations }}</p>
+            <p class="text-xs text-green-600 mt-1">+{{ funnel.recommendations_growth }}% vs prev period</p>
+        </div>
+        <div class="card p-4">
+            <p class="text-sm text-navy-500 dark:text-navy-400">Meetings Scheduled</p>
+            <p class="text-2xl font-bold text-navy-900 dark:text-white mt-1">{{ funnel.meetings }}</p>
+            <p class="text-xs text-navy-500 mt-1">{{ funnel.meetings_rate }}% of contacted</p>
+        </div>
+        <div class="card p-4">
+            <p class="text-sm text-navy-500 dark:text-navy-400">In Due Diligence</p>
+            <p class="text-2xl font-bold text-navy-900 dark:text-white mt-1">{{ funnel.dd }}</p>
+            <p class="text-xs text-navy-500 mt-1">{{ funnel.dd_rate }}% of meetings</p>
+        </div>
+        <div class="card p-4">
+            <p class="text-sm text-navy-500 dark:text-navy-400">Commitments</p>
+            <p class="text-2xl font-bold text-gold mt-1">{{ funnel.committed }}</p>
+            <p class="text-xs text-navy-500 mt-1">${{ funnel.committed_amount }}M total</p>
+        </div>
+    </div>
+
+    <!-- Funnel Visualization -->
+    <div class="card p-6 mb-8">
+        <h2 class="text-lg font-semibold text-navy-900 dark:text-white mb-6">Pipeline Funnel</h2>
+
+        <div class="space-y-4">
+            <!-- Recommendations -->
+            <div class="relative">
+                <div class="flex items-center justify-between mb-1">
+                    <span class="text-sm font-medium text-navy-700 dark:text-navy-300">Recommendations</span>
+                    <span class="text-sm text-navy-500">{{ funnel.recommendations }}</span>
+                </div>
+                <div class="w-full bg-navy-100 dark:bg-navy-800 rounded-full h-8">
+                    <div class="bg-navy-300 dark:bg-navy-600 h-8 rounded-full flex items-center justify-end pr-3" style="width: 100%">
+                        <span class="text-xs font-medium text-navy-700 dark:text-navy-300">100%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Shortlisted -->
+            <div class="relative">
+                <div class="flex items-center justify-between mb-1">
+                    <span class="text-sm font-medium text-navy-700 dark:text-navy-300">Shortlisted</span>
+                    <span class="text-sm text-navy-500">{{ funnel.shortlisted }}</span>
+                </div>
+                <div class="w-full bg-navy-100 dark:bg-navy-800 rounded-full h-8">
+                    <div class="bg-blue-400 dark:bg-blue-600 h-8 rounded-full flex items-center justify-end pr-3" style="width: {{ funnel.shortlisted_pct }}%">
+                        <span class="text-xs font-medium text-white">{{ funnel.shortlisted_pct }}%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contacted -->
+            <div class="relative">
+                <div class="flex items-center justify-between mb-1">
+                    <span class="text-sm font-medium text-navy-700 dark:text-navy-300">Contacted</span>
+                    <span class="text-sm text-navy-500">{{ funnel.contacted }}</span>
+                </div>
+                <div class="w-full bg-navy-100 dark:bg-navy-800 rounded-full h-8">
+                    <div class="bg-indigo-400 dark:bg-indigo-600 h-8 rounded-full flex items-center justify-end pr-3" style="width: {{ funnel.contacted_pct }}%">
+                        <span class="text-xs font-medium text-white">{{ funnel.contacted_pct }}%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Meetings -->
+            <div class="relative">
+                <div class="flex items-center justify-between mb-1">
+                    <span class="text-sm font-medium text-navy-700 dark:text-navy-300">Meetings Held</span>
+                    <span class="text-sm text-navy-500">{{ funnel.meetings }}</span>
+                </div>
+                <div class="w-full bg-navy-100 dark:bg-navy-800 rounded-full h-8">
+                    <div class="bg-purple-400 dark:bg-purple-600 h-8 rounded-full flex items-center justify-end pr-3" style="width: {{ funnel.meetings_pct }}%">
+                        <span class="text-xs font-medium text-white">{{ funnel.meetings_pct }}%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Due Diligence -->
+            <div class="relative">
+                <div class="flex items-center justify-between mb-1">
+                    <span class="text-sm font-medium text-navy-700 dark:text-navy-300">Due Diligence</span>
+                    <span class="text-sm text-navy-500">{{ funnel.dd }}</span>
+                </div>
+                <div class="w-full bg-navy-100 dark:bg-navy-800 rounded-full h-8">
+                    <div class="bg-amber-400 dark:bg-amber-600 h-8 rounded-full flex items-center justify-end pr-3" style="width: {{ funnel.dd_pct }}%">
+                        <span class="text-xs font-medium text-white">{{ funnel.dd_pct }}%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Committed -->
+            <div class="relative">
+                <div class="flex items-center justify-between mb-1">
+                    <span class="text-sm font-medium text-navy-700 dark:text-navy-300">Committed</span>
+                    <span class="text-sm text-navy-500">{{ funnel.committed }}</span>
+                </div>
+                <div class="w-full bg-navy-100 dark:bg-navy-800 rounded-full h-8">
+                    <div class="bg-green-500 dark:bg-green-600 h-8 rounded-full flex items-center justify-end pr-3" style="width: {{ funnel.committed_pct }}%">
+                        <span class="text-xs font-medium text-white">{{ funnel.committed_pct }}%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Conversion Rates -->
+        <div class="mt-8 pt-6 border-t border-navy-100 dark:border-navy-800">
+            <h3 class="text-sm font-medium text-navy-700 dark:text-navy-300 mb-4">Stage Conversion Rates</h3>
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div class="text-center p-3 bg-navy-50 dark:bg-navy-800/50 rounded-lg">
+                    <p class="text-2xl font-bold text-navy-900 dark:text-white">{{ conversions.rec_to_short }}%</p>
+                    <p class="text-xs text-navy-500 dark:text-navy-400">Rec → Shortlist</p>
+                </div>
+                <div class="text-center p-3 bg-navy-50 dark:bg-navy-800/50 rounded-lg">
+                    <p class="text-2xl font-bold text-navy-900 dark:text-white">{{ conversions.short_to_contact }}%</p>
+                    <p class="text-xs text-navy-500 dark:text-navy-400">Short → Contact</p>
+                </div>
+                <div class="text-center p-3 bg-navy-50 dark:bg-navy-800/50 rounded-lg">
+                    <p class="text-2xl font-bold text-navy-900 dark:text-white">{{ conversions.contact_to_meeting }}%</p>
+                    <p class="text-xs text-navy-500 dark:text-navy-400">Contact → Meeting</p>
+                </div>
+                <div class="text-center p-3 bg-navy-50 dark:bg-navy-800/50 rounded-lg">
+                    <p class="text-2xl font-bold text-navy-900 dark:text-white">{{ conversions.meeting_to_dd }}%</p>
+                    <p class="text-xs text-navy-500 dark:text-navy-400">Meeting → DD</p>
+                </div>
+                <div class="text-center p-3 bg-navy-50 dark:bg-navy-800/50 rounded-lg">
+                    <p class="text-2xl font-bold text-green-600">{{ conversions.dd_to_commit }}%</p>
+                    <p class="text-xs text-navy-500 dark:text-navy-400">DD → Commit</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mutual Interest Section -->
+    {% if mutual_interests %}
+    <div class="card p-6 mb-8">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold text-navy-900 dark:text-white">
+                <span class="inline-flex items-center">
+                    <svg class="w-5 h-5 text-gold mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"/>
+                    </svg>
+                    Mutual Interest Detected
+                </span>
+            </h2>
+            <span class="px-2 py-1 text-xs font-medium bg-gold/10 text-gold rounded">{{ mutual_interests|length }} matches</span>
+        </div>
+        <p class="text-sm text-navy-500 dark:text-navy-400 mb-4">These LPs have shown interest in funds from GPs who have also shortlisted them.</p>
+
+        <div class="divide-y divide-navy-100 dark:divide-navy-800">
+            {% for mi in mutual_interests %}
+            <div class="py-4 flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <div class="w-10 h-10 rounded-full bg-gold/10 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-gold" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="font-medium text-navy-900 dark:text-white">{{ mi.lp_name }} ↔ {{ mi.gp_name }}</p>
+                        <p class="text-sm text-navy-500 dark:text-navy-400">Fund: {{ mi.fund_name }}</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <span class="text-xs text-navy-400">{{ mi.detected_at }}</span>
+                    <a href="/matches?lp_id={{ mi.lp_id }}&fund_id={{ mi.fund_id }}" class="btn-primary text-sm">View Match</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Top Performing GPs -->
+    <div class="grid md:grid-cols-2 gap-6 mb-8">
+        <div class="card p-6">
+            <h2 class="text-lg font-semibold text-navy-900 dark:text-white mb-4">Top Performing GPs</h2>
+            <div class="space-y-3">
+                {% for gp in top_gps %}
+                <div class="flex items-center justify-between py-2">
+                    <div class="flex items-center space-x-3">
+                        <span class="text-sm font-medium text-navy-400">#{{ loop.index }}</span>
+                        <span class="font-medium text-navy-900 dark:text-white">{{ gp.name }}</span>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-sm font-medium text-green-600">{{ gp.conversion }}%</span>
+                        <span class="text-xs text-navy-400 ml-1">conv.</span>
+                    </div>
+                </div>
+                {% else %}
+                <p class="text-sm text-navy-500 dark:text-navy-400">No data yet</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="card p-6">
+            <h2 class="text-lg font-semibold text-navy-900 dark:text-white mb-4">Bottleneck Analysis</h2>
+            <div class="space-y-4">
+                {% for bottleneck in bottlenecks %}
+                <div class="flex items-start space-x-3">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0
+                        {% if bottleneck.severity == 'high' %}bg-red-50 dark:bg-red-900/30 text-red-600
+                        {% elif bottleneck.severity == 'medium' %}bg-amber-50 dark:bg-amber-900/30 text-amber-600
+                        {% else %}bg-blue-50 dark:bg-blue-900/30 text-blue-600{% endif %}">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="font-medium text-navy-900 dark:text-white">{{ bottleneck.stage }}</p>
+                        <p class="text-sm text-navy-500 dark:text-navy-400">{{ bottleneck.message }}</p>
+                    </div>
+                </div>
+                {% else %}
+                <p class="text-sm text-navy-500 dark:text-navy-400">No significant bottlenecks detected</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Back Link -->
+    <div class="mt-8">
+        <a href="/admin" class="text-gold hover:text-gold-600 text-sm font-medium">
+            &larr; Back to Admin Dashboard
+        </a>
+    </div>
+</div>
+{% endblock %}
