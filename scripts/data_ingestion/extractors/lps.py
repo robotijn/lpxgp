@@ -4,12 +4,10 @@ Extract LP data from lp_matchmaking.csv.
 Maps to lp_profiles + lp_ai_profiles tables.
 """
 import csv
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Iterator
 
 from ..transformers.enrich import (
-    normalize_strategies,
-    normalize_geographies,
     calculate_acceptance_rate,
 )
 

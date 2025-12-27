@@ -12,11 +12,10 @@ import json
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Iterator
 
 from supabase import create_client
 
-from .config import SUPABASE_URL, SUPABASE_SERVICE_KEY
+from .config import SUPABASE_SERVICE_KEY, SUPABASE_URL
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(message)s")
 logger = logging.getLogger(__name__)
@@ -40,7 +39,7 @@ class DiffResult:
 def load_csv_as_dict(filepath: Path, key_column: str) -> dict[str, dict]:
     """Load CSV file into dict keyed by specified column."""
     result = {}
-    with open(filepath, "r", encoding="utf-8") as f:
+    with open(filepath, encoding="utf-8") as f:
         reader = csv.DictReader(f)
         for row in reader:
             key = row.get(key_column, "").strip()

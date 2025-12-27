@@ -3,17 +3,17 @@ Extract fund data from CSV files.
 READ-ONLY - never modify source files.
 """
 import csv
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Iterator
 
 from ..transformers.enrich import (
-    parse_strategies,
-    normalize_strategies,
-    parse_geographic_preferences,
+    normalize_fund_size,
     normalize_geographies,
     normalize_sectors,
-    normalize_fund_size,
+    normalize_strategies,
     parse_fund_size_to_mm,
+    parse_geographic_preferences,
+    parse_strategies,
 )
 
 
@@ -38,7 +38,7 @@ def extract_funds(filepath: Path) -> Iterator[dict]:
 
     Yields dict per row with normalized keys.
     """
-    with open(filepath, "r", encoding="utf-8") as f:
+    with open(filepath, encoding="utf-8") as f:
         reader = csv.DictReader(f)
         for row in reader:
             # ── STRATEGIES: Merge all strategy columns ──

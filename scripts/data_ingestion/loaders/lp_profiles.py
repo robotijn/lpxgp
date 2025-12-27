@@ -5,7 +5,8 @@ Maps lp_matchmaking.csv data to:
 - lp_profiles (raw data for client display)
 - organizations (ensures LP org exists)
 """
-from typing import Iterator
+from collections.abc import Iterator
+
 from supabase import Client
 
 from ..config import SyncStats

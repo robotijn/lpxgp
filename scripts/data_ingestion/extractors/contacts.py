@@ -3,8 +3,8 @@ Extract contact/people data from CSV files.
 READ-ONLY - never modify source files.
 """
 import csv
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Iterator
 
 
 def extract_contacts(filepath: Path) -> Iterator[dict]:
@@ -24,7 +24,7 @@ def extract_contacts(filepath: Path) -> Iterator[dict]:
 
     Yields dict per row with normalized keys.
     """
-    with open(filepath, "r", encoding="utf-8") as f:
+    with open(filepath, encoding="utf-8") as f:
         reader = csv.DictReader(f)
         for row in reader:
             # Normalize email

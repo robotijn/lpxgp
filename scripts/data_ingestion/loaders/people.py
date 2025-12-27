@@ -1,10 +1,11 @@
 """
 Load people and employment records into Supabase.
 """
-from typing import Iterator
+from collections.abc import Iterator
+
 from supabase import Client
 
-from ..config import SyncStats, VALID_CERTIFICATIONS, EMPLOYED_WORK_STATUSES
+from ..config import EMPLOYED_WORK_STATUSES, VALID_CERTIFICATIONS, SyncStats
 from .organizations import get_org_id_by_external
 
 

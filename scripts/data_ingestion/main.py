@@ -20,32 +20,30 @@ Usage:
     python -m scripts.data_ingestion.main --phase full --dry-run
 """
 import argparse
-import json
 import logging
 import sys
 import time
-from datetime import datetime, timezone
 from pathlib import Path
 
-from supabase import create_client, Client
+from supabase import Client, create_client
 
 from .config import (
-    SUPABASE_URL,
-    SUPABASE_SERVICE_KEY,
     SOURCE_FILES,
+    SUPABASE_SERVICE_KEY,
+    SUPABASE_URL,
     SyncStats,
 )
 from .extractors.companies import extract_companies
 from .extractors.contacts import extract_contacts
 from .extractors.funds import extract_funds
-from .transformers.normalize import normalize_name, normalize_url, normalize_linkedin_url
-from .transformers.dedupe import dedupe_by_key
-from .loaders.organizations import load_organizations
-from .loaders.people import load_people
+from .extractors.lps import extract_lps
+from .loaders.ai_profiles import sync_fund_ai_profiles
 from .loaders.funds import load_funds
 from .loaders.lp_profiles import load_lp_profiles
-from .loaders.ai_profiles import load_fund_ai_profiles, load_lp_ai_profiles, sync_fund_ai_profiles
-from .extractors.lps import extract_lps
+from .loaders.organizations import load_organizations
+from .loaders.people import load_people
+from .transformers.dedupe import dedupe_by_key
+from .transformers.normalize import normalize_linkedin_url, normalize_name, normalize_url
 
 # Logging setup
 logging.basicConfig(

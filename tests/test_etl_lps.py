@@ -4,23 +4,20 @@ Tests for LP ETL pipeline.
 Tests the LP extractor (lps.py) and loader (lp_profiles.py).
 """
 
-import pytest
 from pathlib import Path
-from unittest.mock import MagicMock, patch
-import tempfile
-import csv
+
+import pytest
 
 from scripts.data_ingestion.extractors.lps import (
-    extract_lps,
-    _parse_int,
-    _infer_lp_type,
-    _infer_geography_from_country,
     _calculate_engagement_score,
+    _infer_geography_from_country,
+    _infer_lp_type,
+    _parse_int,
+    extract_lps,
 )
 from scripts.data_ingestion.loaders.lp_profiles import (
     load_lp_profiles,
 )
-from scripts.data_ingestion.config import SyncStats
 
 
 class TestLPExtractor:
@@ -336,7 +333,7 @@ class TestLPDataQuality:
         assert types.get("family_office", 0) > 0, \
             f"Expected family offices, got types: {types}"
 
-        print(f"\nLP Type Distribution:")
+        print("\nLP Type Distribution:")
         for t, count in sorted(types.items(), key=lambda x: -x[1]):
             print(f"  {t}: {count}")
 

@@ -4,22 +4,20 @@ Tests for ETL normalization functions.
 These functions normalize raw data values to canonical forms for AI matching.
 """
 
-import pytest
 
 from scripts.data_ingestion.transformers.enrich import (
-    normalize_strategy,
-    normalize_strategies,
-    normalize_geography,
-    normalize_geographies,
-    normalize_fund_size,
-    normalize_sectors,
-    parse_fund_size_to_mm,
-    parse_strategies,
-    parse_geographic_preferences,
-    calculate_acceptance_rate,
-    STRATEGY_NORMALIZATION,
     GEOGRAPHY_NORMALIZATION,
-    FUND_SIZE_NORMALIZATION,
+    STRATEGY_NORMALIZATION,
+    calculate_acceptance_rate,
+    normalize_fund_size,
+    normalize_geographies,
+    normalize_geography,
+    normalize_sectors,
+    normalize_strategies,
+    normalize_strategy,
+    parse_fund_size_to_mm,
+    parse_geographic_preferences,
+    parse_strategies,
 )
 
 

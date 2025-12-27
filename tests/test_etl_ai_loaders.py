@@ -5,18 +5,16 @@ These loaders populate the fund_ai_profiles and lp_ai_profiles tables
 used ONLY by AI matching algorithms - never for client display.
 """
 
-import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 from scripts.data_ingestion.loaders.ai_profiles import (
-    load_fund_ai_profiles,
-    load_lp_ai_profiles,
     _calculate_completeness,
+    _calculate_confidence,
     _calculate_engagement,
     _determine_data_sources,
-    _calculate_confidence,
+    load_fund_ai_profiles,
+    load_lp_ai_profiles,
 )
-from scripts.data_ingestion.config import SyncStats
 
 
 class TestFundAIProfileLoader:

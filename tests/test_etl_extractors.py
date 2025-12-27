@@ -5,14 +5,12 @@ Extractors read CSV files and yield normalized records.
 """
 
 import csv
-import tempfile
-from pathlib import Path
 
 import pytest
 
-from scripts.data_ingestion.extractors.funds import extract_funds, _parse_investment_amount
 from scripts.data_ingestion.extractors.companies import extract_companies
 from scripts.data_ingestion.extractors.contacts import extract_contacts
+from scripts.data_ingestion.extractors.funds import _parse_investment_amount, extract_funds
 
 
 class TestFundExtractor:

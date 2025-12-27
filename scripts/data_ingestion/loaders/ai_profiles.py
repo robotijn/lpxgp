@@ -9,7 +9,8 @@ Tables:
 - lp_ai_profiles: Normalized LP data for matching
 - match_cache: Pre-computed match scores
 """
-from typing import Iterator
+from collections.abc import Iterator
+
 from supabase import Client
 
 from ..config import SyncStats

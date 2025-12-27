@@ -1,7 +1,7 @@
 """
 Deduplication utilities.
 """
-from typing import Iterator, Callable
+from collections.abc import Callable, Iterator
 
 
 def dedupe_by_key(

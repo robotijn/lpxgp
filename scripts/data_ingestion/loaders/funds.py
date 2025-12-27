@@ -1,7 +1,8 @@
 """
 Load fund records into Supabase.
 """
-from typing import Iterator
+from collections.abc import Iterator
+
 from supabase import Client
 
 from ..config import SyncStats

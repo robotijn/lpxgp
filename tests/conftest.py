@@ -32,7 +32,6 @@ from src.main import app
 from src.preferences import _user_preferences
 from src.shortlists import _shortlists
 
-
 # =============================================================================
 # Test Ordering for Playwright/pytest-asyncio Compatibility
 # =============================================================================

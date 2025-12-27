@@ -148,9 +148,8 @@ class TestETLDataQuality:
 
     def test_funds_extraction_has_normalized_data(self):
         """Fund extraction should produce both raw and AI-normalized data."""
-        from pathlib import Path
-        from scripts.data_ingestion.extractors.funds import extract_funds
         from scripts.data_ingestion.config import SOURCE_FILES
+        from scripts.data_ingestion.extractors.funds import extract_funds
 
         filepath = SOURCE_FILES.get("global_funds")
         if not filepath or not filepath.exists():
@@ -179,8 +178,8 @@ class TestETLDataQuality:
 
     def test_funds_have_good_normalization_coverage(self):
         """Most funds should have normalized strategies and geography."""
-        from scripts.data_ingestion.extractors.funds import extract_funds
         from scripts.data_ingestion.config import SOURCE_FILES
+        from scripts.data_ingestion.extractors.funds import extract_funds
 
         filepath = SOURCE_FILES.get("global_funds")
         if not filepath or not filepath.exists():

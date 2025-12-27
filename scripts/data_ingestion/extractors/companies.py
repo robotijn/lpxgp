@@ -3,8 +3,8 @@ Extract company/organization data from CSV files.
 READ-ONLY - never modify source files.
 """
 import csv
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Iterator
 
 
 def _clean_null(value: str | None) -> str | None:
@@ -30,7 +30,7 @@ def extract_companies(filepath: Path) -> Iterator[dict]:
 
     Yields dict per row with normalized keys.
     """
-    with open(filepath, "r", encoding="utf-8") as f:
+    with open(filepath, encoding="utf-8") as f:
         reader = csv.DictReader(f)
         for row in reader:
             yield {
@@ -54,7 +54,7 @@ def extract_parent_companies(filepath: Path) -> Iterator[dict]:
 
     Yields dict per row.
     """
-    with open(filepath, "r", encoding="utf-8") as f:
+    with open(filepath, encoding="utf-8") as f:
         reader = csv.DictReader(f)
         for row in reader:
             child_ids = row.get("child_companies", "")

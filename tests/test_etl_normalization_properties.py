@@ -5,24 +5,22 @@ Uses Hypothesis to generate random inputs and verify invariants hold.
 These tests catch edge cases that example-based tests might miss.
 """
 
-import pytest
-from hypothesis import given, strategies as st, assume, settings
+from hypothesis import assume, given
+from hypothesis import strategies as st
 
 from scripts.data_ingestion.transformers.enrich import (
-    normalize_strategy,
-    normalize_strategies,
-    normalize_geography,
-    normalize_geographies,
-    normalize_fund_size,
-    normalize_sectors,
-    parse_fund_size_to_mm,
-    parse_strategies,
-    parse_geographic_preferences,
-    calculate_acceptance_rate,
-    STRATEGY_NORMALIZATION,
-    GEOGRAPHY_NORMALIZATION,
     FUND_SIZE_NORMALIZATION,
-    SECTOR_NORMALIZATION,
+    GEOGRAPHY_NORMALIZATION,
+    STRATEGY_NORMALIZATION,
+    calculate_acceptance_rate,
+    normalize_fund_size,
+    normalize_geographies,
+    normalize_geography,
+    normalize_strategies,
+    normalize_strategy,
+    parse_fund_size_to_mm,
+    parse_geographic_preferences,
+    parse_strategies,
 )
 
 

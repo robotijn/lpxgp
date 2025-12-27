@@ -37,3 +37,4 @@ Thumbs.db
 
 # Seed data (regenerate with scripts/generate_seed_data.py)
 data/seed/*.json
+.hypothesis/

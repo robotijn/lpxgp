@@ -2,8 +2,8 @@
 Configuration for data ingestion pipeline.
 """
 import os
-from pathlib import Path
 from dataclasses import dataclass
+from pathlib import Path
 
 # Paths
 PROJECT_ROOT = Path(__file__).parent.parent.parent

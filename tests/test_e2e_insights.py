@@ -9,7 +9,6 @@ Tests for:
 - Tracking links
 """
 
-import pytest
 from playwright.sync_api import Page
 
 BASE_URL = "http://127.0.0.1:8000"
