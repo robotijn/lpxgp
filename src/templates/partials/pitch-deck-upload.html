@@ -1,0 +1,73 @@
+{# Pitch Deck Upload Form Partial
+   Args:
+     fund_id: The fund ID to upload the pitch deck for
+     current_deck_url: Optional - current pitch deck URL if one exists
+#}
+
+<div id="pitch-deck-upload" class="bg-white rounded-lg border border-navy-200 p-4">
+    <h3 class="text-lg font-semibold text-navy-900 mb-3">Pitch Deck</h3>
+
+    {% if current_deck_url %}
+    <div class="mb-4 p-3 bg-navy-50 rounded-lg">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center">
+                <svg class="w-5 h-5 text-navy-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                <span class="text-sm text-navy-700">Current: {{ current_deck_url.split('/')[-1] }}</span>
+            </div>
+            <a href="{{ current_deck_url }}" target="_blank" class="text-sm text-gold-600 hover:text-gold-700">
+                View
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
+    <form hx-post="/api/funds/{{ fund_id }}/pitch-deck"
+          hx-encoding="multipart/form-data"
+          hx-target="#upload-result"
+          hx-swap="innerHTML"
+          hx-indicator="#upload-spinner"
+          class="space-y-4">
+
+        <div>
+            <label for="pitch-deck-file" class="block text-sm font-medium text-navy-700 mb-1">
+                Upload Pitch Deck
+            </label>
+            <input type="file"
+                   id="pitch-deck-file"
+                   name="file"
+                   accept=".pdf,.pptx,.ppt"
+                   required
+                   class="block w-full text-sm text-navy-500
+                          file:mr-4 file:py-2 file:px-4
+                          file:rounded-lg file:border-0
+                          file:text-sm file:font-medium
+                          file:bg-gold-50 file:text-gold-700
+                          hover:file:bg-gold-100
+                          cursor-pointer">
+            <p class="mt-1 text-xs text-navy-400">
+                Supported: PDF, PowerPoint (.pdf, .pptx, .ppt). Max 50MB.
+            </p>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <button type="submit"
+                    class="btn-primary text-sm py-2 px-4 flex items-center">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                </svg>
+                Upload
+            </button>
+
+            <div id="upload-spinner" class="htmx-indicator">
+                <svg class="animate-spin h-5 w-5 text-gold-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+            </div>
+        </div>
+    </form>
+
+    <div id="upload-result" class="mt-4"></div>
+</div>

@@ -20,7 +20,7 @@ from pathlib import Path
 from typing import Any, cast
 from uuid import UUID
 
-from fastapi import APIRouter, Form, Query, Request
+from fastapi import APIRouter, File, Form, Query, Request, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
@@ -695,6 +695,191 @@ async def delete_fund(request: Request, fund_id: str):
         return HTMLResponse(
             content=f"<p class='text-red-500'>Failed to delete fund: {e!s}</p>",
             status_code=500
+        )
+    finally:
+        conn.close()
+
+
+@router.post("/api/funds/{fund_id}/pitch-deck", response_class=HTMLResponse)
+async def upload_pitch_deck(
+    request: Request,
+    fund_id: str,
+    file: UploadFile = File(...),
+    analyze: bool = Form(default=True),
+):
+    """Upload a pitch deck for a fund (PDF or PowerPoint).
+
+    Validates the file, saves it to disk, extracts text content,
+    optionally analyzes with LLM for structured data extraction,
+    and updates the fund record.
+
+    Args:
+        fund_id: UUID of the fund to upload pitch deck for.
+        file: The pitch deck file (PDF, PPTX, or PPT).
+        analyze: Whether to run LLM analysis for structured extraction.
+    """
+    from html import escape
+
+    from src.document_parser import extract_pitch_deck_text
+    from src.file_upload import (
+        delete_upload,
+        get_relative_url,
+        save_upload,
+        validate_upload,
+    )
+    from src.pitch_deck_analyzer import analyze_pitch_deck, get_matching_insights
+
+    user = auth.get_current_user(request)
+    if not user:
+        return HTMLResponse(
+            content="<p class='text-red-500'>Authentication required</p>",
+            status_code=401,
+        )
+
+    if not is_valid_uuid(fund_id):
+        return HTMLResponse(
+            content="<p class='text-red-500'>Invalid fund ID</p>",
+            status_code=400,
+        )
+
+    # Validate the uploaded file
+    is_valid, error_msg = validate_upload(file)
+    if not is_valid:
+        return HTMLResponse(
+            content=f"<p class='text-red-500'>{escape(error_msg)}</p>",
+            status_code=400,
+        )
+
+    conn = get_db()
+    if not conn:
+        return HTMLResponse(
+            content="<p class='text-navy-500'>Database not configured</p>",
+            status_code=503,
+        )
+
+    saved_path = None
+    try:
+        with conn.cursor() as cur:
+            # Verify fund exists
+            cur.execute("SELECT id, name FROM funds WHERE id = %s", (fund_id,))
+            fund = cur.fetchone()
+
+            if not fund:
+                return HTMLResponse(
+                    content="<p class='text-red-500'>Fund not found</p>",
+                    status_code=404,
+                )
+
+        # Save the file to disk
+        saved_path = await save_upload(file, fund_id)
+
+        # Extract text from the pitch deck
+        extracted_text = extract_pitch_deck_text(saved_path)
+
+        # Optionally run LLM analysis for structured data
+        extracted_data = None
+        analysis_status = ""
+        insights = None
+
+        if analyze and len(extracted_text) >= 100:
+            try:
+                extracted_data = await analyze_pitch_deck(extracted_text)
+                if extracted_data:
+                    insights = get_matching_insights(extracted_data)
+                    confidence = extracted_data.get("extraction_confidence", 0)
+                    analysis_status = f"AI analysis complete ({confidence:.0%} confidence)"
+                else:
+                    analysis_status = "AI analysis could not extract structured data"
+            except Exception as e:
+                logger.warning(f"LLM analysis failed (non-fatal): {e}")
+                analysis_status = "AI analysis unavailable"
+
+        # Update the fund record with file path, text, and extracted data
+        relative_url = get_relative_url(saved_path)
+
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE funds SET
+                    pitch_deck_url = %s,
+                    pitch_deck_text = %s,
+                    pitch_deck_extracted = %s,
+                    updated_at = NOW()
+                WHERE id = %s
+                """,
+                (
+                    relative_url,
+                    extracted_text,
+                    json.dumps(extracted_data) if extracted_data else None,
+                    fund_id,
+                ),
+            )
+            conn.commit()
+
+        logger.info(f"Pitch deck uploaded for fund {fund_id}: {saved_path}")
+
+        # Build response with insights if available
+        insights_html = ""
+        if insights:
+            metrics = insights.get("headline_metrics", {})
+            strengths = insights.get("strengths", [])
+
+            if metrics:
+                metrics_html = " · ".join(
+                    f"{k.upper()}: {v}" for k, v in metrics.items()
+                )
+                insights_html += f"""
+                <p class="text-sm text-green-700 mt-2 font-medium">
+                    {metrics_html}
+                </p>
+                """
+
+            if strengths:
+                strengths_html = "".join(f"<li>{s}</li>" for s in strengths[:3])
+                insights_html += f"""
+                <ul class="text-sm text-green-600 mt-2 list-disc list-inside">
+                    {strengths_html}
+                </ul>
+                """
+
+        return HTMLResponse(
+            content=f"""
+            <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div class="flex items-start">
+                    <svg class="w-5 h-5 text-green-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    <div class="ml-3">
+                        <h4 class="text-sm font-medium text-green-800">Pitch deck uploaded</h4>
+                        <p class="text-sm text-green-700 mt-1">
+                            File: {escape(file.filename or "pitch_deck")}
+                        </p>
+                        <p class="text-sm text-green-600 mt-1">
+                            Extracted {len(extracted_text)} characters · {analysis_status}
+                        </p>
+                        {insights_html}
+                    </div>
+                </div>
+            </div>
+            """,
+            headers={"HX-Trigger": "pitchDeckUploaded"},
+        )
+
+    except OSError as e:
+        logger.error(f"Failed to save pitch deck: {e}")
+        return HTMLResponse(
+            content=f"<p class='text-red-500'>Failed to save file: {escape(str(e))}</p>",
+            status_code=500,
+        )
+    except Exception as e:
+        logger.error(f"Failed to upload pitch deck: {e}")
+        # Clean up saved file if database update failed
+        if saved_path:
+            delete_upload(saved_path)
+        conn.rollback()
+        return HTMLResponse(
+            content="<p class='text-red-500'>Failed to upload pitch deck</p>",
+            status_code=500,
         )
     finally:
         conn.close()

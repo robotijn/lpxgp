@@ -122,6 +122,7 @@ class FundData(TypedDict, total=False):
         sector_focus: List of target sectors.
         investment_thesis: Fund's investment thesis description.
         esg_policy: Whether fund has ESG policy.
+        pitch_deck_extracted: Structured data extracted from pitch deck (JSON).
     """
 
     name: str
@@ -134,6 +135,7 @@ class FundData(TypedDict, total=False):
     sector_focus: list[str] | None
     investment_thesis: str | None
     esg_policy: bool
+    pitch_deck_extracted: dict[str, Any] | None
 
 
 class LPData(TypedDict, total=False):
@@ -417,6 +419,120 @@ def calculate_match_score(fund: FundData, lp: LPData) -> MatchResult:
     return MatchResult(
         score=round(final_score, 1),
         score_breakdown=ScoreBreakdown(**score_breakdown),  # type: ignore
+        passed_hard_filters=True,
+    )
+
+
+def calculate_enhanced_match_score(fund: FundData, lp: LPData) -> MatchResult:
+    """Calculate enhanced match score using pitch deck extracted data.
+
+    Extends the basic matching algorithm with insights from LLM-extracted
+    pitch deck data. If no extracted data is available, falls back to
+    the basic algorithm.
+
+    Enhanced scoring includes:
+        - Track record quality from IRR/MOIC metrics
+        - Team experience depth
+        - Sector theme alignment
+        - ESG policy strength
+
+    Args:
+        fund: Fund profile data with optional pitch_deck_extracted.
+        lp: LP profile data with preferences.
+
+    Returns:
+        MatchResult with potentially higher precision scoring.
+    """
+    # Start with basic score
+    base_result = calculate_match_score(fund, lp)
+
+    # If hard filters failed, return immediately
+    if not base_result["passed_hard_filters"]:
+        return base_result
+
+    # Check for extracted pitch deck data
+    extracted = fund.get("pitch_deck_extracted")
+    if not extracted:
+        return base_result
+
+    # Apply enhanced scoring adjustments
+    enhanced_adjustments: dict[str, float] = {}
+
+    # Track record quality bonus (up to +10 points)
+    track_record = extracted.get("track_record", {})
+    irr = track_record.get("gross_irr_pct")
+    moic = track_record.get("gross_moic")
+
+    track_bonus = 0.0
+    if irr is not None and irr > 0:
+        if irr >= 30:
+            track_bonus += 5
+        elif irr >= 20:
+            track_bonus += 3
+        elif irr >= 15:
+            track_bonus += 1
+
+    if moic is not None and moic > 0:
+        if moic >= 3.0:
+            track_bonus += 5
+        elif moic >= 2.0:
+            track_bonus += 3
+        elif moic >= 1.5:
+            track_bonus += 1
+
+    enhanced_adjustments["track_record_bonus"] = track_bonus
+
+    # Team experience bonus (up to +5 points)
+    team = extracted.get("team_details", {})
+    avg_exp = team.get("avg_experience_years")
+    team_bonus = 0.0
+
+    if avg_exp is not None and avg_exp >= 15:
+        team_bonus += 3
+    if team.get("operator_experience"):
+        team_bonus += 2
+
+    enhanced_adjustments["team_bonus"] = team_bonus
+
+    # ESG alignment bonus (up to +5 points if LP cares about ESG)
+    esg_details = extracted.get("esg_details", {})
+    esg_bonus = 0.0
+
+    if lp.get("esg_required"):
+        if esg_details.get("has_esg_policy"):
+            esg_bonus += 3
+        if esg_details.get("pri_signatory"):
+            esg_bonus += 2
+
+    enhanced_adjustments["esg_bonus"] = esg_bonus
+
+    # Sector depth bonus (up to +5 points)
+    sectors = extracted.get("sector_details", {})
+    fund_themes = [t.lower() for t in sectors.get("themes", [])]
+    lp_sectors = [s.lower() for s in (lp.get("sector_preferences") or [])]
+
+    sector_bonus = 0.0
+    if fund_themes and lp_sectors:
+        theme_overlap = sum(1 for t in fund_themes if any(s in t or t in s for s in lp_sectors))
+        if theme_overlap > 0:
+            sector_bonus = min(5.0, theme_overlap * 2)
+
+    enhanced_adjustments["sector_bonus"] = sector_bonus
+
+    # Calculate enhanced score (capped at 100)
+    total_bonus = sum(enhanced_adjustments.values())
+    enhanced_score = min(100.0, base_result["score"] + total_bonus)
+
+    # Log the enhancement for debugging
+    if total_bonus > 0:
+        logger.debug(
+            f"Enhanced matching: base={base_result['score']:.1f}, "
+            f"bonus={total_bonus:.1f}, final={enhanced_score:.1f}"
+        )
+
+    return MatchResult(
+        score=round(enhanced_score, 1),
+        score_breakdown=base_result["score_breakdown"],
         passed_hard_filters=True,
     )
 
