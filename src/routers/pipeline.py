@@ -184,27 +184,39 @@ async def pipeline_page(
     if conn:
         try:
             with conn.cursor() as cur:
-                # Get user's funds
-                cur.execute(
-                    """
-                    SELECT f.id, f.name
-                    FROM funds f
-                    JOIN organizations o ON o.id = f.gp_org_id
-                    WHERE o.id IN (
-                        SELECT org_id FROM users WHERE id = %s
+                # Get user's funds based on their org_id
+                user_org_id = user.get("org_id")
+                if user_org_id:
+                    cur.execute(
+                        """
+                        SELECT f.id, f.name
+                        FROM funds f
+                        WHERE f.org_id = %s
+                        ORDER BY f.name
+                        """,
+                        (user_org_id,),
                     )
-                    ORDER BY f.name
-                    """,
-                    (user["id"],),
-                )
-                funds = cur.fetchall()
+                    funds = cur.fetchall()
+                else:
+                    # Admin/FA users without org_id see all funds
+                    cur.execute(
+                        "SELECT f.id, f.name FROM funds f ORDER BY f.name"
+                    )
+                    funds = cur.fetchall()
 
-                # Build filter
-                fund_filter = ""
+                # Build filter - only show pipeline items for user's funds
                 params: list[Any] = []
+                fund_filter = ""
+                org_filter = ""
+
                 if fund_id:
                     fund_filter = "AND s.fund_id = %s"
                     params.append(fund_id)
+
+                # Filter by user's org_id (GP sees only their funds)
+                if user_org_id:
+                    org_filter = "AND f.org_id = %s"
+                    params.append(user_org_id)
 
                 # Get pipeline items
                 cur.execute(
@@ -224,6 +236,7 @@ async def pipeline_page(
                     JOIN funds f ON f.id = s.fund_id
                     WHERE s.pipeline_stage IS NOT NULL
                     {fund_filter}
+                    {org_filter}
                     ORDER BY s.updated_at DESC
                     """,
                     params,

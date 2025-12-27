@@ -4,6 +4,7 @@
 <nav class="hidden md:flex ml-10 space-x-8">
     <a href="/admin" class="text-navy-600 hover:text-navy-900 text-sm">Overview</a>
     <a href="/admin/companies" class="text-navy-600 hover:text-navy-900 text-sm">Companies</a>
+    <a href="/admin/funds" class="text-navy-600 hover:text-navy-900 text-sm">Funds</a>
     <a href="/admin/users" class="text-navy-600 hover:text-navy-900 text-sm">Users</a>
     <a href="/admin/lps" class="text-gold font-medium text-sm">LPs</a>
     <a href="/admin/health" class="text-navy-600 hover:text-navy-900 text-sm">Health</a>
@@ -14,6 +15,7 @@
 {% block mobile_nav %}
 <a href="/admin" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Overview</a>
 <a href="/admin/companies" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Companies</a>
+<a href="/admin/funds" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Funds</a>
 <a href="/admin/users" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Users</a>
 <a href="/admin/lps" class="block py-2 px-3 rounded-lg bg-gold/10 text-gold font-medium">LPs</a>
 <a href="/admin/health" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Health</a>
@@ -39,6 +41,12 @@
             <p class="text-navy-500 mt-1">{{ stats.total }} institutional investors</p>
         </div>
         <div class="flex space-x-3">
+            <a href="/api/admin/export/lps" class="btn-secondary">
+                <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                </svg>
+                Export CSV
+            </a>
             <a href="/admin/lps/new" class="btn-primary">
                 <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
@@ -90,12 +98,28 @@
         </form>
     </div>
 
+    <!-- Bulk Actions Bar (hidden by default) -->
+    <div id="bulk-actions-bar" class="card p-4 mb-4 hidden bg-navy-50 border-navy-200">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <span class="text-sm text-navy-600"><span id="selected-count">0</span> selected</span>
+                <button onclick="bulkSetStatus('active')" class="btn-secondary text-sm px-3 py-1">Set Active</button>
+                <button onclick="bulkSetStatus('inactive')" class="btn-secondary text-sm px-3 py-1">Set Inactive</button>
+                <button onclick="bulkExport()" class="btn-secondary text-sm px-3 py-1">Export Selected</button>
+            </div>
+            <button onclick="clearSelection()" class="text-navy-500 hover:text-navy-700 text-sm">Clear selection</button>
+        </div>
+    </div>
+
     <!-- LPs Table -->
     <div class="card overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-navy-200">
+            <table class="min-w-full divide-y divide-navy-200" id="lps-table">
                 <thead class="bg-navy-50">
                     <tr>
+                        <th class="px-4 py-3 text-left">
+                            <input type="checkbox" id="select-all" class="rounded border-navy-300 text-gold focus:ring-gold" onchange="toggleSelectAll(this)">
+                        </th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-navy-500 uppercase tracking-wider">
                             LP Name
                         </th>
@@ -118,7 +142,10 @@
                 </thead>
                 <tbody class="bg-white divide-y divide-navy-100">
                     {% for lp in lps %}
-                    <tr class="hover:bg-navy-50">
+                    <tr class="hover:bg-navy-50" data-id="{{ lp.id }}">
+                        <td class="px-4 py-4">
+                            <input type="checkbox" class="row-checkbox rounded border-navy-300 text-gold focus:ring-gold" data-id="{{ lp.id }}" onchange="updateSelection()">
+                        </td>
                         <td class="px-6 py-4">
                             <div class="font-medium text-navy-900">{{ lp.name }}</div>
                             {% if lp.description %}
@@ -151,7 +178,7 @@
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="6" class="px-6 py-8 text-center text-navy-500">
+                        <td colspan="7" class="px-6 py-8 text-center text-navy-500">
                             No LPs found.
                             {% if search_query or filter_type %}
                             <a href="/admin/lps" class="text-gold hover:underline">Clear filters</a>
@@ -168,7 +195,7 @@
         {% if total_pages > 1 %}
         <!-- Pagination -->
         <div class="flex justify-between items-center px-6 py-4 border-t border-navy-100">
-            <span class="text-sm text-navy-500">Showing {{ (page - 1) * per_page + 1 }}-{{ min(page * per_page, stats.total) }} of {{ stats.total }} LPs</span>
+            <span class="text-sm text-navy-500">Showing {{ (page - 1) * per_page + 1 }}-{{ [page * per_page, stats.total] | min }} of {{ stats.total }} LPs</span>
             <div class="flex space-x-2">
                 {% if page > 1 %}
                 <a href="/admin/lps?page={{ page - 1 }}{% if search_query %}&q={{ search_query }}{% endif %}{% if filter_type %}&type={{ filter_type }}{% endif %}" class="btn-secondary text-sm px-3">Previous</a>
@@ -192,4 +219,82 @@
         </a>
     </div>
 </div>
+
+<script>
+    // Bulk selection state
+    let selectedIds = new Set();
+
+    function toggleSelectAll(checkbox) {
+        const rowCheckboxes = document.querySelectorAll('.row-checkbox');
+        rowCheckboxes.forEach(cb => {
+            cb.checked = checkbox.checked;
+            if (checkbox.checked) {
+                selectedIds.add(cb.dataset.id);
+            } else {
+                selectedIds.delete(cb.dataset.id);
+            }
+        });
+        updateBulkActionsBar();
+    }
+
+    function updateSelection() {
+        const rowCheckboxes = document.querySelectorAll('.row-checkbox');
+        selectedIds.clear();
+        rowCheckboxes.forEach(cb => {
+            if (cb.checked) {
+                selectedIds.add(cb.dataset.id);
+            }
+        });
+
+        // Update select-all checkbox
+        const selectAll = document.getElementById('select-all');
+        const allChecked = Array.from(rowCheckboxes).every(cb => cb.checked);
+        const someChecked = Array.from(rowCheckboxes).some(cb => cb.checked);
+        selectAll.checked = allChecked;
+        selectAll.indeterminate = someChecked && !allChecked;
+
+        updateBulkActionsBar();
+    }
+
+    function updateBulkActionsBar() {
+        const bar = document.getElementById('bulk-actions-bar');
+        const count = document.getElementById('selected-count');
+        count.textContent = selectedIds.size;
+
+        if (selectedIds.size > 0) {
+            bar.classList.remove('hidden');
+        } else {
+            bar.classList.add('hidden');
+        }
+    }
+
+    function clearSelection() {
+        selectedIds.clear();
+        document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = false);
+        document.getElementById('select-all').checked = false;
+        document.getElementById('select-all').indeterminate = false;
+        updateBulkActionsBar();
+    }
+
+    function bulkSetStatus(status) {
+        if (selectedIds.size === 0) return;
+
+        const ids = Array.from(selectedIds);
+        alert(`Would set ${ids.length} LP(s) to ${status}.\nIDs: ${ids.join(', ')}`);
+        // TODO: Implement actual API call
+        // fetch('/api/admin/lps/bulk-status', {
+        //     method: 'POST',
+        //     headers: {'Content-Type': 'application/json'},
+        //     body: JSON.stringify({ids, status})
+        // }).then(() => location.reload());
+    }
+
+    function bulkExport() {
+        if (selectedIds.size === 0) return;
+
+        const ids = Array.from(selectedIds);
+        // Redirect to export with selected IDs
+        window.location.href = `/api/admin/export/lps?ids=${ids.join(',')}`;
+    }
+</script>
 {% endblock %}

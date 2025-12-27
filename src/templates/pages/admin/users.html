@@ -1,18 +1,42 @@
 {% extends "base.html" %}
 
 {% block nav %}
-<nav class="hidden md:flex ml-10 space-x-8">
+<nav class="hidden md:flex ml-10 space-x-6">
     <a href="/admin" class="text-navy-600 hover:text-navy-900 text-sm">Overview</a>
-    <a href="/admin/users" class="text-gold font-medium text-sm">Users</a>
-    <a href="/admin/health" class="text-navy-600 hover:text-navy-900 text-sm">Health</a>
+    <div class="relative group">
+        <span class="text-gold font-medium text-sm cursor-default">Clients</span>
+        <div class="absolute left-0 mt-1 w-40 bg-white shadow-lg rounded-lg py-2 hidden group-hover:block z-50">
+            <a href="/admin/lps" class="block px-4 py-2 text-sm text-navy-600 hover:bg-navy-50">LP Clients</a>
+            <a href="/admin/users" class="block px-4 py-2 text-sm text-gold font-medium hover:bg-navy-50">Users</a>
+        </div>
+    </div>
+    <div class="relative group">
+        <span class="text-navy-600 text-sm cursor-default">Market Data</span>
+        <div class="absolute left-0 mt-1 w-40 bg-white shadow-lg rounded-lg py-2 hidden group-hover:block z-50">
+            <a href="/admin/companies" class="block px-4 py-2 text-sm text-navy-600 hover:bg-navy-50">Companies</a>
+            <a href="/admin/funds" class="block px-4 py-2 text-sm text-navy-600 hover:bg-navy-50">Funds</a>
+            <a href="/admin/people" class="block px-4 py-2 text-sm text-navy-600 hover:bg-navy-50">People</a>
+        </div>
+    </div>
+    <a href="/admin/health" class="text-navy-600 hover:text-navy-900 text-sm">System</a>
     <a href="/dashboard" class="text-navy-600 hover:text-navy-900 text-sm">Back to App</a>
 </nav>
 {% endblock %}
 
 {% block mobile_nav %}
 <a href="/admin" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Overview</a>
-<a href="/admin/users" class="block py-2 px-3 rounded-lg bg-gold/10 text-gold font-medium">Users</a>
-<a href="/admin/health" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Health</a>
+<div class="pl-3 border-l-2 border-navy-200 ml-3 space-y-1">
+    <span class="block py-1 px-3 text-xs font-semibold text-navy-400 uppercase">Clients</span>
+    <a href="/admin/lps" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">LP Clients</a>
+    <a href="/admin/users" class="block py-2 px-3 rounded-lg bg-gold/10 text-gold font-medium">Users</a>
+</div>
+<div class="pl-3 border-l-2 border-navy-200 ml-3 space-y-1 mt-2">
+    <span class="block py-1 px-3 text-xs font-semibold text-navy-400 uppercase">Market Data</span>
+    <a href="/admin/companies" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Companies</a>
+    <a href="/admin/funds" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Funds</a>
+    <a href="/admin/people" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">People</a>
+</div>
+<a href="/admin/health" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100 mt-2">System</a>
 <a href="/dashboard" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Back to App</a>
 {% endblock %}
 

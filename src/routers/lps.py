@@ -444,6 +444,64 @@ async def create_lp(
     mandate_description: str | None = Form(default=None),
 ):
     """Create a new LP (organization + lp_profile)."""
+    from html import escape
+
+    # Input validation
+    # Sanitize name: remove null bytes and strip whitespace
+    name = name.replace("\x00", "").strip()
+    if not name:
+        return HTMLResponse(
+            content="<p class='text-red-500'>Name cannot be empty or whitespace only</p>",
+            status_code=400,
+        )
+    if len(name) > 500:
+        return HTMLResponse(
+            content="<p class='text-red-500'>Name too long (max 500 characters)</p>",
+            status_code=400,
+        )
+
+    # Validate numeric fields - must be non-negative
+    if total_aum_bn is not None and total_aum_bn < 0:
+        return HTMLResponse(
+            content="<p class='text-red-500'>Total AUM cannot be negative</p>",
+            status_code=400,
+        )
+
+    # Validate percentages (0-100)
+    if pe_allocation_pct is not None and (pe_allocation_pct < 0 or pe_allocation_pct > 100):
+        return HTMLResponse(
+            content="<p class='text-red-500'>PE allocation must be between 0 and 100</p>",
+            status_code=400,
+        )
+
+    # Validate sizes - must be non-negative
+    for field_name, field_val in [
+        ("Check size min", check_size_min_mm),
+        ("Check size max", check_size_max_mm),
+        ("Fund size min", fund_size_min_mm),
+        ("Fund size max", fund_size_max_mm),
+    ]:
+        if field_val is not None and field_val < 0:
+            return HTMLResponse(
+                content=f"<p class='text-red-500'>{field_name} cannot be negative</p>",
+                status_code=400,
+            )
+
+    # Validate LP type enum if provided
+    valid_lp_types = [
+        "pension", "endowment", "foundation", "family_office",
+        "insurance", "sovereign_wealth", "fund_of_funds", "corporate",
+        "bank", "other", None
+    ]
+    if lp_type and lp_type not in valid_lp_types:
+        return HTMLResponse(
+            content=f"<p class='text-red-500'>Invalid LP type: {escape(lp_type)}</p>",
+            status_code=400,
+        )
+
+    # XSS prevention - escape HTML in name for response
+    safe_name = escape(name)
+
     conn = get_db()
     if not conn:
         return HTMLResponse(
@@ -496,7 +554,7 @@ async def create_lp(
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                 </svg>
                 <h3 class="text-lg font-semibold text-navy-900 mb-2">LP Created!</h3>
-                <p class="text-navy-500 mb-4">{name} has been added to the database.</p>
+                <p class="text-navy-500 mb-4">{safe_name} has been added to the database.</p>
             </div>
             """,
             headers={"HX-Trigger": "lpCreated"}
@@ -504,9 +562,16 @@ async def create_lp(
     except Exception as e:
         logger.error(f"Failed to create LP: {e}")
         conn.rollback()
+        error_msg = str(e).lower()
+        # Return 400 for constraint violations (user input errors)
+        if "constraint" in error_msg or "violates" in error_msg:
+            return HTMLResponse(
+                content="<p class='text-red-500'>Invalid input data. Please check your values.</p>",
+                status_code=400,
+            )
         return HTMLResponse(
-            content=f"<p class='text-red-500'>Failed to create LP: {str(e)}</p>",
-            status_code=500
+            content="<p class='text-red-500'>Failed to create LP. Please try again.</p>",
+            status_code=400
         )
     finally:
         conn.close()

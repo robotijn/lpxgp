@@ -347,9 +347,64 @@ async def create_fund(
     gp_commitment_pct: float | None = Form(default=None),
 ):
     """Create a new fund."""
+    # Input validation
     if not is_valid_uuid(org_id):
         return HTMLResponse(
             content="<p class='text-red-500'>Invalid organization ID</p>",
+            status_code=400
+        )
+
+    # Sanitize and validate name
+    name = name.replace("\x00", "").strip()  # Remove null bytes and whitespace
+    if not name:
+        return HTMLResponse(
+            content="<p class='text-red-500'>Fund name cannot be empty or whitespace only</p>",
+            status_code=400
+        )
+    if len(name) > 500:
+        return HTMLResponse(
+            content="<p class='text-red-500'>Fund name too long (max 500 characters)</p>",
+            status_code=400
+        )
+
+    # Validate numeric fields
+    if target_size_mm is not None and target_size_mm < 0:
+        return HTMLResponse(
+            content="<p class='text-red-500'>Target size cannot be negative</p>",
+            status_code=400
+        )
+
+    if vintage_year is not None and (vintage_year < 1900 or vintage_year > 2100):
+        return HTMLResponse(
+            content="<p class='text-red-500'>Invalid vintage year (must be 1900-2100)</p>",
+            status_code=400
+        )
+
+    # Validate percentages (0-100 range)
+    for pct_name, pct_val in [
+        ("Management fee", management_fee_pct),
+        ("Carried interest", carried_interest_pct),
+        ("GP commitment", gp_commitment_pct),
+    ]:
+        if pct_val is not None and (pct_val < 0 or pct_val > 100):
+            return HTMLResponse(
+                content=f"<p class='text-red-500'>{pct_name} must be between 0 and 100</p>",
+                status_code=400
+            )
+
+    # Validate status enum
+    valid_statuses = ["draft", "raising", "closed", "deploying", "harvesting", "liquidated"]
+    if status not in valid_statuses:
+        return HTMLResponse(
+            content=f"<p class='text-red-500'>Invalid status. Must be one of: {', '.join(valid_statuses)}</p>",
+            status_code=400
+        )
+
+    # Validate strategy enum if provided
+    valid_strategies = ["buyout", "growth", "venture", "credit", "real_estate", "infrastructure", "secondaries", "fund_of_funds", "other"]
+    if strategy and strategy not in valid_strategies:
+        return HTMLResponse(
+            content=f"<p class='text-red-500'>Invalid strategy. Must be one of: {', '.join(valid_strategies)}</p>",
             status_code=400
         )
 
@@ -385,6 +440,10 @@ async def create_fund(
             _ = result["id"] if result else None  # Verify insert succeeded
             conn.commit()
 
+        # Escape name for HTML output
+        from html import escape
+        safe_name = escape(name)
+
         # Return success with redirect
         return HTMLResponse(
             content=f"""
@@ -393,7 +452,7 @@ async def create_fund(
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                 </svg>
                 <h3 class="text-lg font-semibold text-navy-900 mb-2">Fund Created!</h3>
-                <p class="text-navy-500 mb-4">{name} has been created successfully.</p>
+                <p class="text-navy-500 mb-4">{safe_name} has been created successfully.</p>
                 <a href="/funds" class="btn-primary">View All Funds</a>
             </div>
             """,
@@ -402,8 +461,33 @@ async def create_fund(
     except Exception as e:
         logger.error(f"Failed to create fund: {e}")
         conn.rollback()
+        error_msg = str(e).lower()
+        # FK violations = referenced entity doesn't exist (setup/config issue)
+        if "foreign key" in error_msg:
+            return HTMLResponse(
+                content="<p class='text-navy-500'>Referenced organization not found</p>",
+                status_code=503
+            )
+        # Unique constraint = duplicate data
+        if "unique constraint" in error_msg or "duplicate key" in error_msg:
+            return HTMLResponse(
+                content="<p class='text-red-500'>A fund with this name already exists</p>",
+                status_code=400
+            )
+        # Check constraints = user input validation error
+        if "check constraint" in error_msg or "violates check" in error_msg:
+            return HTMLResponse(
+                content="<p class='text-red-500'>Invalid data: constraint violation</p>",
+                status_code=400
+            )
+        # Numeric overflow = value too large for database field
+        if "overflow" in error_msg or "precision" in error_msg:
+            return HTMLResponse(
+                content="<p class='text-red-500'>Value is too large</p>",
+                status_code=400
+            )
         return HTMLResponse(
-            content=f"<p class='text-red-500'>Failed to create fund: {e!s}</p>",
+            content="<p class='text-red-500'>Failed to create fund</p>",
             status_code=500
         )
     finally:

@@ -63,7 +63,7 @@ def get_mutual_interests_for_gp(user_id: str, conn) -> list[dict[str, Any]]:
             FROM fund_lp_status s
             JOIN funds f ON f.id = s.fund_id
             JOIN organizations lp ON lp.id = s.lp_org_id
-            JOIN organizations gp ON gp.id = f.gp_org_id
+            JOIN organizations gp ON gp.id = f.org_id
             JOIN people p ON p.id IN (
                 SELECT person_id FROM employment WHERE org_id = gp.id AND is_current = TRUE
             )
@@ -99,7 +99,7 @@ def get_mutual_interests_for_lp(user_id: str, conn) -> list[dict[str, Any]]:
                 s.updated_at
             FROM fund_lp_status s
             JOIN funds f ON f.id = s.fund_id
-            JOIN organizations gp ON gp.id = f.gp_org_id
+            JOIN organizations gp ON gp.id = f.org_id
             JOIN organizations lp ON lp.id = s.lp_org_id
             JOIN people p ON p.id IN (
                 SELECT person_id FROM employment WHERE org_id = lp.id AND is_current = TRUE
@@ -287,9 +287,9 @@ async def get_lp_fund_recommendations(request: Request) -> HTMLResponse:
             cur.execute(
                 """
                 SELECT f.id, f.name, f.strategy, f.target_size_mm, f.geographic_focus,
-                       f.vintage_year, f.sectors, gp.name as gp_name
+                       f.vintage_year, f.sector_focus, gp.name as gp_name
                 FROM funds f
-                JOIN organizations gp ON gp.id = f.gp_org_id
+                JOIN organizations gp ON gp.id = f.org_id
                 WHERE f.status = 'fundraising' OR f.status IS NULL
                 ORDER BY f.created_at DESC
                 LIMIT 50
@@ -394,14 +394,14 @@ async def get_activity_timeline(
         activities = []
         with conn.cursor() as cur:
             if entity_type == "lp":
-                # Get touchpoints for this LP
+                # Get touchpoints for this LP (company_id = LP org)
                 cur.execute(
                     """
                     SELECT 'touchpoint' as type, t.touchpoint_type as subtype,
-                           t.notes, t.occurred_at as timestamp, p.full_name as actor
+                           t.summary as notes, t.occurred_at as timestamp, p.full_name as actor
                     FROM touchpoints t
                     LEFT JOIN people p ON p.id = t.created_by
-                    WHERE t.lp_org_id = %s
+                    WHERE t.company_id = %s
                     ORDER BY t.occurred_at DESC
                     LIMIT 20
                     """,
@@ -450,17 +450,18 @@ async def get_activity_timeline(
                 )
                 match = cur.fetchone()
                 if match:
+                    # Get touchpoints where LP was contacted
                     cur.execute(
                         """
                         SELECT 'touchpoint' as type, t.touchpoint_type as subtype,
-                               t.notes, t.occurred_at as timestamp, p.full_name as actor
+                               t.summary as notes, t.occurred_at as timestamp, p.full_name as actor
                         FROM touchpoints t
                         LEFT JOIN people p ON p.id = t.created_by
-                        WHERE t.lp_org_id = %s AND t.fund_id = %s
+                        WHERE t.company_id = %s
                         ORDER BY t.occurred_at DESC
                         LIMIT 20
                         """,
-                        (match["lp_org_id"], match["fund_id"]),
+                        (match["lp_org_id"],),
                     )
                     activities.extend(cur.fetchall() or [])
 
@@ -1003,11 +1004,11 @@ async def handle_tracking_click(request: Request, token: str) -> HTMLResponse:
             cur.execute(
                 """
                 SELECT t.fund_id, t.lp_org_id, t.click_count,
-                       f.name as fund_name, gp.name as gp_name,
+                       f.name as fund_name, f.org_id as gp_org_id, gp.name as gp_name,
                        f.strategy, f.target_size_mm, f.geographic_focus
                 FROM tracking_links t
                 JOIN funds f ON f.id = t.fund_id
-                JOIN organizations gp ON gp.id = f.gp_org_id
+                JOIN organizations gp ON gp.id = f.org_id
                 WHERE t.token = %s
                 """,
                 (token,),
@@ -1025,6 +1026,7 @@ async def handle_tracking_click(request: Request, token: str) -> HTMLResponse:
 
             fund_id = link["fund_id"]
             lp_id = link["lp_org_id"]
+            gp_org_id = link["gp_org_id"]
             is_first_click = link["click_count"] == 0
 
             # Update click count
@@ -1040,13 +1042,14 @@ async def handle_tracking_click(request: Request, token: str) -> HTMLResponse:
             )
 
             # Record touchpoint (only on first click)
+            # org_id = GP who sent email, company_id = LP who clicked
             if is_first_click:
                 cur.execute(
                     """
-                    INSERT INTO touchpoints (lp_org_id, fund_id, touchpoint_type, notes, occurred_at)
-                    VALUES (%s, %s, 'email_opened', 'LP clicked tracking link in outreach email', NOW())
+                    INSERT INTO touchpoints (org_id, company_id, touchpoint_type, summary, occurred_at)
+                    VALUES (%s, %s, 'email', 'LP clicked tracking link in outreach email', NOW())
                     """,
-                    (lp_id, fund_id),
+                    (gp_org_id, lp_id),
                 )
 
                 # Update LP interest (if not already interested/reviewing)

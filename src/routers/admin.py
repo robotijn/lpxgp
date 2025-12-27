@@ -12,11 +12,14 @@ This router provides:
 
 from __future__ import annotations
 
+import csv
+import io
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 
 from src import auth
@@ -252,6 +255,174 @@ async def api_admin_stats(request: Request) -> JSONResponse:
             conn.close()
 
     return JSONResponse(content={"success": True, "stats": stats})
+
+
+# =============================================================================
+# CSV Export
+# =============================================================================
+
+
+@router.get("/api/admin/export/lps", response_model=None)
+async def export_lps_csv(request: Request) -> StreamingResponse | JSONResponse:
+    """Export LPs to CSV file."""
+    user = auth.get_current_user(request)
+    if not user:
+        return JSONResponse(status_code=401, content={"error": "Authentication required"})
+
+    if not can_manage_data(user):
+        return JSONResponse(status_code=403, content={"error": "Insufficient permissions"})
+
+    lps: list[dict[str, Any]] = []
+
+    conn = get_db()
+    if conn:
+        try:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT id, name, description, lp_type, location, total_aum_bn,
+                           pe_allocation_pct, preferred_strategies, preferred_geographies,
+                           min_fund_size_mm, max_fund_size_mm, is_active, created_at
+                    FROM organizations
+                    WHERE is_lp = TRUE
+                    ORDER BY name
+                """)
+                rows = cur.fetchall()
+                lps = [dict(row) for row in rows]
+        except Exception as e:
+            logger.warning(f"Failed to export LPs: {e}")
+        finally:
+            conn.close()
+
+    if not lps:
+        lps = [
+            {"id": "lp-001", "name": "CalPERS", "lp_type": "pension", "location": "California, USA", "total_aum_bn": 440, "is_active": True},
+            {"id": "lp-002", "name": "Yale Endowment", "lp_type": "endowment", "location": "Connecticut, USA", "total_aum_bn": 41, "is_active": True},
+        ]
+
+    output = io.StringIO()
+    if lps:
+        fieldnames = list(lps[0].keys())
+        writer = csv.DictWriter(output, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(lps)
+
+    output.seek(0)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"lps_export_{timestamp}.csv"
+
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
+
+
+@router.get("/api/admin/export/funds", response_model=None)
+async def export_funds_csv(request: Request) -> StreamingResponse | JSONResponse:
+    """Export Funds to CSV file."""
+    user = auth.get_current_user(request)
+    if not user:
+        return JSONResponse(status_code=401, content={"error": "Authentication required"})
+
+    if not can_manage_data(user):
+        return JSONResponse(status_code=403, content={"error": "Insufficient permissions"})
+
+    funds: list[dict[str, Any]] = []
+
+    conn = get_db()
+    if conn:
+        try:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT f.id, f.name, f.description, f.strategy, f.target_size_mm,
+                           f.vintage, f.status, o.name as org_name
+                    FROM funds f
+                    LEFT JOIN organizations o ON o.id = f.org_id
+                    ORDER BY f.name
+                """)
+                rows = cur.fetchall()
+                funds = [dict(row) for row in rows]
+        except Exception as e:
+            logger.warning(f"Failed to export funds: {e}")
+        finally:
+            conn.close()
+
+    if not funds:
+        funds = [
+            {"id": "fund-001", "name": "Growth Fund III", "org_name": "Acme Capital", "strategy": "growth_equity", "target_size_mm": 500, "vintage": 2024, "status": "fundraising"},
+            {"id": "fund-002", "name": "Buyout Fund IV", "org_name": "Acme Capital", "strategy": "buyout", "target_size_mm": 1200, "vintage": 2023, "status": "active"},
+        ]
+
+    output = io.StringIO()
+    if funds:
+        fieldnames = list(funds[0].keys())
+        writer = csv.DictWriter(output, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(funds)
+
+    output.seek(0)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"funds_export_{timestamp}.csv"
+
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
+
+
+@router.get("/api/admin/export/companies", response_model=None)
+async def export_companies_csv(request: Request) -> StreamingResponse | JSONResponse:
+    """Export Companies to CSV file."""
+    user = auth.get_current_user(request)
+    if not user:
+        return JSONResponse(status_code=401, content={"error": "Authentication required"})
+
+    if not can_manage_data(user):
+        return JSONResponse(status_code=403, content={"error": "Insufficient permissions"})
+
+    companies: list[dict[str, Any]] = []
+
+    conn = get_db()
+    if conn:
+        try:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT id, name, description, website, hq_city, hq_country,
+                           is_gp, is_lp, created_at
+                    FROM organizations
+                    WHERE is_gp = TRUE
+                    ORDER BY name
+                """)
+                rows = cur.fetchall()
+                companies = [dict(row) for row in rows]
+        except Exception as e:
+            logger.warning(f"Failed to export companies: {e}")
+        finally:
+            conn.close()
+
+    if not companies:
+        companies = [
+            {"id": "org-001", "name": "Acme Capital", "website": "https://acmecapital.com", "hq_city": "New York", "hq_country": "USA", "is_gp": True},
+            {"id": "org-002", "name": "Beta Ventures", "website": None, "hq_city": "San Francisco", "hq_country": "USA", "is_gp": True},
+        ]
+
+    output = io.StringIO()
+    if companies:
+        fieldnames = list(companies[0].keys())
+        writer = csv.DictWriter(output, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(companies)
+
+    output.seek(0)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"companies_export_{timestamp}.csv"
+
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
 
 
 # =============================================================================
@@ -746,6 +917,139 @@ async def admin_company_deactivate(request: Request, org_id: str) -> JSONRespons
 
     logger.info(f"Would deactivate company {org_id}")
     return JSONResponse(content={"success": True})
+
+
+# =============================================================================
+# Funds Management (Admin)
+# =============================================================================
+
+
+@router.get("/admin/funds", response_class=HTMLResponse, response_model=None)
+async def admin_funds_page(
+    request: Request,
+    page: int = 1,
+    q: str | None = None,
+    strategy: str | None = None,
+    status: str | None = None,
+) -> HTMLResponse | RedirectResponse:
+    """Funds management page for admin."""
+    user = auth.get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    if not can_manage_data(user):
+        return RedirectResponse(url="/dashboard", status_code=303)
+
+    per_page = 25
+    funds: list[dict[str, Any]] = []
+    stats = {"total": 0, "active": 0, "fundraising": 0, "total_aum_bn": 0}
+
+    mock_funds: list[dict[str, Any]] = [
+        {"id": "fund-001", "name": "Growth Fund III", "org_id": "org-001", "org_name": "Acme Capital", "strategy": "growth_equity", "target_size_mm": 500, "vintage": 2024, "status": "fundraising", "description": "Mid-market growth equity fund"},
+        {"id": "fund-002", "name": "Buyout Fund IV", "org_id": "org-001", "org_name": "Acme Capital", "strategy": "buyout", "target_size_mm": 1200, "vintage": 2023, "status": "active", "description": "Large-cap buyout fund"},
+        {"id": "fund-003", "name": "Venture Fund II", "org_id": "org-004", "org_name": "Delta Capital", "strategy": "venture_capital", "target_size_mm": 250, "vintage": 2024, "status": "fundraising", "description": "Early-stage tech venture fund"},
+        {"id": "fund-004", "name": "Real Estate Fund I", "org_id": "org-003", "org_name": "Gamma Partners", "strategy": "real_estate", "target_size_mm": 800, "vintage": 2022, "status": "closed", "description": "Commercial real estate fund"},
+        {"id": "fund-005", "name": "Infrastructure Fund II", "org_id": "org-004", "org_name": "Delta Capital", "strategy": "infrastructure", "target_size_mm": 600, "vintage": 2023, "status": "active", "description": "Renewable infrastructure fund"},
+    ]
+
+    conn = get_db()
+    if conn:
+        try:
+            with conn.cursor() as cur:
+                where_clauses = []
+                params: list[Any] = []
+
+                if q:
+                    where_clauses.append("(f.name ILIKE %s OR o.name ILIKE %s)")
+                    params.extend([f"%{q}%", f"%{q}%"])
+
+                if strategy:
+                    where_clauses.append("f.strategy = %s")
+                    params.append(strategy)
+
+                if status:
+                    where_clauses.append("f.status = %s")
+                    params.append(status)
+
+                where_sql = "WHERE " + " AND ".join(where_clauses) if where_clauses else ""
+
+                cur.execute("SELECT COUNT(*) FROM funds")
+                row = cur.fetchone()
+                stats["total"] = row["count"] if row else 0
+
+                cur.execute("SELECT COUNT(*) FROM funds WHERE status = 'active'")
+                row = cur.fetchone()
+                stats["active"] = row["count"] if row else 0
+
+                cur.execute("SELECT COUNT(*) FROM funds WHERE status = 'fundraising'")
+                row = cur.fetchone()
+                stats["fundraising"] = row["count"] if row else 0
+
+                cur.execute("SELECT COALESCE(SUM(target_size_mm), 0) / 1000.0 FROM funds")
+                row = cur.fetchone()
+                stats["total_aum_bn"] = round(row["?column?"] if row else 0, 1)
+
+                count_sql = f"""
+                    SELECT COUNT(*) as total
+                    FROM funds f
+                    LEFT JOIN organizations o ON o.id = f.org_id
+                    {where_sql}
+                """
+                cur.execute(count_sql, params)
+                row = cur.fetchone()
+                total_funds = row["total"] if row else 0
+
+                offset = (page - 1) * per_page
+                query = f"""
+                    SELECT f.id, f.name, f.description, f.strategy, f.target_size_mm,
+                           f.vintage, f.status, f.org_id, o.name as org_name
+                    FROM funds f
+                    LEFT JOIN organizations o ON o.id = f.org_id
+                    {where_sql}
+                    ORDER BY f.name
+                    LIMIT %s OFFSET %s
+                """
+                params.extend([per_page, offset])
+                cur.execute(query, params)
+                rows = cur.fetchall()
+                funds = [dict(row) for row in rows]
+
+        except Exception as e:
+            logger.warning(f"Failed to fetch funds from database: {e}")
+            funds = mock_funds
+            stats = {"total": len(mock_funds), "active": 2, "fundraising": 2, "total_aum_bn": 3.4}
+            total_funds = len(mock_funds)
+        finally:
+            conn.close()
+    else:
+        funds = mock_funds
+        if q:
+            funds = [f for f in funds if q.lower() in f["name"].lower() or q.lower() in (f.get("org_name") or "").lower()]
+        if strategy:
+            funds = [f for f in funds if f.get("strategy") == strategy]
+        if status:
+            funds = [f for f in funds if f.get("status") == status]
+        total_funds = len(funds)
+        stats = {"total": len(mock_funds), "active": 2, "fundraising": 2, "total_aum_bn": 3.4}
+
+    total_pages = max(1, (total_funds + per_page - 1) // per_page)
+
+    return templates.TemplateResponse(
+        request,
+        "pages/admin/funds.html",
+        {
+            "title": "Funds - Admin - LPxGP",
+            "user": user,
+            "funds": funds,
+            "stats": stats,
+            "page": page,
+            "per_page": per_page,
+            "total_pages": total_pages,
+            "search_query": q,
+            "filter_strategy": strategy,
+            "filter_status": status,
+        },
+    )
 
 
 # =============================================================================

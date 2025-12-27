@@ -229,25 +229,25 @@ DEMO_GPS = [
 DEMO_FUNDS = [
     {
         "id": "f0000001-0000-0000-0000-000000000001",
-        "gp_org_id": "c0000001-0000-0000-0000-000000000001",
+        "org_id": "c0000001-0000-0000-0000-000000000001",
         "name": "Demo GP Growth Fund III",
         "strategy": "growth",
         "target_size_mm": 500,
-        "geographic_focus": "North America",
+        "geographic_focus": ["North America"],
         "vintage_year": 2024,
-        "status": "fundraising",
-        "sectors": ["technology", "healthcare"],
+        "status": "raising",
+        "sector_focus": ["technology", "healthcare"],
     },
     {
         "id": "f0000002-0000-0000-0000-000000000002",
-        "gp_org_id": "c0000001-0000-0000-0000-000000000001",
+        "org_id": "c0000001-0000-0000-0000-000000000001",
         "name": "Demo GP Buyout Fund II",
         "strategy": "buyout",
         "target_size_mm": 750,
-        "geographic_focus": "North America, Europe",
+        "geographic_focus": ["North America", "Europe"],
         "vintage_year": 2023,
-        "status": "fundraising",
-        "sectors": ["industrials", "consumer"],
+        "status": "raising",
+        "sector_focus": ["industrials", "consumer"],
     },
 ]
 
@@ -318,30 +318,31 @@ DEMO_SHORTLIST = [
 ]
 
 # Demo touchpoints for activity timeline
+# org_id = GP org, company_id = LP org being contacted
 DEMO_TOUCHPOINTS = [
     {
-        "lp_org_id": "a1000001-0000-0000-0000-000000000001",
-        "fund_id": "f0000001-0000-0000-0000-000000000001",
+        "org_id": "c0000001-0000-0000-0000-000000000001",  # Demo GP
+        "company_id": "a1000001-0000-0000-0000-000000000001",  # CalPERS
         "touchpoint_type": "meeting",
-        "notes": "Initial intro call with investment team",
+        "summary": "Initial intro call with investment team",
     },
     {
-        "lp_org_id": "a1000001-0000-0000-0000-000000000001",
-        "fund_id": "f0000001-0000-0000-0000-000000000001",
+        "org_id": "c0000001-0000-0000-0000-000000000001",
+        "company_id": "a1000001-0000-0000-0000-000000000001",
         "touchpoint_type": "email",
-        "notes": "Sent DDQ and fund presentation",
+        "summary": "Sent DDQ and fund presentation",
     },
     {
-        "lp_org_id": "a1000002-0000-0000-0000-000000000002",
-        "fund_id": "f0000001-0000-0000-0000-000000000001",
+        "org_id": "c0000001-0000-0000-0000-000000000001",
+        "company_id": "a1000002-0000-0000-0000-000000000002",  # Ontario Teachers
         "touchpoint_type": "meeting",
-        "notes": "On-site due diligence meeting",
+        "summary": "On-site due diligence meeting",
     },
     {
-        "lp_org_id": "a1000003-0000-0000-0000-000000000003",
-        "fund_id": "f0000001-0000-0000-0000-000000000001",
+        "org_id": "c0000001-0000-0000-0000-000000000001",
+        "company_id": "a1000003-0000-0000-0000-000000000003",  # Harvard
         "touchpoint_type": "call",
-        "notes": "Follow-up call to discuss strategy",
+        "summary": "Follow-up call to discuss strategy",
     },
 ]
 
@@ -448,14 +449,14 @@ def load_demo_data(conn):
         # Insert demo funds
         for fund in DEMO_FUNDS:
             cur.execute("""
-                INSERT INTO funds (id, gp_org_id, name, strategy, target_size_mm,
-                                   geographic_focus, vintage_year, status, sectors)
+                INSERT INTO funds (id, org_id, name, strategy, target_size_mm,
+                                   geographic_focus, vintage_year, status, sector_focus)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (id) DO NOTHING
             """, (
-                fund["id"], fund["gp_org_id"], fund["name"], fund["strategy"],
+                fund["id"], fund["org_id"], fund["name"], fund["strategy"],
                 fund["target_size_mm"], fund["geographic_focus"], fund["vintage_year"],
-                fund["status"], fund["sectors"]
+                fund["status"], fund["sector_focus"]
             ))
 
         print(f"  Loaded {len(DEMO_FUNDS)} demo funds")
@@ -474,32 +475,21 @@ def load_demo_data(conn):
 
         print(f"  Loaded {len(DEMO_PIPELINE)} demo pipeline entries")
 
-        # Insert demo shortlist (need to get/create demo GP user ID)
-        # We'll use a placeholder user_id that matches the demo GP user
-        demo_gp_user_id = "00000000-0000-0000-0000-000000000001"  # Placeholder
+        # Commit core data first
+        conn.commit()
 
-        # Check if shortlists table exists and has correct schema
-        try:
-            for item in DEMO_SHORTLIST:
-                cur.execute("""
-                    INSERT INTO shortlists (user_id, lp_id, priority, notes)
-                    VALUES (%s, %s, %s, %s)
-                    ON CONFLICT DO NOTHING
-                """, (demo_gp_user_id, item["lp_id"], item["priority"], item["notes"]))
-            print(f"  Loaded {len(DEMO_SHORTLIST)} demo shortlist entries")
-        except Exception as e:
-            print(f"  Skipped shortlist (table may not exist): {e}")
-
-        # Insert demo touchpoints
+        # Insert demo touchpoints (optional - table may not exist in older schemas)
         try:
             for tp in DEMO_TOUCHPOINTS:
                 cur.execute("""
-                    INSERT INTO touchpoints (lp_org_id, fund_id, touchpoint_type, notes, occurred_at)
+                    INSERT INTO touchpoints (org_id, company_id, touchpoint_type, summary, occurred_at)
                     VALUES (%s, %s, %s, %s, NOW() - interval '1 day' * (random() * 30)::int)
-                """, (tp["lp_org_id"], tp["fund_id"], tp["touchpoint_type"], tp["notes"]))
+                """, (tp["org_id"], tp["company_id"], tp["touchpoint_type"], tp["summary"]))
+            conn.commit()
             print(f"  Loaded {len(DEMO_TOUCHPOINTS)} demo touchpoints")
         except Exception as e:
-            print(f"  Skipped touchpoints (table may not exist): {e}")
+            conn.rollback()
+            print(f"  Skipped touchpoints: {e}")
 
         # Note: Users are managed by Supabase Auth, not a custom users table
         print("  Demo users: Use Supabase Auth (gp@demo.com, admin@demo.com, lp@demo.com)")

@@ -51,6 +51,7 @@ class UserData(TypedDict):
         email: User's email address (lowercase).
         name: User's display name.
         role: User role - 'gp', 'lp', or 'admin'.
+        org_id: Organization ID this user belongs to (optional).
         created_at: ISO format timestamp of account creation.
     """
 
@@ -58,6 +59,7 @@ class UserData(TypedDict):
     email: str
     name: str
     role: Literal["gp", "lp", "admin", "fa"]
+    org_id: str | None
     created_at: str
 
 
@@ -82,6 +84,7 @@ class SessionData(TypedDict):
         email: User's email for quick access.
         name: User's display name for quick access.
         role: User's role for authorization checks.
+        org_id: Organization ID this user belongs to.
         created_at: Timestamp when session was created.
         expires_at: Timestamp when session expires.
     """
@@ -90,6 +93,7 @@ class SessionData(TypedDict):
     email: str
     name: str
     role: Literal["gp", "lp", "admin", "fa"]
+    org_id: str | None
     created_at: datetime
     expires_at: datetime
 
@@ -104,15 +108,17 @@ class CurrentUser(TypedDict):
         email: User's email address.
         name: User's display name.
         role: User's role for authorization.
+        org_id: Organization ID this user belongs to.
     """
 
     id: str
     email: str
     name: str
     role: Literal["gp", "lp", "admin", "fa"]
+    org_id: str | None
 
 
-class DemoUserConfig(TypedDict):
+class DemoUserConfig(TypedDict, total=False):
     """Configuration for demo user creation.
 
     Attributes:
@@ -120,12 +126,14 @@ class DemoUserConfig(TypedDict):
         password: Demo user's plain text password.
         name: Demo user's display name.
         role: Demo user's role.
+        org_id: Organization ID to link to (optional).
     """
 
     email: str
     password: str
     name: str
     role: Literal["gp", "lp", "admin", "fa"]
+    org_id: str | None
 
 
 # Type alias for user roles
@@ -224,6 +232,7 @@ def _sanitize_user(user: UserDataInternal) -> UserData:
         email=user["email"],
         name=user["name"],
         role=user["role"],
+        org_id=user.get("org_id"),
         created_at=user["created_at"],
     )
 
@@ -238,6 +247,7 @@ def create_user(
     password: str,
     name: str,
     role: UserRole = "gp",
+    org_id: str | None = None,
 ) -> UserData:
     """Create a new user account.
 
@@ -249,6 +259,7 @@ def create_user(
         password: Plain text password (will be hashed).
         name: User's display name.
         role: User role, one of 'gp', 'lp', 'admin', or 'fa'. Defaults to 'gp'.
+        org_id: Organization ID to link this user to. Optional.
 
     Returns:
         Created user data (without password hash).
@@ -285,6 +296,7 @@ def create_user(
         "password_hash": _hash_password(password),
         "name": name,
         "role": role,
+        "org_id": org_id,
         "created_at": datetime.now(UTC).isoformat(),
     }
 
@@ -411,6 +423,7 @@ def create_session(user: UserData) -> str:
         email=user["email"],
         name=user["name"],
         role=user["role"],
+        org_id=user.get("org_id"),
         created_at=now,
         expires_at=expires_at,
     )
@@ -500,6 +513,7 @@ def get_current_user(request: Request) -> CurrentUser | None:
         email=session["email"],
         name=session["name"],
         role=session["role"],
+        org_id=session.get("org_id"),
     )
 
 
@@ -671,30 +685,36 @@ def init_demo_users() -> None:
     This function is called automatically on module import.
     In production, this should be disabled or removed.
     """
+    # Demo GP org ID: c0000001-0000-0000-0000-000000000001
+    # Demo LP org ID (CalPERS): a1000001-0000-0000-0000-000000000001
     demo_users: list[DemoUserConfig] = [
         {
             "email": "gp@demo.com",
             "password": "demo123",
             "name": "Demo GP User",
             "role": "gp",
+            "org_id": "c0000001-0000-0000-0000-000000000001",  # Demo GP Partners
         },
         {
             "email": "lp@demo.com",
             "password": "demo123",
             "name": "Demo LP User",
             "role": "lp",
+            "org_id": "a1000001-0000-0000-0000-000000000001",  # CalPERS
         },
         {
             "email": "fa@demo.com",
             "password": "demo123",
             "name": "Demo Fund Advisor",
             "role": "fa",
+            "org_id": None,  # FA can work with multiple orgs
         },
         {
             "email": "admin@demo.com",
             "password": "admin123",
             "name": "Admin User",
             "role": "admin",
+            "org_id": None,  # Admin can access all
         },
     ]
 

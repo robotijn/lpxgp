@@ -108,7 +108,7 @@ async def lp_dashboard(request: Request) -> HTMLResponse | RedirectResponse:
                             s.lp_interest, s.pipeline_stage
                         FROM fund_lp_matches m
                         JOIN funds f ON f.id = m.fund_id
-                        JOIN organizations gp ON gp.id = f.gp_org_id
+                        JOIN organizations gp ON gp.id = f.org_id
                         LEFT JOIN fund_lp_status s
                             ON s.fund_id = m.fund_id AND s.lp_org_id = m.lp_org_id
                         WHERE m.lp_org_id = %s
@@ -128,7 +128,7 @@ async def lp_dashboard(request: Request) -> HTMLResponse | RedirectResponse:
                             s.lp_interest, s.notes
                         FROM fund_lp_status s
                         JOIN funds f ON f.id = s.fund_id
-                        JOIN organizations gp ON gp.id = f.gp_org_id
+                        JOIN organizations gp ON gp.id = f.org_id
                         WHERE s.lp_org_id = %s AND s.lp_interest = 'watching'
                         ORDER BY s.updated_at DESC
                         """,
@@ -201,7 +201,7 @@ async def lp_watchlist_page(request: Request) -> HTMLResponse | RedirectResponse
                             s.lp_interest, s.notes, s.updated_at
                         FROM fund_lp_status s
                         JOIN funds f ON f.id = s.fund_id
-                        JOIN organizations gp ON gp.id = f.gp_org_id
+                        JOIN organizations gp ON gp.id = f.org_id
                         WHERE s.lp_org_id = %s
                             AND s.lp_interest IN ('watching', 'interested')
                         ORDER BY s.updated_at DESC
@@ -346,24 +346,15 @@ async def lp_pipeline_page(request: Request) -> HTMLResponse | RedirectResponse:
         "passed": [],
     }
 
+    # Use user's org_id directly if available
+    lp_org_id = user.get("org_id")
+
     conn = get_db()
     if conn:
         try:
-            with conn.cursor() as cur:
-                # Get LP's organization through employment
-                cur.execute(
-                    """
-                    SELECT o.id as lp_org_id
-                    FROM people p
-                    JOIN employment e ON e.person_id = p.id AND e.is_current = TRUE
-                    JOIN organizations o ON o.id = e.org_id
-                    WHERE p.auth_user_id = %s
-                    """,
-                    (user.get("id"),),
-                )
-                lp_org = cur.fetchone()
-
-                if lp_org:
+            # Only query if we have a valid LP org_id
+            if lp_org_id and is_valid_uuid(lp_org_id):
+                with conn.cursor() as cur:
                     cur.execute(
                         """
                         SELECT
@@ -372,11 +363,11 @@ async def lp_pipeline_page(request: Request) -> HTMLResponse | RedirectResponse:
                             s.lp_interest, s.notes, s.updated_at
                         FROM fund_lp_status s
                         JOIN funds f ON f.id = s.fund_id
-                        JOIN organizations gp ON gp.id = f.gp_org_id
+                        JOIN organizations gp ON gp.id = f.org_id
                         WHERE s.lp_org_id = %s AND s.lp_interest IS NOT NULL
                         ORDER BY s.updated_at DESC
                         """,
-                        (lp_org["lp_org_id"],),
+                        (lp_org_id,),
                     )
                     for fund in cur.fetchall():
                         stage = fund.get("lp_interest", "watching")
@@ -747,7 +738,7 @@ async def lp_meeting_request_page(
                         f.vintage_year, f.geographic_focus as geo_focus,
                         gp.name as gp_name
                     FROM funds f
-                    JOIN organizations gp ON gp.id = f.gp_org_id
+                    JOIN organizations gp ON gp.id = f.org_id
                     WHERE f.id = %s
                     """,
                     (fund_id,),

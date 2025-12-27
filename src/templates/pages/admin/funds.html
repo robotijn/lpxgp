@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+
+{% block nav %}
+<nav class="hidden md:flex ml-10 space-x-8">
+    <a href="/admin" class="text-navy-600 hover:text-navy-900 text-sm">Overview</a>
+    <a href="/admin/companies" class="text-navy-600 hover:text-navy-900 text-sm">Companies</a>
+    <a href="/admin/funds" class="text-gold font-medium text-sm">Funds</a>
+    <a href="/admin/users" class="text-navy-600 hover:text-navy-900 text-sm">Users</a>
+    <a href="/admin/lps" class="text-navy-600 hover:text-navy-900 text-sm">LPs</a>
+    <a href="/admin/health" class="text-navy-600 hover:text-navy-900 text-sm">Health</a>
+    <a href="/dashboard" class="text-navy-600 hover:text-navy-900 text-sm">Back to App</a>
+</nav>
+{% endblock %}
+
+{% block mobile_nav %}
+<a href="/admin" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Overview</a>
+<a href="/admin/companies" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Companies</a>
+<a href="/admin/funds" class="block py-2 px-3 rounded-lg bg-gold/10 text-gold font-medium">Funds</a>
+<a href="/admin/users" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Users</a>
+<a href="/admin/lps" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">LPs</a>
+<a href="/admin/health" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Health</a>
+<a href="/dashboard" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Back to App</a>
+{% endblock %}
+
+{% block header_right %}
+<div class="flex items-center space-x-4">
+    <span class="px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-800 rounded">Admin</span>
+    <a href="/settings" class="text-gold font-medium text-sm hidden md:inline">
+        {{ user.name }}
+    </a>
+    <a href="/logout" class="btn-secondary text-sm">Sign Out</a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-navy-900">Funds</h1>
+            <p class="text-navy-500 mt-1">{{ stats.total }} funds across all GP firms</p>
+        </div>
+        <div class="flex space-x-3">
+            <a href="/api/admin/export/funds" class="btn-secondary">
+                <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                </svg>
+                Export CSV
+            </a>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="card p-4">
+            <div class="text-sm text-navy-500">Total Funds</div>
+            <div class="text-xl lg:text-2xl font-semibold text-navy-900">{{ stats.total }}</div>
+        </div>
+        <div class="card p-4">
+            <div class="text-sm text-navy-500">Active</div>
+            <div class="text-xl lg:text-2xl font-semibold text-green-600">{{ stats.active }}</div>
+        </div>
+        <div class="card p-4">
+            <div class="text-sm text-navy-500">Fundraising</div>
+            <div class="text-xl lg:text-2xl font-semibold text-amber-600">{{ stats.fundraising }}</div>
+        </div>
+        <div class="card p-4">
+            <div class="text-sm text-navy-500">Total AUM</div>
+            <div class="text-xl lg:text-2xl font-semibold text-navy-900">${{ stats.total_aum_bn }}B</div>
+        </div>
+    </div>
+
+    <!-- Search & Filters -->
+    <div class="card p-4 mb-6">
+        <form class="flex flex-wrap gap-2 sm:gap-4" method="get" action="/admin/funds">
+            <div class="flex-1 min-w-[200px]">
+                <input type="text" name="q" class="form-input w-full" placeholder="Search funds..." value="{{ search_query or '' }}">
+            </div>
+            <select name="strategy" class="form-input w-40">
+                <option value="">All Strategies</option>
+                <option value="buyout" {{ 'selected' if filter_strategy == 'buyout' else '' }}>Buyout</option>
+                <option value="growth_equity" {{ 'selected' if filter_strategy == 'growth_equity' else '' }}>Growth Equity</option>
+                <option value="venture_capital" {{ 'selected' if filter_strategy == 'venture_capital' else '' }}>Venture Capital</option>
+                <option value="real_estate" {{ 'selected' if filter_strategy == 'real_estate' else '' }}>Real Estate</option>
+                <option value="infrastructure" {{ 'selected' if filter_strategy == 'infrastructure' else '' }}>Infrastructure</option>
+            </select>
+            <select name="status" class="form-input w-40">
+                <option value="">All Status</option>
+                <option value="active" {{ 'selected' if filter_status == 'active' else '' }}>Active</option>
+                <option value="fundraising" {{ 'selected' if filter_status == 'fundraising' else '' }}>Fundraising</option>
+                <option value="closed" {{ 'selected' if filter_status == 'closed' else '' }}>Closed</option>
+            </select>
+            <button type="submit" class="btn-secondary">Filter</button>
+        </form>
+    </div>
+
+    <!-- Funds Table -->
+    <div class="card overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-navy-200">
+                <thead class="bg-navy-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-navy-500 uppercase tracking-wider">
+                            Fund Name
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-navy-500 uppercase tracking-wider">
+                            GP Firm
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-navy-500 uppercase tracking-wider">
+                            Strategy
+                        </th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-navy-500 uppercase tracking-wider">
+                            Target Size
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-navy-500 uppercase tracking-wider">
+                            Vintage
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-navy-500 uppercase tracking-wider">
+                            Status
+                        </th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-navy-500 uppercase tracking-wider">
+                            Actions
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-navy-100">
+                    {% for fund in funds %}
+                    <tr class="hover:bg-navy-50">
+                        <td class="px-6 py-4">
+                            <div class="font-medium text-navy-900">{{ fund.name }}</div>
+                            {% if fund.description %}
+                            <div class="text-xs text-navy-400">{{ fund.description[:50] }}{{ '...' if fund.description|length > 50 else '' }}</div>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-sm text-navy-600">
+                            <a href="/admin/companies/{{ fund.org_id }}" class="hover:text-gold">{{ fund.org_name or '-' }}</a>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-navy-600">
+                            {{ fund.strategy|replace('_', ' ')|title if fund.strategy else '-' }}
+                        </td>
+                        <td class="px-6 py-4 text-sm text-navy-900 text-right font-medium">
+                            {% if fund.target_size_mm %}
+                            ${{ fund.target_size_mm }}M
+                            {% else %}
+                            <span class="italic text-navy-400">TBD</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-sm text-navy-600">
+                            {{ fund.vintage or '-' }}
+                        </td>
+                        <td class="px-6 py-4">
+                            {% if fund.status == 'active' %}
+                            <span class="px-2 py-0.5 text-xs font-medium bg-green-50 text-green-700 rounded">Active</span>
+                            {% elif fund.status == 'fundraising' %}
+                            <span class="px-2 py-0.5 text-xs font-medium bg-amber-50 text-amber-700 rounded">Fundraising</span>
+                            {% elif fund.status == 'closed' %}
+                            <span class="px-2 py-0.5 text-xs font-medium bg-slate-100 text-slate-600 rounded">Closed</span>
+                            {% else %}
+                            <span class="px-2 py-0.5 text-xs font-medium bg-navy-100 text-navy-600 rounded">{{ fund.status or 'Unknown' }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            <a href="/funds/{{ fund.id }}" class="text-sm text-gold hover:text-gold-600">View &rarr;</a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="px-6 py-8 text-center text-navy-500">
+                            No funds found.
+                            {% if search_query or filter_strategy or filter_status %}
+                            <a href="/admin/funds" class="text-gold hover:underline">Clear filters</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if total_pages > 1 %}
+        <!-- Pagination -->
+        <div class="flex justify-between items-center px-6 py-4 border-t border-navy-100">
+            <span class="text-sm text-navy-500">Showing {{ (page - 1) * per_page + 1 }}-{{ [page * per_page, stats.total] | min }} of {{ stats.total }} funds</span>
+            <div class="flex space-x-2">
+                {% if page > 1 %}
+                <a href="/admin/funds?page={{ page - 1 }}{% if search_query %}&q={{ search_query }}{% endif %}{% if filter_strategy %}&strategy={{ filter_strategy }}{% endif %}{% if filter_status %}&status={{ filter_status }}{% endif %}" class="btn-secondary text-sm px-3">Previous</a>
+                {% endif %}
+                {% for p in range(1, total_pages + 1) %}
+                <a href="/admin/funds?page={{ p }}{% if search_query %}&q={{ search_query }}{% endif %}{% if filter_strategy %}&strategy={{ filter_strategy }}{% endif %}{% if filter_status %}&status={{ filter_status }}{% endif %}"
+                   class="{% if p == page %}btn-primary{% else %}btn-secondary{% endif %} text-sm px-3">{{ p }}</a>
+                {% endfor %}
+                {% if page < total_pages %}
+                <a href="/admin/funds?page={{ page + 1 }}{% if search_query %}&q={{ search_query }}{% endif %}{% if filter_strategy %}&strategy={{ filter_strategy }}{% endif %}{% if filter_status %}&status={{ filter_status }}{% endif %}" class="btn-secondary text-sm px-3">Next</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Back Link -->
+    <div class="mt-8">
+        <a href="/admin" class="text-gold hover:text-gold-600 text-sm font-medium">
+            &larr; Back to Admin Dashboard
+        </a>
+    </div>
+</div>
+{% endblock %}

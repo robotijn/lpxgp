@@ -70,12 +70,16 @@ def get_db() -> psycopg.Connection[dict[str, Any]] | None:
     Returns:
         psycopg Connection object with dict_row factory, or None if not configured.
     """
-    # Check for test database first (pytest sets this)
-    db_url = os.environ.get("TEST_DATABASE_URL")
+    from src.config import get_settings
+
+    settings = get_settings()
+
+    # Check for test database first (from settings or env)
+    db_url = settings.test_database_url or os.environ.get("TEST_DATABASE_URL")
 
     # Fall back to production database
     if not db_url:
-        db_url = os.environ.get("DATABASE_URL")
+        db_url = settings.database_url or os.environ.get("DATABASE_URL")
 
     if not db_url:
         return None
