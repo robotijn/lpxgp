@@ -297,9 +297,10 @@ class TestParseLpSearchQuery:
             mock_client.return_value.__aenter__.return_value = mock_instance
             mock_instance.post.side_effect = httpx.TimeoutException("timeout")
 
-            result = await parse_lp_search_query("50m or more aum")
+            # Use use_cache=False to avoid getting cached result from previous tests
+            result = await parse_lp_search_query("50m or more aum timeout test", use_cache=False)
 
-            assert result["text_search"] == "50m or more aum"
+            assert result["text_search"] == "50m or more aum timeout test"
             assert result["_cache_hit"] is False
             assert "_parse_time_ms" in result
 

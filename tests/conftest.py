@@ -20,6 +20,7 @@ Performance optimizations:
 
 from __future__ import annotations
 
+import asyncio
 import os
 from collections.abc import Generator
 from typing import TYPE_CHECKING, Any
@@ -31,6 +32,35 @@ from fastapi.testclient import TestClient
 from src.main import app
 from src.preferences import _user_preferences
 from src.shortlists import _shortlists
+
+
+# =============================================================================
+# Event Loop Isolation for pytest-asyncio tests
+# =============================================================================
+
+
+@pytest.fixture(scope="function")
+def event_loop():
+    """Create a new event loop for each test function.
+
+    This prevents event loop pollution between Playwright tests
+    and pytest-asyncio tests.
+    """
+    # Get current loop if any
+    try:
+        old_loop = asyncio.get_event_loop()
+        if old_loop.is_running():
+            # Don't interfere with running loop (e.g., from Playwright)
+            yield old_loop
+            return
+    except RuntimeError:
+        pass
+
+    # Create a fresh event loop
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    yield loop
+    loop.close()
 
 if TYPE_CHECKING:
     from playwright.sync_api import BrowserContext, Page

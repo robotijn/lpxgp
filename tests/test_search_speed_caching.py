@@ -694,15 +694,15 @@ class TestCacheVersionManager:
 
     def test_is_stale(self):
         """Should correctly report staleness."""
-        manager = CacheVersionManager(poll_interval=1)  # 1 second
+        manager = CacheVersionManager(poll_interval=0.5)  # Use shorter interval for testing
 
         manager.update_from_db({"lp": {"count": 100, "last_modified": None}})
 
         # Just updated, should not be stale
         assert manager.is_stale() is False
 
-        # Wait and check again
-        time.sleep(1.1)
+        # Wait longer than poll_interval and check again
+        time.sleep(0.7)
         assert manager.is_stale() is True
 
 
