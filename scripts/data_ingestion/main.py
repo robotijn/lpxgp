@@ -2,15 +2,22 @@
 """
 Data Ingestion Pipeline - Main Orchestrator
 
-Imports data from Metabase/IPEM CSV exports into Supabase.
+Two-phase ETL:
+1. RAW DATA (for client display): organizations → people → funds
+2. AI DATA (for matching algorithms): fund_ai_profiles → lp_ai_profiles
 
 Usage:
+    # Raw data only (client display)
     python -m scripts.data_ingestion.main --phase organizations
-    python -m scripts.data_ingestion.main --phase people
     python -m scripts.data_ingestion.main --phase funds
     python -m scripts.data_ingestion.main --phase all
-    python -m scripts.data_ingestion.main --phase all --dry-run
-    python -m scripts.data_ingestion.main --phase all --limit 100
+
+    # AI profiles (for matching)
+    python -m scripts.data_ingestion.main --phase ai-profiles
+
+    # Full pipeline (raw + AI)
+    python -m scripts.data_ingestion.main --phase full
+    python -m scripts.data_ingestion.main --phase full --dry-run
 """
 import argparse
 import json
@@ -36,6 +43,7 @@ from .transformers.dedupe import dedupe_by_key
 from .loaders.organizations import load_organizations
 from .loaders.people import load_people
 from .loaders.funds import load_funds
+from .loaders.ai_profiles import load_fund_ai_profiles, sync_fund_ai_profiles
 
 # Logging setup
 logging.basicConfig(
@@ -133,14 +141,19 @@ def run_people(client: Client | None, dry_run: bool = False, limit: int | None =
     return stats
 
 
-def run_funds(client: Client | None, dry_run: bool = False, limit: int | None = None) -> SyncStats:
-    """Phase 3: Import funds from global_funds.csv"""
-    logger.info("Phase 3: Funds")
+def run_funds(client: Client | None, dry_run: bool = False, limit: int | None = None) -> tuple[SyncStats, list[dict]]:
+    """
+    Phase 3: Import funds from global_funds.csv
+
+    Returns:
+        Tuple of (stats, records) - records needed for AI profile phase
+    """
+    logger.info("Phase 3: Funds (raw data for display)")
 
     filepath = SOURCE_FILES["global_funds"]
     if not filepath.exists():
         logger.error(f"Source file not found: {filepath}")
-        return SyncStats(errors=[{"error": f"File not found: {filepath}"}])
+        return SyncStats(errors=[{"error": f"File not found: {filepath}"}]), []
 
     # Extract
     logger.info(f"  Extracting from {filepath.name}...")
@@ -158,11 +171,58 @@ def run_funds(client: Client | None, dry_run: bool = False, limit: int | None = 
 
     logger.info(f"  Found {len(records)} unique funds")
 
-    # Load
-    logger.info("  Loading to Supabase...")
+    # Load RAW data to funds table
+    logger.info("  Loading RAW data to funds table...")
     stats = load_funds(client, iter(records), dry_run=dry_run)
 
     logger.info(f"  Done: {stats.created} created, {stats.skipped} skipped, {len(stats.errors)} errors")
+    return stats, records
+
+
+def run_ai_profiles(
+    client: Client | None,
+    fund_records: list[dict] | None = None,
+    dry_run: bool = False,
+) -> SyncStats:
+    """
+    Phase 4: Populate AI matching profiles from raw data.
+
+    This phase creates normalized data for AI algorithms ONLY.
+    Client-facing code should NEVER use these tables.
+
+    Args:
+        client: Supabase client
+        fund_records: Fund records from extraction (with ai_* fields)
+        dry_run: If True, don't write to database
+    """
+    logger.info("Phase 4: AI Profiles (for matching algorithms only)")
+    stats = SyncStats()
+
+    # If we have fund records from extraction, use them
+    if fund_records:
+        logger.info(f"  Loading {len(fund_records)} fund AI profiles...")
+
+        # First, we need fund_ids from the database
+        # For now, sync from database directly
+        if client and not dry_run:
+            logger.info("  Syncing fund_ai_profiles from funds table...")
+            ai_stats = sync_fund_ai_profiles(client, dry_run=dry_run)
+            stats.created += ai_stats.created
+            stats.errors.extend(ai_stats.errors)
+            logger.info(f"  Fund AI profiles: {ai_stats.created} synced")
+    else:
+        # Sync from existing database records
+        if client and not dry_run:
+            logger.info("  Syncing fund_ai_profiles from existing funds...")
+            ai_stats = sync_fund_ai_profiles(client, dry_run=dry_run)
+            stats.created += ai_stats.created
+            stats.errors.extend(ai_stats.errors)
+            logger.info(f"  Fund AI profiles: {ai_stats.created} synced")
+
+    # TODO: Add LP AI profile sync when we have LP preference data
+    logger.info("  (LP AI profiles - pending preference data from Metabase)")
+
+    logger.info(f"  Done: {stats.created} AI profiles created, {len(stats.errors)} errors")
     return stats
 
 
@@ -187,9 +247,9 @@ def main():
     parser = argparse.ArgumentParser(description="Import data from Metabase to Supabase")
     parser.add_argument(
         "--phase",
-        choices=["organizations", "people", "funds", "all"],
+        choices=["organizations", "people", "funds", "ai-profiles", "all", "full"],
         default="all",
-        help="Which phase to run",
+        help="Which phase to run. 'all' = raw data only, 'full' = raw + AI profiles",
     )
     parser.add_argument(
         "--dry-run",
@@ -210,6 +270,11 @@ def main():
     if args.limit:
         logger.info(f"Limit: {args.limit} records")
     logger.info("=" * 60)
+    logger.info("")
+    logger.info("Pipeline structure:")
+    logger.info("  RAW DATA (client display): organizations → people → funds")
+    logger.info("  AI DATA (matching only):   fund_ai_profiles → lp_ai_profiles")
+    logger.info("")
 
     # Connect to Supabase (skip for dry run if no credentials)
     client = None
@@ -223,15 +288,27 @@ def main():
             logger.error(f"Failed to connect to Supabase: {e}")
             sys.exit(1)
 
-    phases = []
+    # Determine which phases to run
+    raw_phases = []
+    run_ai = False
+    fund_records = []  # Store for AI profile phase
+
     if args.phase == "all":
-        phases = ["organizations", "people", "funds"]
+        raw_phases = ["organizations", "people", "funds"]
+    elif args.phase == "full":
+        raw_phases = ["organizations", "people", "funds"]
+        run_ai = True
+    elif args.phase == "ai-profiles":
+        run_ai = True
     else:
-        phases = [args.phase]
+        raw_phases = [args.phase]
 
     total_stats = SyncStats()
 
-    for phase in phases:
+    # ═══════════════════════════════════════════════════════════════
+    # PHASE 1-3: RAW DATA (for client display)
+    # ═══════════════════════════════════════════════════════════════
+    for phase in raw_phases:
         start_time = time.time()
 
         if phase == "organizations":
@@ -239,7 +316,7 @@ def main():
         elif phase == "people":
             stats = run_people(client, args.dry_run, args.limit)
         elif phase == "funds":
-            stats = run_funds(client, args.dry_run, args.limit)
+            stats, fund_records = run_funds(client, args.dry_run, args.limit)
         else:
             continue
 
@@ -251,8 +328,22 @@ def main():
         total_stats.errors.extend(stats.errors)
 
         # Log to database (unless dry run)
-        if not args.dry_run:
+        if client and not args.dry_run:
             log_sync(client, phase, stats, duration_ms)
+
+    # ═══════════════════════════════════════════════════════════════
+    # PHASE 4: AI PROFILES (for matching algorithms)
+    # ═══════════════════════════════════════════════════════════════
+    if run_ai:
+        start_time = time.time()
+        ai_stats = run_ai_profiles(client, fund_records, args.dry_run)
+        duration_ms = int((time.time() - start_time) * 1000)
+
+        total_stats.created += ai_stats.created
+        total_stats.errors.extend(ai_stats.errors)
+
+        if client and not args.dry_run:
+            log_sync(client, "ai_profiles", ai_stats, duration_ms)
 
     # Summary
     logger.info("=" * 60)

@@ -7,6 +7,16 @@ from pathlib import Path
 from typing import Iterator
 
 
+def _clean_null(value: str | None) -> str | None:
+    """Convert 'null' string and empty values to None."""
+    if not value:
+        return None
+    cleaned = value.strip()
+    if cleaned.lower() == "null" or cleaned == "":
+        return None
+    return cleaned
+
+
 def extract_companies(filepath: Path) -> Iterator[dict]:
     """
     Extract companies from companies_crm.csv.
@@ -26,9 +36,9 @@ def extract_companies(filepath: Path) -> Iterator[dict]:
             yield {
                 "external_id": row.get("Organization ID", "").strip(),
                 "name": row.get("Company Name", "").strip(),
-                "website": row.get("Website", "").strip() or None,
-                "description": row.get("Description", "").strip() or None,
-                "hq_country": row.get("Country", "").strip() or None,
+                "website": _clean_null(row.get("Website")),
+                "description": _clean_null(row.get("Description")),
+                "hq_country": _clean_null(row.get("Country")),
             }
 
 

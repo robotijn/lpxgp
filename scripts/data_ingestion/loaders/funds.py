@@ -62,7 +62,8 @@ def load_funds(
         # Map status
         status = map_fund_status(record.get("status_raw"))
 
-        # Prepare fund record
+        # Prepare fund record with RAW data only (for client display)
+        # NOTE: AI normalized data goes to fund_ai_profiles table separately
         fund_data = {
             "external_id": record["external_id"],
             "external_source": "ipem",
@@ -71,10 +72,16 @@ def load_funds(
             "status": status,
             "fund_number": record.get("fund_number"),
             "investment_thesis": record.get("investment_thesis"),
-            "strategy": record.get("strategy"),
-            "sub_strategy": record.get("sub_strategy"),
-            "geographic_focus": record.get("geographic_focus", []),
-            "sector_focus": record.get("sector_focus", []),
+            # ── RAW VALUES (what client sees) ──
+            "strategies_raw": record.get("strategies_raw"),
+            "fund_size_raw": record.get("fund_size_raw"),
+            "geographic_scope_raw": record.get("geographic_scope_raw"),
+            "domicile": record.get("domicile"),
+            "fee_details": record.get("fee_details"),
+            # Original arrays (still useful for display)
+            "geographic_focus": record.get("geographic_focus_raw", "").split(",") if record.get("geographic_focus_raw") else [],
+            "sector_focus": record.get("sectors_raw", "").split(",") if record.get("sectors_raw") else [],
+            # Other fields
             "esg_policy": record.get("esg_policy", False),
             "check_size_min_mm": record.get("check_size_min_mm"),
             "data_source": "ipem",
