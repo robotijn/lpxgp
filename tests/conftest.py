@@ -20,7 +20,6 @@ Performance optimizations:
 
 from __future__ import annotations
 
-import asyncio
 import os
 from collections.abc import Generator
 from typing import TYPE_CHECKING, Any
@@ -35,32 +34,41 @@ from src.shortlists import _shortlists
 
 
 # =============================================================================
-# Event Loop Isolation for pytest-asyncio tests
+# Test Ordering for Playwright/pytest-asyncio Compatibility
 # =============================================================================
 
 
-@pytest.fixture(scope="function")
-def event_loop():
-    """Create a new event loop for each test function.
+def pytest_collection_modifyitems(session, config, items):
+    """Reorder tests so async tests run before Playwright tests.
 
-    This prevents event loop pollution between Playwright tests
-    and pytest-asyncio tests.
+    This prevents Playwright from polluting the event loop before
+    pytest-asyncio tests run.
     """
-    # Get current loop if any
-    try:
-        old_loop = asyncio.get_event_loop()
-        if old_loop.is_running():
-            # Don't interfere with running loop (e.g., from Playwright)
-            yield old_loop
-            return
-    except RuntimeError:
-        pass
+    # Separate async tests from E2E/Playwright tests
+    async_tests = []
+    e2e_tests = []
+    other_tests = []
 
-    # Create a fresh event loop
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    yield loop
-    loop.close()
+    for item in items:
+        # Check if it's an async test (has asyncio marker or is coroutine)
+        markers = [m.name for m in item.iter_markers()]
+        if 'asyncio' in markers:
+            async_tests.append(item)
+        elif 'browser' in markers or 'e2e' in item.nodeid or 'test_e2e' in item.nodeid:
+            e2e_tests.append(item)
+        else:
+            # Check if test file uses Playwright fixtures
+            if hasattr(item, 'fixturenames'):
+                if any(f in item.fixturenames for f in ['page', 'browser', 'context']):
+                    e2e_tests.append(item)
+                else:
+                    other_tests.append(item)
+            else:
+                other_tests.append(item)
+
+    # Reorder: async tests first, then other tests, then E2E tests last
+    items[:] = async_tests + other_tests + e2e_tests
+
 
 if TYPE_CHECKING:
     from playwright.sync_api import BrowserContext, Page
