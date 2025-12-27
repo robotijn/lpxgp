@@ -110,13 +110,13 @@ class TestLPDetailJourney:
         """
         page = logged_in_page
         page.goto(f"{BASE_URL}/lps")
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
 
         # Find and click an LP link (usually LP name is a link)
         lp_links = page.locator('a[href*="/lps/"]')
         if lp_links.count() > 0:
             lp_links.first.click()
-            page.wait_for_load_state("networkidle")
+            page.wait_for_load_state("domcontentloaded")
 
             # Should be on LP detail page
             assert "/lps/" in page.url
@@ -143,7 +143,7 @@ class TestLPDetailJourney:
         """
         page = logged_in_page
         page.goto(f"{BASE_URL}/lps/a1000001-0000-0000-0000-000000000001")
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
 
         page_content = page.content()
         assert "Match" in page_content or "Score" in page_content
@@ -156,7 +156,7 @@ class TestLPDetailJourney:
         """
         page = logged_in_page
         page.goto(f"{BASE_URL}/lps/a1000001-0000-0000-0000-000000000001")
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
 
         shortlist_btn = page.locator('button:has-text("Shortlist")')
         expect(shortlist_btn.first).to_be_visible()
@@ -169,7 +169,7 @@ class TestLPDetailJourney:
         """
         page = logged_in_page
         page.goto(f"{BASE_URL}/lps/a1000001-0000-0000-0000-000000000001")
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
 
         pitch_link = page.locator('a[href*="/pitch"]')
         expect(pitch_link.first).to_be_visible()
@@ -183,7 +183,7 @@ class TestLPDetailJourney:
         """
         page = logged_in_page
         page.goto(f"{BASE_URL}/lps/a1000001-0000-0000-0000-000000000001")
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
 
         # Click search breadcrumb
         search_link = page.locator('a[href="/lps"]').first

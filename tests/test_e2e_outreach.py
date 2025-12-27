@@ -69,7 +69,7 @@ class TestOutreachHubJourney:
         """
         page = logged_in_page
         page.goto(f"{BASE_URL}/outreach")
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
 
         expect(page).to_have_url(f"{BASE_URL}/outreach")
         expect(page.locator("h1")).to_contain_text("Outreach")
@@ -82,7 +82,7 @@ class TestOutreachHubJourney:
         """
         page = logged_in_page
         page.goto(f"{BASE_URL}/outreach")
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
 
         page_content = page.content()
         assert "Shortlisted" in page_content or "Contacted" in page_content
@@ -95,7 +95,7 @@ class TestOutreachHubJourney:
         """
         page = logged_in_page
         page.goto(f"{BASE_URL}/outreach")
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
 
         page_content = page.content()
         assert "Activity" in page_content or "Recent" in page_content
@@ -108,7 +108,7 @@ class TestOutreachHubJourney:
         """
         page = logged_in_page
         page.goto(f"{BASE_URL}/outreach")
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
 
         fund_filter = page.locator('select')
         if fund_filter.count() > 0:
@@ -122,7 +122,7 @@ class TestOutreachHubJourney:
         """
         page = logged_in_page
         page.goto(f"{BASE_URL}/outreach")
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
 
         page_content = page.content()
         assert "Action" in page_content or "Pitch" in page_content or "Shortlist" in page_content
@@ -135,7 +135,7 @@ class TestOutreachHubJourney:
         """
         page = logged_in_page
         page.goto(f"{BASE_URL}/outreach")
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
 
         page_content = page.content()
         assert "Meeting" in page_content or "Upcoming" in page_content
@@ -163,7 +163,7 @@ class TestPitchGeneratorJourney:
         """
         page = logged_in_page
         page.goto(f"{BASE_URL}/pitch")
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
 
         expect(page).to_have_url(f"{BASE_URL}/pitch")
         page_content = page.content()
@@ -177,7 +177,7 @@ class TestPitchGeneratorJourney:
         """
         page = logged_in_page
         page.goto(f"{BASE_URL}/pitch")
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
 
         # Should have form elements
         page_content = page.content().lower()
@@ -191,7 +191,7 @@ class TestPitchGeneratorJourney:
         """
         page = logged_in_page
         page.goto(f"{BASE_URL}/pitch")
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
 
         page_content = page.content().lower()
         assert "review" in page_content or "ai" in page_content
@@ -204,7 +204,7 @@ class TestPitchGeneratorJourney:
         """
         page = logged_in_page
         page.goto(f"{BASE_URL}/pitch")
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
 
         page_content = page.content()
         assert "Settings" in page_content or "Tone" in page_content or "Length" in page_content
@@ -218,12 +218,12 @@ class TestPitchGeneratorJourney:
         """
         page = logged_in_page
         page.goto(f"{BASE_URL}/lps/a1000001-0000-0000-0000-000000000001")
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
 
         pitch_link = page.locator('a[href*="/pitch"]').first
         if pitch_link.is_visible():
             pitch_link.click()
-            page.wait_for_load_state("networkidle")
+            page.wait_for_load_state("domcontentloaded")
 
             # Should be on pitch page
             assert "/pitch" in page.url
@@ -237,12 +237,12 @@ class TestPitchGeneratorJourney:
         """
         page = logged_in_page
         page.goto(f"{BASE_URL}/matches/a1000001-0000-0000-0000-000000000001")
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
 
         pitch_link = page.locator('a[href*="/pitch"]').first
         if pitch_link.is_visible():
             pitch_link.click()
-            page.wait_for_load_state("networkidle")
+            page.wait_for_load_state("domcontentloaded")
 
             # Should be on pitch page
             assert "/pitch" in page.url

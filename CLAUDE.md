@@ -40,6 +40,16 @@ Note: Read these files on demand rather than auto-loading (to save context).
 - **Plan mode:** Use plan mode proactively for complex tasks - do NOT ask for permission
 - **Quality focus:** After completing work, proactively check for inconsistencies, missing tests, and improvements
 
+## Testing Guidelines
+
+**CRITICAL: Tests are the source of truth.**
+- Do NOT remove tests or adapt tests to make them pass without asking the user first
+- If a test fails, fix the APPLICATION, not the test
+- Be rigorous with testing: ruff, unit testing, E2E testing
+- Always use deep thinking (ultrathink) to create new tests and find edge cases
+- Run the full test suite before considering work complete
+- Never skip browser/E2E tests - they catch real issues that unit tests miss
+
 ## Compact Preferences
 
 When compacting conversations, always preserve:

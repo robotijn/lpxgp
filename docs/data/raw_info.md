@@ -513,3 +513,13 @@ as "organization_main_strategy_investment" in Metabase
 a. Data point that acts as a “key” of what fund this investor has allocated capital to
 -> could be a unique ID that points to the right fund(s) for example
 b. (optional) any other data pertaining to commitment(s) made by the investor
+
+
+
+
+IMPORTANT: DO NOT CHANGE THE GOOGLE SHEET
+DO NOT CHANGE EXTERNAL DATA
+
+Metabase login
+stefanciuta@phenixcapitalgroup.com
+d5WhtLBcG3pdO3
