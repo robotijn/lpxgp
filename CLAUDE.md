@@ -8,7 +8,7 @@ An AI-powered platform helping investment fund managers (GPs) find and engage th
 
 **Source of truth (MD files we work with):**
 - docs/milestones.md - Milestone roadmap (start here!)
-- docs/prd/ - Product Requirements Document (split into modules):
+- docs/prd/ - Product Requirements Document (modular):
   - index.md - PRD table of contents
   - overview.md - Product overview and goals
   - data-model.md - Database schema and relationships
@@ -17,19 +17,13 @@ An AI-powered platform helping investment fund managers (GPs) find and engage th
   - features/ - Detailed feature specifications
 - docs/prd/test-specifications.md - Test specifications (TDD)
 - docs/curriculum.md - Learning curriculum (Claude Code + LPxGP)
-- docs/architecture/ - Agent implementation details (M3+):
-  - agents-implementation.md - LangGraph state machines, base classes
-  - agent-prompts.md - Versioned prompts for 12 agents
-  - batch-processing.md - Scheduler, processor, cache
-  - monitoring-observability.md - Langfuse integration
+- docs/architecture/ - Agent implementation details (M3+)
 - docs/product-doc/content/ux-storylines.md - User journey narratives
 
 **Derived (for human/business communication only):**
 - docs/LPxGP-Product-Document.pdf - PDF with screenshots
 
-**Note:** The PDF is generated from MD files for stakeholder communication. Duplication in the PDF is fine - it's not a source of truth.
-
-Note: Read these files on demand rather than auto-loading (to save context).
+**Note:** Read these files on demand rather than auto-loading (to save context).
 
 ## Claude Preferences
 
@@ -69,7 +63,8 @@ Focus summary on: what changed, why, and what's next.
 | **Backend** | Python 3.12 (uv), FastAPI |
 | **Frontend** | Jinja2 templates + HTMX + Tailwind CSS (CDN, no npm build) |
 | **Database** | Supabase Cloud (PostgreSQL + pgvector + Auth) |
-| **AI/LLM** | OpenRouter (Claude, free models, etc.) |
+| **AI/LLM** | OpenRouter (Claude 3.5 Sonnet) + Ollama fallback for local dev |
+| **Document Parsing** | pdfplumber (PDF), python-pptx (PowerPoint) |
 | **Deployment** | Railway (auto-deploys from GitHub) |
 | **Agent Framework** | LangGraph (M3+) - state machines for multi-agent debates |
 | **Agent Monitoring** | Langfuse (M3+) - open source observability, prompt versioning |
@@ -178,16 +173,45 @@ lpxgp/                    # Git repo
 ├── CLAUDE.md
 ├── pyproject.toml
 ├── src/
-│   ├── main.py           # FastAPI app + all routes
+│   ├── main.py           # FastAPI app entry point
 │   ├── config.py         # Settings (env vars)
+│   ├── auth.py           # Authentication utilities
+│   ├── database.py       # Supabase connection
+│   ├── matching.py       # LP-Fund matching algorithm
+│   ├── pitch_deck_analyzer.py  # LLM pitch deck extraction
+│   ├── document_parser.py      # PDF/PPTX text extraction
+│   ├── file_upload.py    # Upload validation & storage
+│   ├── shortlists.py     # Shortlist management
+│   ├── search.py         # Full-text search utilities
+│   ├── routers/          # API route modules
+│   │   ├── funds.py      # Fund CRUD + pitch deck upload
+│   │   ├── lps.py        # LP search & recommendations
+│   │   ├── matches.py    # Match scoring endpoints
+│   │   ├── pipeline.py   # Outreach pipeline tracking
+│   │   ├── shortlist.py  # Shortlist management
+│   │   ├── pitch.py      # Pitch generation
+│   │   ├── admin.py      # Admin dashboard
+│   │   ├── lp_portal.py  # LP-side features
+│   │   └── ...           # auth, health, settings, etc.
+│   ├── models/           # Pydantic models
+│   │   ├── funds.py, lps.py, matching.py, pitch.py, ...
+│   ├── middleware/       # Request middleware
+│   │   ├── rate_limit.py, csrf.py, error_handler.py
 │   ├── templates/
 │   │   ├── base.html     # Layout with CDN links
-│   │   └── pages/
+│   │   ├── pages/        # Full page templates
+│   │   └── partials/     # HTMX partial templates
 │   └── static/           # Images only (CSS/JS via CDN)
 ├── tests/
-│   └── test_main.py
+│   ├── test_main.py      # Core API tests
+│   ├── test_matching.py  # Matching algorithm tests
+│   ├── test_pitch_deck_*.py  # Pitch deck upload & analysis
+│   ├── test_e2e_*.py     # Playwright browser tests
+│   └── ...               # ~20 test files, 1400+ tests
 ├── supabase/
 │   └── migrations/
+├── uploads/
+│   └── pitch_decks/      # Uploaded pitch deck files
 └── docs/
 ```
 
@@ -199,15 +223,22 @@ After M1, every push auto-deploys to lpxgp.com.
 
 ## Current Status
 
-**Phase:** Milestone 0 - Documentation complete, ready for implementation
-**Next:** Supabase schema setup, data import scripts
+**Phase:** M5-M7 Features - GP operations + LP Portal + Mutual Interest
+**Live at:** lpxgp.com (auto-deploys from main)
 
 **Completed:**
-- Full PRD with 50+ feature specifications
-- 30 UI screen mockups with working navigation
-- BDD test specifications for all milestones
-- UX storylines and user journey documentation
-- PDF product document for stakeholders
+- M0: Project setup, Supabase schema, data import
+- M1: Auth (Supabase), LP search, GP dashboard, CI/CD
+- M2: Full-text search with filters
+- M3 (partial): Fund profiles, pitch deck upload with LLM extraction
+- M5 (partial): Shortlist, pipeline tracking (Kanban), admin dashboard
+- M7 (partial): LP portal, mutual interest detection
+
+**In Progress:**
+- Enhanced matching with pitch deck extracted data
+- LP mandate profiles and fund recommendations
+
+**Test Coverage:** 1400+ tests (unit + Playwright E2E)
 
 ## Key Concepts
 
@@ -217,12 +248,40 @@ Fund managers who invest capital. They create fund profiles and seek LP investor
 ### LP (Limited Partner)
 Institutional investors who provide capital (pensions, endowments, family offices).
 
-### Matching
-Algorithm that scores LP-Fund compatibility based on:
-- Strategy alignment (hard filter)
-- Geography overlap (hard filter)
-- Fund size fit (soft score)
-- Semantic similarity of thesis/mandate (Voyage AI embeddings)
+### Matching Algorithm
+Scores LP-Fund compatibility in two stages:
+1. **Hard Filters** (pass/fail):
+   - Strategy alignment (e.g., PE fund won't match VC-only LP)
+   - Geography overlap
+   - Fund size within LP's check range
+2. **Soft Scoring** (0-100):
+   - Strategy depth match
+   - Geographic preference overlap
+   - Size fit (centered on LP's sweet spot)
+   - Enhanced scoring from pitch deck extracted data (+25 max bonus)
+
+### Pitch Deck Analysis
+LLM-powered extraction from uploaded PDFs/PPTs (via OpenRouter or Ollama):
+- **Strategy details:** Primary strategy, sub-strategies, investment style
+- **Track record:** IRR, MOIC, prior funds, portfolio companies
+- **Team details:** Partners, experience years, operator background
+- **ESG details:** ESG policy, PRI signatory status
+- **Fund terms:** Target size, management fee, carry
+- Used to enhance matching scores and generate insights
+
+### Mutual Interest Detection
+Bidirectional matching when both GP and LP show interest:
+- GP shortlists LP → LP watchlists GP's fund = **Mutual Interest**
+- Highlighted in both dashboards
+- Higher priority in recommendations
+
+### Pipeline Tracking
+Kanban-style outreach stages:
+```
+identified → shortlisted → researching → contacted →
+awaiting_response → responded → meeting_scheduled →
+meeting_completed → dd_in_progress → committed/passed
+```
 
 ### Pitch Generation
 LLM-generated content (via OpenRouter):
