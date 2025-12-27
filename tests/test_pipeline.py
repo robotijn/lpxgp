@@ -1,16 +1,16 @@
-"""Tests for pipeline-related functionality.
+"""Tests for pipeline functionality - GP and LP Kanban boards.
+
+This module contains tests for:
+- GP Pipeline API (GET and PATCH endpoints)
+- GP Pipeline page access and authorization
+- LP Pipeline API (PATCH endpoint)
+- LP Pipeline page access and authorization
 
 IMPORTANT: Tests are the source of truth. Do NOT modify tests to make them pass.
 If a test fails, fix the APPLICATION, not the test.
-
-Based on BDD Gherkin specs from docs/prd/tests/*.feature.md
-
-Test Categories:
-- Pipeline API tests: REST API for pipeline stage management
-- Pipeline page tests: Kanban board UI access and authorization
-- LP Pipeline tests: LP-specific pipeline functionality
 """
 
+import pytest
 
 
 # =============================================================================

@@ -766,7 +766,7 @@ class TestAPIAbuseProtection:
         )
         response = client.post(
             "/api/funds",
-            data="not json",
+            content="not json",
             headers={"Content-Type": "application/json"},
         )
         assert response.status_code in [200, 400, 415, 422, 503]
@@ -858,7 +858,7 @@ class TestErrorHandlingSecurity:
         )
         response = client.post(
             "/api/funds",
-            data="{invalid json",
+            content="{invalid json",
             headers={"Content-Type": "application/json"},
         )
         if response.status_code >= 400:

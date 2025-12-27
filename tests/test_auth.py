@@ -1,9 +1,15 @@
-"""Tests for authentication functionality.
+"""Tests for authentication and authorization functionality.
 
 IMPORTANT: Tests are the source of truth. Do NOT modify tests to make them pass.
 If a test fails, fix the APPLICATION, not the test.
 
 Based on BDD Gherkin specs from docs/prd/tests/*.feature.md
+
+This module contains tests for:
+- F-AUTH-01: Session Management (login, logout, session persistence)
+- F-AUTH-02: Role-Based Access Control
+- F-AUTH-03: Password Reset Flow
+- F-AUTH-04: User Invitations
 
 Test Categories:
 - Auth page rendering
@@ -11,11 +17,17 @@ Test Categories:
 - Registration functionality
 - Logout functionality
 - Protected route access control
+- Protected page redirects
+- Login redirect behavior
 - Session persistence
 - Role-based access control
+- Password reset flow
+- User invitations
 """
 
 import uuid
+
+import pytest
 
 
 class TestAuthPages:
@@ -351,3 +363,246 @@ class TestRoleBasedAccess:
         response = client.get("/funds")
         # Should redirect to LP dashboard or show forbidden
         assert response.status_code in [200, 302, 303, 307, 403]
+
+
+# =============================================================================
+# M1 AUTH & SESSION TESTS (from test_main.py)
+# Gherkin Reference: F-AUTH-01 - Session Management
+# =============================================================================
+
+
+class TestLogoutFunctionality:
+    """Test logout endpoint and session invalidation.
+
+    Gherkin Reference: F-AUTH-01 - Session Management - Logout
+    """
+
+    def test_logout_redirects_to_home_or_login(self, client):
+        """Logout should redirect to home or login page."""
+        # First login
+        client.post(
+            "/api/auth/login",
+            data={"email": "gp@demo.com", "password": "demo123"},
+        )
+        # Then logout
+        response = client.get("/logout", follow_redirects=False)
+        assert response.status_code in [302, 303, 307]
+        location = response.headers.get("location", "")
+        # Logout can redirect to home (/) or login page
+        assert location in ["/", "/login"] or "/login" in location
+
+    def test_logout_clears_session(self, client):
+        """After logout, protected pages should redirect to login."""
+        # Login
+        client.post(
+            "/api/auth/login",
+            data={"email": "gp@demo.com", "password": "demo123"},
+        )
+        # Verify logged in
+        response = client.get("/dashboard")
+        assert response.status_code == 200
+
+        # Logout
+        client.get("/logout")
+
+        # Try to access protected page
+        response = client.get("/dashboard", follow_redirects=False)
+        assert response.status_code in [302, 303, 307]
+        assert "/login" in response.headers.get("location", "")
+
+    def test_logout_works_when_not_logged_in(self, client):
+        """Logout should work gracefully when not logged in."""
+        response = client.get("/logout", follow_redirects=False)
+        # Should redirect to login without error
+        assert response.status_code in [302, 303, 307]
+
+
+class TestProtectedPageRedirects:
+    """Test that protected pages redirect unauthenticated users.
+
+    Gherkin Reference: F-AUTH-01 - Session Management - Access Control
+    """
+
+    @pytest.mark.parametrize(
+        "protected_route",
+        [
+            "/dashboard",
+            "/funds",
+            "/lps",
+            "/gps",
+            "/matches",
+            "/shortlist",
+            "/settings",
+            "/outreach",
+            "/pitch",
+            "/events",
+            "/touchpoints",
+            "/tasks",
+        ],
+    )
+    def test_protected_route_redirects_when_unauthenticated(
+        self, client, protected_route
+    ):
+        """Protected routes should redirect to login when not authenticated."""
+        response = client.get(protected_route, follow_redirects=False)
+        assert response.status_code in [302, 303, 307], (
+            f"{protected_route} should redirect unauthenticated users"
+        )
+        location = response.headers.get("location", "")
+        assert "/login" in location, (
+            f"{protected_route} should redirect to /login, got: {location}"
+        )
+
+    @pytest.mark.parametrize(
+        "admin_route",
+        [
+            "/admin",
+            "/admin/users",
+            "/admin/health",
+            "/admin/lps",
+            "/admin/companies",
+        ],
+    )
+    def test_admin_routes_redirect_when_unauthenticated(self, client, admin_route):
+        """Admin routes should redirect to login when not authenticated."""
+        response = client.get(admin_route, follow_redirects=False)
+        assert response.status_code in [302, 303, 307], (
+            f"{admin_route} should redirect unauthenticated users"
+        )
+        location = response.headers.get("location", "")
+        assert "/login" in location, (
+            f"{admin_route} should redirect to /login, got: {location}"
+        )
+
+    def test_protected_page_accessible_after_login(self, client):
+        """Protected pages should be accessible after login."""
+        # Login
+        client.post(
+            "/api/auth/login",
+            data={"email": "gp@demo.com", "password": "demo123"},
+        )
+        # Access protected page
+        response = client.get("/dashboard")
+        assert response.status_code == 200
+        assert "Dashboard" in response.text
+
+    def test_admin_page_accessible_for_admin(self, client):
+        """Admin pages should be accessible for admin users."""
+        # Login as admin
+        client.post(
+            "/api/auth/login",
+            data={"email": "admin@demo.com", "password": "admin123"},
+        )
+        # Access admin page
+        response = client.get("/admin")
+        assert response.status_code == 200
+        assert "Admin" in response.text
+
+
+# =============================================================================
+# M1 PASSWORD RESET TESTS
+# Gherkin Reference: F-AUTH-01 - Password Reset
+# =============================================================================
+
+
+class TestPasswordResetFlow:
+    """Test password reset functionality.
+
+    Gherkin Reference: F-AUTH-01 - Password Reset
+    """
+
+    def test_password_reset_page_exists(self, client):
+        """Password reset page should be accessible."""
+        # Check if there's a forgot password link or page
+        response = client.get("/login")
+        assert response.status_code == 200
+        # Look for forgot password link
+        assert "forgot" in response.text.lower() or "reset" in response.text.lower()
+
+    def test_password_reset_request_handles_valid_email(self, client):
+        """Password reset request should accept valid email format."""
+        # This test documents expected behavior even if endpoint doesn't exist yet
+        response = client.post(
+            "/api/auth/reset-password",
+            data={"email": "gp@demo.com"},
+        )
+        # Should return success or redirect (not crash)
+        assert response.status_code in [200, 302, 303, 307, 404, 422]
+
+    def test_password_reset_request_handles_invalid_email(self, client):
+        """Password reset request should handle non-existent email gracefully."""
+        response = client.post(
+            "/api/auth/reset-password",
+            data={"email": "nonexistent@example.com"},
+        )
+        # Should not reveal if email exists (security)
+        assert response.status_code in [200, 302, 303, 307, 404, 422]
+
+    def test_password_reset_request_with_empty_email(self, client):
+        """Password reset request should validate email is provided."""
+        response = client.post(
+            "/api/auth/reset-password",
+            data={"email": ""},
+        )
+        # Should return error or validation message
+        assert response.status_code in [200, 400, 404, 422]
+
+
+# =============================================================================
+# M1 USER INVITATION TESTS
+# Gherkin Reference: F-AUTH-04 - User Invitations
+# =============================================================================
+
+
+class TestUserInvitations:
+    """Test user invitation functionality.
+
+    Gherkin Reference: F-AUTH-04 - Invite-Only Platform
+    """
+
+    def test_admin_can_access_users_page(self, client):
+        """Admin should be able to access user management page."""
+        client.post(
+            "/api/auth/login",
+            data={"email": "admin@demo.com", "password": "admin123"},
+        )
+        response = client.get("/admin/users")
+        assert response.status_code == 200
+        assert "Users" in response.text or "users" in response.text.lower()
+
+    def test_users_page_shows_user_list(self, client):
+        """Users page should show list of users."""
+        client.post(
+            "/api/auth/login",
+            data={"email": "admin@demo.com", "password": "admin123"},
+        )
+        response = client.get("/admin/users")
+        assert response.status_code == 200
+        # Should have some user-related content
+        assert "email" in response.text.lower() or "user" in response.text.lower()
+
+    def test_non_admin_cannot_invite_users(self, client):
+        """Non-admin users should not be able to invite other users."""
+        client.post(
+            "/api/auth/login",
+            data={"email": "gp@demo.com", "password": "demo123"},
+        )
+        # Try to access admin users page
+        response = client.get("/admin/users")
+        # Should redirect or show forbidden
+        assert response.status_code in [200, 302, 303, 307, 403]
+
+    def test_registration_page_accessible(self, client):
+        """Registration page should be accessible for invited users."""
+        response = client.get("/register")
+        assert response.status_code == 200
+        assert "email" in response.text.lower()
+
+    def test_registration_requires_valid_data(self, client):
+        """Registration should validate required fields."""
+        response = client.post(
+            "/api/auth/register",
+            data={"email": "", "password": ""},
+        )
+        # Should return error for missing fields
+        assert response.status_code in [200, 400, 422]

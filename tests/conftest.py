@@ -234,7 +234,25 @@ def client() -> Generator[TestClient, None, None]:
     Yields:
         TestClient for making requests to the app.
     """
-    with patch("src.main.get_db", return_value=None):
+    # Patch get_db at all import locations to ensure no real DB access
+    # Only patch modules that actually import get_db
+    with (
+        patch("src.database.get_db", return_value=None),
+        patch("src.utils.get_db", return_value=None),
+        # Routers that import from src.database
+        patch("src.routers.lps.get_db", return_value=None),
+        patch("src.routers.funds.get_db", return_value=None),
+        patch("src.routers.pipeline.get_db", return_value=None),
+        patch("src.routers.matches.get_db", return_value=None),
+        patch("src.routers.gps.get_db", return_value=None),
+        patch("src.routers.crm.get_db", return_value=None),
+        patch("src.routers.lp_portal.get_db", return_value=None),
+        patch("src.routers.insights.get_db", return_value=None),
+        patch("src.routers.shortlist.get_db", return_value=None),
+        # Routers that import from src.utils
+        patch("src.routers.pages.get_db", return_value=None),
+        patch("src.routers.admin.get_db", return_value=None),
+    ):
         yield TestClient(app)
 
 
@@ -250,7 +268,25 @@ def client_with_db(mock_db_connection: MagicMock) -> Generator[TestClient, None,
     Yields:
         TestClient with mocked database.
     """
-    with patch("src.main.get_db", return_value=mock_db_connection):
+    # Patch get_db at all import locations with the mock connection
+    # Only patch modules that actually import get_db
+    with (
+        patch("src.database.get_db", return_value=mock_db_connection),
+        patch("src.utils.get_db", return_value=mock_db_connection),
+        # Routers that import from src.database
+        patch("src.routers.lps.get_db", return_value=mock_db_connection),
+        patch("src.routers.funds.get_db", return_value=mock_db_connection),
+        patch("src.routers.pipeline.get_db", return_value=mock_db_connection),
+        patch("src.routers.matches.get_db", return_value=mock_db_connection),
+        patch("src.routers.gps.get_db", return_value=mock_db_connection),
+        patch("src.routers.crm.get_db", return_value=mock_db_connection),
+        patch("src.routers.lp_portal.get_db", return_value=mock_db_connection),
+        patch("src.routers.insights.get_db", return_value=mock_db_connection),
+        patch("src.routers.shortlist.get_db", return_value=mock_db_connection),
+        # Routers that import from src.utils
+        patch("src.routers.pages.get_db", return_value=mock_db_connection),
+        patch("src.routers.admin.get_db", return_value=mock_db_connection),
+    ):
         yield TestClient(app)
 
 
