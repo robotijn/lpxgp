@@ -28,6 +28,20 @@ class TestETLPipelineDryRun:
         assert "Phase 1: Organizations" in result.stderr
         assert "created" in result.stderr
 
+    def test_phase_lps_dry_run(self):
+        """LPs phase should complete and output raw data."""
+        result = subprocess.run(
+            [sys.executable, "-m", "scripts.data_ingestion.main",
+             "--phase", "lps", "--dry-run", "--limit", "10"],
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+
+        assert result.returncode == 0, f"Failed: {result.stderr}"
+        assert "Phase 3: LP Profiles" in result.stderr
+        assert "raw data for display" in result.stderr.lower()
+
     def test_phase_funds_dry_run(self):
         """Funds phase should complete and output raw + AI data."""
         result = subprocess.run(
@@ -39,11 +53,11 @@ class TestETLPipelineDryRun:
         )
 
         assert result.returncode == 0, f"Failed: {result.stderr}"
-        assert "Phase 3: Funds" in result.stderr
+        assert "Phase 4: Funds" in result.stderr
         assert "raw data for display" in result.stderr.lower()
 
     def test_phase_all_dry_run(self):
-        """'all' phase should run organizations, people, funds."""
+        """'all' phase should run organizations, people, lps, funds."""
         result = subprocess.run(
             [sys.executable, "-m", "scripts.data_ingestion.main",
              "--phase", "all", "--dry-run", "--limit", "5"],
@@ -55,7 +69,8 @@ class TestETLPipelineDryRun:
         assert result.returncode == 0, f"Failed: {result.stderr}"
         assert "Phase 1: Organizations" in result.stderr
         assert "Phase 2: People" in result.stderr
-        assert "Phase 3: Funds" in result.stderr
+        assert "Phase 3: LP Profiles" in result.stderr
+        assert "Phase 4: Funds" in result.stderr
         assert "SUMMARY" in result.stderr
 
     def test_phase_full_dry_run(self):
@@ -71,9 +86,10 @@ class TestETLPipelineDryRun:
         assert result.returncode == 0, f"Failed: {result.stderr}"
         # Should include raw data phases
         assert "Phase 1: Organizations" in result.stderr
-        assert "Phase 3: Funds" in result.stderr
+        assert "Phase 3: LP Profiles" in result.stderr
+        assert "Phase 4: Funds" in result.stderr
         # Should include AI profiles phase
-        assert "Phase 4: AI Profiles" in result.stderr
+        assert "Phase 5: AI Profiles" in result.stderr
         assert "for matching algorithms only" in result.stderr.lower()
 
     def test_phase_ai_profiles_dry_run(self):
@@ -87,7 +103,7 @@ class TestETLPipelineDryRun:
         )
 
         assert result.returncode == 0, f"Failed: {result.stderr}"
-        assert "Phase 4: AI Profiles" in result.stderr
+        assert "Phase 5: AI Profiles" in result.stderr
 
 
 class TestETLPipelineOutput:

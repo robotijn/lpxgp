@@ -43,7 +43,9 @@ from .transformers.dedupe import dedupe_by_key
 from .loaders.organizations import load_organizations
 from .loaders.people import load_people
 from .loaders.funds import load_funds
-from .loaders.ai_profiles import load_fund_ai_profiles, sync_fund_ai_profiles
+from .loaders.lp_profiles import load_lp_profiles
+from .loaders.ai_profiles import load_fund_ai_profiles, load_lp_ai_profiles, sync_fund_ai_profiles
+from .extractors.lps import extract_lps
 
 # Logging setup
 logging.basicConfig(
@@ -141,14 +143,52 @@ def run_people(client: Client | None, dry_run: bool = False, limit: int | None =
     return stats
 
 
-def run_funds(client: Client | None, dry_run: bool = False, limit: int | None = None) -> tuple[SyncStats, list[dict]]:
+def run_lps(client: Client | None, dry_run: bool = False, limit: int | None = None) -> tuple[SyncStats, list[dict]]:
     """
-    Phase 3: Import funds from global_funds.csv
+    Phase 3: Import LPs from lp_matchmaking.csv
 
     Returns:
         Tuple of (stats, records) - records needed for AI profile phase
     """
-    logger.info("Phase 3: Funds (raw data for display)")
+    logger.info("Phase 3: LP Profiles (raw data for display)")
+
+    filepath = SOURCE_FILES.get("lp_matchmaking")
+    if not filepath or not filepath.exists():
+        logger.error(f"Source file not found: {filepath}")
+        return SyncStats(errors=[{"error": f"File not found: {filepath}"}]), []
+
+    # Extract
+    logger.info(f"  Extracting from {filepath.name}...")
+    records = extract_lps(filepath)
+
+    # Dedupe by org_external_id
+    records = dedupe_by_key(records, lambda r: r.get("org_external_id", ""))
+
+    # Apply limit if specified
+    if limit:
+        records = list(records)[:limit]
+        logger.info(f"  Limited to {limit} records")
+    else:
+        records = list(records)
+
+    logger.info(f"  Found {len(records)} unique LP profiles")
+
+    # Load RAW data to lp_profiles table
+    logger.info("  Loading RAW data to lp_profiles table...")
+    stats = load_lp_profiles(client, iter(records), dry_run=dry_run)
+
+    logger.info(f"  Done: {stats.created} created, {stats.skipped} skipped, {len(stats.errors)} errors")
+    return stats, records
+
+
+def run_funds(client: Client | None, dry_run: bool = False, limit: int | None = None) -> tuple[SyncStats, list[dict]]:
+    """
+    Phase 4: Import funds from global_funds.csv
+
+    Returns:
+        Tuple of (stats, records) - records needed for AI profile phase
+    """
+    logger.info("Phase 4: Funds (raw data for display)")
 
     filepath = SOURCE_FILES["global_funds"]
     if not filepath.exists():
@@ -182,10 +222,11 @@ def run_funds(client: Client | None, dry_run: bool = False, limit: int | None = 
 def run_ai_profiles(
     client: Client | None,
     fund_records: list[dict] | None = None,
+    lp_records: list[dict] | None = None,
     dry_run: bool = False,
 ) -> SyncStats:
     """
-    Phase 4: Populate AI matching profiles from raw data.
+    Phase 5: Populate AI matching profiles from raw data.
 
     This phase creates normalized data for AI algorithms ONLY.
     Client-facing code should NEVER use these tables.
@@ -193,36 +234,148 @@ def run_ai_profiles(
     Args:
         client: Supabase client
         fund_records: Fund records from extraction (with ai_* fields)
+        lp_records: LP records from extraction (with ai_* and behavioral fields)
         dry_run: If True, don't write to database
     """
-    logger.info("Phase 4: AI Profiles (for matching algorithms only)")
+    logger.info("Phase 5: AI Profiles (for matching algorithms only)")
     stats = SyncStats()
 
-    # If we have fund records from extraction, use them
+    # ── FUND AI PROFILES ──
     if fund_records:
         logger.info(f"  Loading {len(fund_records)} fund AI profiles...")
-
-        # First, we need fund_ids from the database
-        # For now, sync from database directly
         if client and not dry_run:
             logger.info("  Syncing fund_ai_profiles from funds table...")
             ai_stats = sync_fund_ai_profiles(client, dry_run=dry_run)
             stats.created += ai_stats.created
             stats.errors.extend(ai_stats.errors)
             logger.info(f"  Fund AI profiles: {ai_stats.created} synced")
-    else:
+    elif client and not dry_run:
         # Sync from existing database records
-        if client and not dry_run:
-            logger.info("  Syncing fund_ai_profiles from existing funds...")
-            ai_stats = sync_fund_ai_profiles(client, dry_run=dry_run)
-            stats.created += ai_stats.created
-            stats.errors.extend(ai_stats.errors)
-            logger.info(f"  Fund AI profiles: {ai_stats.created} synced")
+        logger.info("  Syncing fund_ai_profiles from existing funds...")
+        ai_stats = sync_fund_ai_profiles(client, dry_run=dry_run)
+        stats.created += ai_stats.created
+        stats.errors.extend(ai_stats.errors)
+        logger.info(f"  Fund AI profiles: {ai_stats.created} synced")
 
-    # TODO: Add LP AI profile sync when we have LP preference data
-    logger.info("  (LP AI profiles - pending preference data from Metabase)")
+    # ── LP AI PROFILES ──
+    if lp_records:
+        logger.info(f"  Loading {len(lp_records)} LP AI profiles...")
+        if dry_run:
+            # In dry run, count the records
+            lp_ai_count = len(lp_records)
+            stats.created += lp_ai_count
+            logger.info(f"  LP AI profiles: {lp_ai_count} would be created")
+        elif client:
+            # Need to get lp_profile_ids from database
+            lp_ai_stats = _sync_lp_ai_profiles(client, lp_records)
+            stats.created += lp_ai_stats.created
+            stats.errors.extend(lp_ai_stats.errors)
+            logger.info(f"  LP AI profiles: {lp_ai_stats.created} synced")
+    elif client and not dry_run:
+        # Sync from existing lp_profiles
+        logger.info("  Syncing lp_ai_profiles from existing LP profiles...")
+        lp_ai_stats = _sync_lp_ai_profiles_from_db(client)
+        stats.created += lp_ai_stats.created
+        stats.errors.extend(lp_ai_stats.errors)
+        logger.info(f"  LP AI profiles: {lp_ai_stats.created} synced")
 
     logger.info(f"  Done: {stats.created} AI profiles created, {len(stats.errors)} errors")
+    return stats
+
+
+def _sync_lp_ai_profiles(client: Client, lp_records: list[dict]) -> SyncStats:
+    """Sync LP AI profiles from extracted records."""
+    stats = SyncStats()
+
+    for record in lp_records:
+        org_external_id = record.get("org_external_id")
+        if not org_external_id:
+            stats.skipped += 1
+            continue
+
+        try:
+            # Get lp_profile_id and org_id from database
+            response = client.table("lp_profiles").select(
+                "id, org_id"
+            ).eq("external_id", org_external_id).eq("external_source", "ipem").single().execute()
+
+            if not response.data:
+                stats.skipped += 1
+                continue
+
+            lp_profile_id = response.data["id"]
+            org_id = response.data["org_id"]
+
+            # Build AI profile
+            ai_profile = {
+                "lp_profile_id": lp_profile_id,
+                "org_id": org_id,
+                "strategy_interests": record.get("ai_strategy_interests", []),
+                "geography_interests": record.get("ai_geography_interests", []),
+                "sector_interests": record.get("ai_sector_interests", []),
+                "acceptance_rate": record.get("acceptance_rate"),
+                "total_interactions": record.get("solicitations_received", 0),
+                "engagement_score": record.get("engagement_score", 0.0),
+                "data_sources": ["behavioral"] if record.get("solicitations_received", 0) > 0 else ["unknown"],
+            }
+
+            client.table("lp_ai_profiles").upsert(
+                ai_profile,
+                on_conflict="lp_profile_id",
+            ).execute()
+            stats.created += 1
+
+        except Exception as e:
+            stats.errors.append({
+                "lp_external_id": org_external_id,
+                "error": str(e),
+            })
+
+    return stats
+
+
+def _sync_lp_ai_profiles_from_db(client: Client) -> SyncStats:
+    """Sync LP AI profiles from existing lp_profiles table."""
+    stats = SyncStats()
+
+    try:
+        # Get all LP profiles with behavioral data
+        response = client.table("lp_profiles").select(
+            "id, org_id, solicitations_received, solicitations_accepted, last_activity_at"
+        ).execute()
+
+        if not response.data:
+            return stats
+
+        for lp in response.data:
+            received = lp.get("solicitations_received", 0)
+            accepted = lp.get("solicitations_accepted", 0)
+            acceptance_rate = (accepted / received) if received > 0 else None
+
+            ai_profile = {
+                "lp_profile_id": lp["id"],
+                "org_id": lp["org_id"],
+                "strategy_interests": [],  # Would come from form data
+                "geography_interests": [],  # Would come from form data
+                "sector_interests": [],
+                "acceptance_rate": acceptance_rate,
+                "total_interactions": received,
+                "engagement_score": min(0.3 if received >= 100 else 0.1 if received >= 10 else 0.0, 1.0),
+                "data_sources": ["behavioral"] if received > 0 else ["unknown"],
+            }
+
+            try:
+                client.table("lp_ai_profiles").upsert(
+                    ai_profile,
+                    on_conflict="lp_profile_id",
+                ).execute()
+                stats.created += 1
+            except Exception as e:
+                stats.errors.append({"lp_profile_id": lp["id"], "error": str(e)})
+
+    except Exception as e:
+        stats.errors.append({"error": f"Failed to sync: {e}"})
+
     return stats
 
 
@@ -247,7 +400,7 @@ def main():
     parser = argparse.ArgumentParser(description="Import data from Metabase to Supabase")
     parser.add_argument(
         "--phase",
-        choices=["organizations", "people", "funds", "ai-profiles", "all", "full"],
+        choices=["organizations", "people", "lps", "funds", "ai-profiles", "all", "full"],
         default="all",
         help="Which phase to run. 'all' = raw data only, 'full' = raw + AI profiles",
     )
@@ -272,8 +425,8 @@ def main():
     logger.info("=" * 60)
     logger.info("")
     logger.info("Pipeline structure:")
-    logger.info("  RAW DATA (client display): organizations → people → funds")
-    logger.info("  AI DATA (matching only):   fund_ai_profiles → lp_ai_profiles")
+    logger.info("  RAW DATA (client display): organizations → people → lps → funds")
+    logger.info("  AI DATA (matching only):   fund_ai_profiles + lp_ai_profiles")
     logger.info("")
 
     # Connect to Supabase (skip for dry run if no credentials)
@@ -292,11 +445,12 @@ def main():
     raw_phases = []
     run_ai = False
     fund_records = []  # Store for AI profile phase
+    lp_records = []    # Store for AI profile phase
 
     if args.phase == "all":
-        raw_phases = ["organizations", "people", "funds"]
+        raw_phases = ["organizations", "people", "lps", "funds"]
     elif args.phase == "full":
-        raw_phases = ["organizations", "people", "funds"]
+        raw_phases = ["organizations", "people", "lps", "funds"]
         run_ai = True
     elif args.phase == "ai-profiles":
         run_ai = True
@@ -306,7 +460,7 @@ def main():
     total_stats = SyncStats()
 
     # ═══════════════════════════════════════════════════════════════
-    # PHASE 1-3: RAW DATA (for client display)
+    # PHASE 1-4: RAW DATA (for client display)
     # ═══════════════════════════════════════════════════════════════
     for phase in raw_phases:
         start_time = time.time()
@@ -315,6 +469,8 @@ def main():
             stats = run_organizations(client, args.dry_run, args.limit)
         elif phase == "people":
             stats = run_people(client, args.dry_run, args.limit)
+        elif phase == "lps":
+            stats, lp_records = run_lps(client, args.dry_run, args.limit)
         elif phase == "funds":
             stats, fund_records = run_funds(client, args.dry_run, args.limit)
         else:
@@ -332,11 +488,11 @@ def main():
             log_sync(client, phase, stats, duration_ms)
 
     # ═══════════════════════════════════════════════════════════════
-    # PHASE 4: AI PROFILES (for matching algorithms)
+    # PHASE 5: AI PROFILES (for matching algorithms)
     # ═══════════════════════════════════════════════════════════════
     if run_ai:
         start_time = time.time()
-        ai_stats = run_ai_profiles(client, fund_records, args.dry_run)
+        ai_stats = run_ai_profiles(client, fund_records, lp_records, args.dry_run)
         duration_ms = int((time.time() - start_time) * 1000)
 
         total_stats.created += ai_stats.created
