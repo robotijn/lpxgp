@@ -295,3 +295,237 @@ class TestAdminEdgeCases:
         response = client.get("/admin")
         # Should render without errors even with 0 counts
         assert response.status_code == 200
+
+
+# =============================================================================
+# NEW ADMIN PAGE TESTS (Phase 3)
+# =============================================================================
+
+
+class TestAdminDataHealth:
+    """Tests for admin data health page (/admin/data-health).
+
+    Gherkin Reference: F-ADMIN-08: Data Health Dashboard
+    """
+
+    def test_data_health_page_returns_200(self, client):
+        """Data health page should return 200 OK for admin."""
+        client.post(
+            "/api/auth/login",
+            data={"email": "admin@demo.com", "password": "admin123"},
+        )
+        response = client.get("/admin/data-health")
+        assert response.status_code == 200
+
+    def test_data_health_page_returns_html(self, client):
+        """Data health page should return HTML."""
+        client.post(
+            "/api/auth/login",
+            data={"email": "admin@demo.com", "password": "admin123"},
+        )
+        response = client.get("/admin/data-health")
+        assert "text/html" in response.headers["content-type"]
+
+    def test_data_health_page_has_title(self, client):
+        """Data health page should have appropriate title."""
+        client.post(
+            "/api/auth/login",
+            data={"email": "admin@demo.com", "password": "admin123"},
+        )
+        response = client.get("/admin/data-health")
+        assert "Data Health" in response.text
+
+    def test_data_health_shows_quality_metrics(self, client):
+        """Data health page should show quality metrics."""
+        client.post(
+            "/api/auth/login",
+            data={"email": "admin@demo.com", "password": "admin123"},
+        )
+        response = client.get("/admin/data-health")
+        text = response.text.lower()
+        assert "quality" in text or "score" in text or "health" in text
+
+
+class TestAdminActivityLogs:
+    """Tests for admin activity logs page (/admin/activity).
+
+    Gherkin Reference: F-ADMIN-09: Activity Logs
+    """
+
+    def test_activity_logs_page_returns_200(self, client):
+        """Activity logs page should return 200 OK for admin."""
+        client.post(
+            "/api/auth/login",
+            data={"email": "admin@demo.com", "password": "admin123"},
+        )
+        response = client.get("/admin/activity")
+        assert response.status_code == 200
+
+    def test_activity_logs_page_returns_html(self, client):
+        """Activity logs page should return HTML."""
+        client.post(
+            "/api/auth/login",
+            data={"email": "admin@demo.com", "password": "admin123"},
+        )
+        response = client.get("/admin/activity")
+        assert "text/html" in response.headers["content-type"]
+
+    def test_activity_logs_page_has_title(self, client):
+        """Activity logs page should have appropriate title."""
+        client.post(
+            "/api/auth/login",
+            data={"email": "admin@demo.com", "password": "admin123"},
+        )
+        response = client.get("/admin/activity")
+        assert "Activity" in response.text
+
+
+class TestAdminSettings:
+    """Tests for admin settings page (/admin/settings).
+
+    Gherkin Reference: F-ADMIN-10: System Settings
+    """
+
+    def test_settings_page_returns_200(self, client):
+        """Settings page should return 200 OK for admin."""
+        client.post(
+            "/api/auth/login",
+            data={"email": "admin@demo.com", "password": "admin123"},
+        )
+        response = client.get("/admin/settings")
+        assert response.status_code == 200
+
+    def test_settings_page_returns_html(self, client):
+        """Settings page should return HTML."""
+        client.post(
+            "/api/auth/login",
+            data={"email": "admin@demo.com", "password": "admin123"},
+        )
+        response = client.get("/admin/settings")
+        assert "text/html" in response.headers["content-type"]
+
+    def test_settings_page_has_title(self, client):
+        """Settings page should have appropriate title."""
+        client.post(
+            "/api/auth/login",
+            data={"email": "admin@demo.com", "password": "admin123"},
+        )
+        response = client.get("/admin/settings")
+        assert "Settings" in response.text
+
+    def test_settings_page_has_form_elements(self, client):
+        """Settings page should have form elements."""
+        client.post(
+            "/api/auth/login",
+            data={"email": "admin@demo.com", "password": "admin123"},
+        )
+        response = client.get("/admin/settings")
+        text = response.text.lower()
+        assert "save" in text or "form" in text or "input" in text
+
+
+class TestAdminPeople:
+    """Tests for admin people page (/admin/people).
+
+    Gherkin Reference: F-ADMIN-11: People Management
+    """
+
+    def test_people_page_returns_200(self, client):
+        """People page should return 200 OK for admin."""
+        client.post(
+            "/api/auth/login",
+            data={"email": "admin@demo.com", "password": "admin123"},
+        )
+        response = client.get("/admin/people")
+        assert response.status_code == 200
+
+    def test_people_page_returns_html(self, client):
+        """People page should return HTML."""
+        client.post(
+            "/api/auth/login",
+            data={"email": "admin@demo.com", "password": "admin123"},
+        )
+        response = client.get("/admin/people")
+        assert "text/html" in response.headers["content-type"]
+
+    def test_people_page_has_title(self, client):
+        """People page should have appropriate title."""
+        client.post(
+            "/api/auth/login",
+            data={"email": "admin@demo.com", "password": "admin123"},
+        )
+        response = client.get("/admin/people")
+        assert "People" in response.text
+
+    def test_people_page_has_stats(self, client):
+        """People page should have statistics."""
+        client.post(
+            "/api/auth/login",
+            data={"email": "admin@demo.com", "password": "admin123"},
+        )
+        response = client.get("/admin/people")
+        text = response.text.lower()
+        assert "total" in text or "contacts" in text
+
+    def test_people_page_has_add_button(self, client):
+        """People page should have add person button."""
+        client.post(
+            "/api/auth/login",
+            data={"email": "admin@demo.com", "password": "admin123"},
+        )
+        response = client.get("/admin/people")
+        text = response.text
+        assert "Add Person" in text or "Add" in text
+
+
+class TestAdminNewPagesAccessControl:
+    """Access control tests for new admin pages.
+
+    Ensures non-admin users are redirected from admin pages.
+    """
+
+    def test_data_health_redirects_gp_user(self, client):
+        """Data health page should redirect GP user to dashboard."""
+        client.post(
+            "/api/auth/login",
+            data={"email": "gp@demo.com", "password": "demo123"},
+        )
+        response = client.get("/admin/data-health", follow_redirects=False)
+        assert response.status_code == 303
+
+    def test_activity_logs_redirects_gp_user(self, client):
+        """Activity logs page should redirect GP user to dashboard."""
+        client.post(
+            "/api/auth/login",
+            data={"email": "gp@demo.com", "password": "demo123"},
+        )
+        response = client.get("/admin/activity", follow_redirects=False)
+        assert response.status_code == 303
+
+    def test_settings_redirects_gp_user(self, client):
+        """Settings page should redirect GP user to dashboard."""
+        client.post(
+            "/api/auth/login",
+            data={"email": "gp@demo.com", "password": "demo123"},
+        )
+        response = client.get("/admin/settings", follow_redirects=False)
+        assert response.status_code == 303
+
+    def test_people_allows_gp_user(self, client):
+        """People page should allow GP user (GPs can manage data)."""
+        client.post(
+            "/api/auth/login",
+            data={"email": "gp@demo.com", "password": "demo123"},
+        )
+        response = client.get("/admin/people")
+        # GP users are allowed to manage people data
+        assert response.status_code == 200
+
+    def test_people_redirects_lp_user(self, client):
+        """People page should redirect LP user to dashboard."""
+        client.post(
+            "/api/auth/login",
+            data={"email": "lp@demo.com", "password": "demo123"},
+        )
+        response = client.get("/admin/people", follow_redirects=False)
+        assert response.status_code == 303

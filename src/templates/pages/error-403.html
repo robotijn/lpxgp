@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}Access Denied - LPxGP{% endblock %}
+
+{% block content %}
+<div class="min-h-[60vh] flex items-center justify-center px-4">
+    <div class="text-center max-w-md">
+        <div class="mb-6">
+            <span class="text-8xl font-bold text-navy-200 dark:text-navy-700">403</span>
+        </div>
+        <h1 class="text-2xl font-bold text-navy-900 dark:text-white mb-2">Access Denied</h1>
+        <p class="text-navy-500 dark:text-navy-400 mb-6">
+            You don't have permission to access this page. Please contact your administrator if you believe this is an error.
+        </p>
+        <div class="flex flex-col sm:flex-row gap-3 justify-center">
+            <a href="/" class="btn-primary">Go Home</a>
+            <a href="/dashboard" class="btn-secondary">Go to Dashboard</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

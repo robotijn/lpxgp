@@ -8,7 +8,13 @@ An AI-powered platform helping investment fund managers (GPs) find and engage th
 
 **Source of truth (MD files we work with):**
 - docs/milestones.md - Milestone roadmap (start here!)
-- docs/prd/PRD-v1.md - Product Requirements Document
+- docs/prd/ - Product Requirements Document (split into modules):
+  - index.md - PRD table of contents
+  - overview.md - Product overview and goals
+  - data-model.md - Database schema and relationships
+  - screens.md - UI specifications and mockups
+  - user-stories.md - User stories by persona
+  - features/ - Detailed feature specifications
 - docs/prd/test-specifications.md - Test specifications (TDD)
 - docs/curriculum.md - Learning curriculum (Claude Code + LPxGP)
 - docs/architecture/ - Agent implementation details (M3+):

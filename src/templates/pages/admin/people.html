@@ -52,11 +52,28 @@
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+    {% set breadcrumbs = [{"label": "Admin", "url": "/admin"}, {"label": "People"}] %}
+    {% include "partials/breadcrumb.html" %}
+
     <!-- Page Header -->
     <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
         <div>
-            <h1 class="text-2xl font-bold text-navy-900">People</h1>
-            <p class="text-navy-500 mt-1">Manage contacts in the market database</p>
+            <h1 class="text-2xl font-bold text-navy-900 dark:text-white">People</h1>
+            <p class="text-navy-500 dark:text-navy-400 mt-1">Manage contacts in the market database</p>
+        </div>
+        <div class="flex space-x-3">
+            <a href="/api/admin/export/people" class="btn-secondary">
+                <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                </svg>
+                Export CSV
+            </a>
+            <button onclick="openAddPersonModal()" class="btn-primary">
+                <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                Add Person
+            </button>
         </div>
     </div>
 
@@ -184,5 +201,72 @@
         </div>
         {% endif %}
     </div>
+
+    <!-- Back Link -->
+    <div class="mt-8">
+        <a href="/admin" class="text-gold hover:text-gold-600 text-sm font-medium">
+            &larr; Back to Admin Dashboard
+        </a>
+    </div>
 </div>
+
+<!-- Add/Edit Person Modal -->
+<div id="person-modal" class="fixed inset-0 z-50 hidden" data-modal>
+    <div class="absolute inset-0 bg-navy-900/50" onclick="closePersonModal()"></div>
+    <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white dark:bg-navy-800 rounded-xl shadow-xl">
+        <form id="person-form" data-validate>
+            <div class="px-6 py-4 border-b border-navy-200 dark:border-navy-700">
+                <h3 id="modal-title" class="text-lg font-semibold text-navy-900 dark:text-white">Add Person</h3>
+            </div>
+            <div class="px-6 py-4 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-1">Full Name *</label>
+                    <input type="text" name="full_name" required class="form-input">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-1">Title</label>
+                    <input type="text" name="title" class="form-input">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-1">Email</label>
+                    <input type="email" name="email" class="form-input">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-1">LinkedIn URL</label>
+                    <input type="url" name="linkedin_url" class="form-input" placeholder="https://linkedin.com/in/...">
+                </div>
+                <div>
+                    <label class="flex items-center">
+                        <input type="checkbox" name="is_decision_maker" class="rounded border-navy-300 text-gold focus:ring-gold mr-2">
+                        <span class="text-sm text-navy-600 dark:text-navy-300">Is a decision maker</span>
+                    </label>
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-navy-200 dark:border-navy-700 flex justify-end space-x-3">
+                <button type="button" onclick="closePersonModal()" class="btn-secondary">Cancel</button>
+                <button type="submit" class="btn-primary">Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openAddPersonModal() {
+    document.getElementById('modal-title').textContent = 'Add Person';
+    document.getElementById('person-form').reset();
+    document.getElementById('person-modal').classList.remove('hidden');
+    document.getElementById('person-modal').classList.add('open');
+}
+
+function closePersonModal() {
+    document.getElementById('person-modal').classList.add('hidden');
+    document.getElementById('person-modal').classList.remove('open');
+}
+
+document.getElementById('person-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    showToast('Person saved successfully', 'success');
+    closePersonModal();
+});
+</script>
 {% endblock %}

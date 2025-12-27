@@ -483,6 +483,110 @@ async def match_feedback(
         conn.close()
 
 
+@router.get("/compare", response_class=HTMLResponse, response_model=None)
+async def compare_lps_page(
+    request: Request,
+    lp_ids: str | None = Query(None),
+    fund_id: str | None = Query(None),
+) -> HTMLResponse | RedirectResponse:
+    """Compare multiple LP matches side-by-side.
+
+    Requires authentication.
+    """
+    user = auth.get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    matches: list[dict[str, Any]] = []
+    fund: dict[str, Any] = {"name": "Fund"}
+
+    # Parse LP IDs from query
+    if lp_ids:
+        ids = [lid.strip() for lid in lp_ids.split(",") if is_valid_uuid(lid.strip())]
+
+        conn = get_db()
+        if conn and ids:
+            try:
+                with conn.cursor() as cur:
+                    # Get fund info if provided
+                    if fund_id and is_valid_uuid(fund_id):
+                        cur.execute("SELECT id, name FROM funds WHERE id = %s", (fund_id,))
+                        fund_row = cur.fetchone()
+                        if fund_row:
+                            fund = dict(fund_row)
+
+                    # Get matches for these LPs
+                    placeholders = ",".join(["%s"] * len(ids))
+                    cur.execute(f"""
+                        SELECT
+                            m.id, m.fund_id, m.lp_org_id, m.score,
+                            m.score_breakdown,
+                            o.name as lp_name, o.hq_city as lp_city, o.hq_country as lp_country,
+                            lp.lp_type, lp.total_aum_bn,
+                            s.pipeline_stage
+                        FROM fund_lp_matches m
+                        JOIN organizations o ON o.id = m.lp_org_id
+                        LEFT JOIN lp_profiles lp ON lp.org_id = m.lp_org_id
+                        LEFT JOIN fund_lp_status s ON s.fund_id = m.fund_id AND s.lp_org_id = m.lp_org_id
+                        WHERE m.lp_org_id IN ({placeholders})
+                        {"AND m.fund_id = %s" if fund_id else ""}
+                        ORDER BY m.score DESC
+                    """, ids + ([fund_id] if fund_id else []))
+                    matches = [dict(row) for row in cur.fetchall()]
+            finally:
+                conn.close()
+
+    # Demo data if no matches found
+    if not matches:
+        matches = [
+            {
+                "id": "demo-1",
+                "fund_id": "demo-fund",
+                "lp_org_id": "demo-lp-1",
+                "score": 92,
+                "score_breakdown": {"strategy": 95, "size_fit": 90, "geography": 92, "track_record": 88},
+                "lp_name": "CalPERS",
+                "lp_city": "Sacramento",
+                "lp_country": "USA",
+                "lp_type": "Public Pension",
+                "total_aum_bn": 450,
+                "pipeline_stage": "contacted",
+            },
+            {
+                "id": "demo-2",
+                "fund_id": "demo-fund",
+                "lp_org_id": "demo-lp-2",
+                "score": 88,
+                "score_breakdown": {"strategy": 90, "size_fit": 85, "geography": 88, "track_record": 90},
+                "lp_name": "Ontario Teachers",
+                "lp_city": "Toronto",
+                "lp_country": "Canada",
+                "lp_type": "Public Pension",
+                "total_aum_bn": 250,
+                "pipeline_stage": "new",
+            },
+            {
+                "id": "demo-3",
+                "fund_id": "demo-fund",
+                "lp_org_id": "demo-lp-3",
+                "score": 85,
+                "score_breakdown": {"strategy": 88, "size_fit": 82, "geography": 85, "track_record": 85},
+                "lp_name": "Harvard Endowment",
+                "lp_city": "Cambridge",
+                "lp_country": "USA",
+                "lp_type": "Endowment",
+                "total_aum_bn": 50,
+                "pipeline_stage": "meeting_scheduled",
+            },
+        ]
+
+    return templates.TemplateResponse(
+        request,
+        "pages/compare.html",
+        {"title": "Compare LPs - LPxGP", "user": user, "matches": matches, "fund": fund},
+    )
+
+
 @router.post("/api/match/{match_id}/status", response_class=HTMLResponse)
 async def update_match_status(
     request: Request,

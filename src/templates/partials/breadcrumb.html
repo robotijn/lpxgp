@@ -1,0 +1,24 @@
+{#
+Breadcrumb Component
+Usage: {% include "partials/breadcrumb.html" with context %}
+Variables:
+  - breadcrumbs: List of dicts with 'label' and optional 'url' keys
+    Example: [{"label": "Admin", "url": "/admin"}, {"label": "LPs"}]
+#}
+<nav class="flex items-center space-x-2 text-sm text-navy-500 dark:text-navy-400 mb-4" aria-label="Breadcrumb">
+    <a href="/" class="hover:text-gold">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+        </svg>
+    </a>
+    {% for crumb in breadcrumbs %}
+    <svg class="w-4 h-4 text-navy-300 dark:text-navy-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+    </svg>
+    {% if crumb.url %}
+    <a href="{{ crumb.url }}" class="hover:text-gold">{{ crumb.label }}</a>
+    {% else %}
+    <span class="text-navy-900 dark:text-white font-medium">{{ crumb.label }}</span>
+    {% endif %}
+    {% endfor %}
+</nav>

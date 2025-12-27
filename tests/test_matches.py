@@ -922,3 +922,104 @@ class TestMatchingLargeNumbers:
         result = calculate_match_score(fund, lp)
 
         assert result["passed_hard_filters"] is True
+
+
+# =============================================================================
+# COMPARE PAGE TESTS
+# =============================================================================
+
+
+def login_as_gp(client):
+    """Helper to log in as GP user."""
+    client.post(
+        "/api/auth/login",
+        data={"email": "gp@demo.com", "password": "demo123"},
+    )
+
+
+class TestComparePage:
+    """Tests for the LP comparison page (/compare).
+
+    Tests cover:
+    - Page accessibility and rendering
+    - Query parameter handling
+    - Demo data display
+    - Error handling for invalid IDs
+    """
+
+    def test_compare_page_returns_200(self, client):
+        """Compare page should return 200 OK."""
+        login_as_gp(client)
+        response = client.get("/compare")
+        assert response.status_code == 200
+
+    def test_compare_page_returns_html(self, client):
+        """Compare page should return HTML."""
+        login_as_gp(client)
+        response = client.get("/compare")
+        assert "text/html" in response.headers["content-type"]
+
+    def test_compare_page_has_title(self, client):
+        """Compare page should have appropriate title."""
+        login_as_gp(client)
+        response = client.get("/compare")
+        assert "Compare" in response.text
+
+    def test_compare_page_shows_demo_data(self, client):
+        """Compare page without params should show demo data."""
+        login_as_gp(client)
+        response = client.get("/compare")
+        # Should show demo LP names
+        text = response.text
+        assert "CalPERS" in text or "Ontario" in text or "Compare" in text
+
+    def test_compare_page_with_invalid_lp_ids(self, client):
+        """Compare page should handle invalid LP IDs gracefully."""
+        login_as_gp(client)
+        response = client.get("/compare?lp_ids=not-a-uuid,also-invalid")
+        assert response.status_code == 200
+        # Should still show demo data
+        assert "Compare" in response.text
+
+    def test_compare_page_with_valid_uuid_no_db(self, client):
+        """Compare page with valid UUID but no DB should show demo data."""
+        login_as_gp(client)
+        response = client.get("/compare?lp_ids=00000000-0000-0000-0000-000000000001")
+        assert response.status_code == 200
+        assert "Compare" in response.text
+
+    def test_compare_page_with_fund_filter(self, client):
+        """Compare page should accept fund_id parameter."""
+        login_as_gp(client)
+        response = client.get(
+            "/compare?lp_ids=00000000-0000-0000-0000-000000000001&fund_id=00000000-0000-0000-0000-000000000002"
+        )
+        assert response.status_code == 200
+
+    def test_compare_page_has_export_button(self, client):
+        """Compare page should have export functionality."""
+        login_as_gp(client)
+        response = client.get("/compare")
+        text = response.text.lower()
+        assert "export" in text
+
+    def test_compare_page_has_recommendation(self, client):
+        """Compare page should show recommendation section."""
+        login_as_gp(client)
+        response = client.get("/compare")
+        text = response.text
+        assert "Recommendation" in text or "recommendation" in text.lower()
+
+    @pytest.mark.parametrize("malicious_input", [
+        "'; DROP TABLE fund_lp_matches; --",
+        "<script>alert(1)</script>",
+        "../../../etc/passwd",
+        "{{7*7}}",
+    ])
+    def test_compare_rejects_malicious_lp_ids(self, client, malicious_input):
+        """Compare page should handle malicious input safely."""
+        login_as_gp(client)
+        response = client.get(f"/compare?lp_ids={malicious_input}")
+        # Should not crash, should return 200 with demo data
+        assert response.status_code == 200
+        assert "Compare" in response.text

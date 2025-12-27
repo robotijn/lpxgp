@@ -1152,3 +1152,195 @@ async def admin_people_page(
             "filter_role": role,
         },
     )
+
+
+# =============================================================================
+# Data Health Dashboard
+# =============================================================================
+
+
+@router.get("/admin/data-health", response_class=HTMLResponse, response_model=None)
+async def admin_data_health_page(request: Request) -> HTMLResponse | RedirectResponse:
+    """Data health dashboard showing data quality metrics."""
+    user = auth.get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    if not is_admin(user):
+        return RedirectResponse(url="/dashboard", status_code=303)
+
+    # Mock health data
+    health = {
+        "overall_score": 78,
+        "lps": {"score": 82, "total": 150, "with_aum": 85, "with_strategy": 78, "with_location": 92},
+        "funds": {"score": 75, "total": 45, "with_size": 80, "with_strategy": 90, "with_vintage": 65},
+        "people": {"score": 68, "total": 320, "with_email": 72, "with_title": 85, "with_company": 60},
+        "issues": [
+            {"title": "Missing AUM data", "description": "23 LPs are missing AUM information", "severity": "high", "count": 23, "url": "/admin/lps?filter=missing_aum"},
+            {"title": "Incomplete fund profiles", "description": "12 funds lack vintage year", "severity": "medium", "count": 12, "url": "/admin/funds?filter=incomplete"},
+            {"title": "Contacts without company", "description": "45 people are not linked to companies", "severity": "low", "count": 45, "url": "/admin/people?filter=no_company"},
+        ],
+    }
+
+    return templates.TemplateResponse(
+        request,
+        "pages/admin/data-health.html",
+        {
+            "title": "Data Health - Admin - LPxGP",
+            "user": user,
+            "health": health,
+        },
+    )
+
+
+# =============================================================================
+# Activity Logs
+# =============================================================================
+
+
+@router.get("/admin/activity", response_class=HTMLResponse, response_model=None)
+async def admin_activity_page(
+    request: Request,
+    page: int = 1,
+    q: str | None = None,
+    action: str | None = None,
+    user_id: str | None = None,
+) -> HTMLResponse | RedirectResponse:
+    """Activity logs page showing user actions."""
+    user = auth.get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    if not is_admin(user):
+        return RedirectResponse(url="/dashboard", status_code=303)
+
+    # Mock activity logs
+    logs = [
+        {"user_name": "Sarah Chen", "action": "create", "description": "created a new fund 'Growth Fund IV'", "details": "Target size: $500M", "timestamp": "2 minutes ago", "resource_url": "/funds/fund-001"},
+        {"user_name": "Mike Johnson", "action": "update", "description": "updated LP profile 'CalPERS'", "details": "Updated AUM to $450B", "timestamp": "15 minutes ago", "resource_url": "/lps/lp-001"},
+        {"user_name": "Admin User", "action": "login", "description": "logged in", "details": None, "timestamp": "1 hour ago", "resource_url": None},
+        {"user_name": "Emily Davis", "action": "delete", "description": "removed contact 'John Doe'", "details": "From company: Acme Capital", "timestamp": "2 hours ago", "resource_url": None},
+        {"user_name": "Sarah Chen", "action": "export", "description": "exported LP database", "details": "150 records", "timestamp": "3 hours ago", "resource_url": None},
+    ]
+
+    users = [
+        {"id": "user-001", "name": "Sarah Chen"},
+        {"id": "user-002", "name": "Mike Johnson"},
+        {"id": "user-003", "name": "Emily Davis"},
+        {"id": "user-004", "name": "Admin User"},
+    ]
+
+    return templates.TemplateResponse(
+        request,
+        "pages/admin/activity-logs.html",
+        {
+            "title": "Activity Logs - Admin - LPxGP",
+            "user": user,
+            "logs": logs,
+            "users": users,
+            "page": page,
+            "total_pages": 3,
+            "search_query": q,
+            "filter_action": action,
+            "filter_user": user_id,
+        },
+    )
+
+
+# =============================================================================
+# System Settings
+# =============================================================================
+
+
+@router.get("/admin/settings", response_class=HTMLResponse, response_model=None)
+async def admin_settings_page(request: Request) -> HTMLResponse | RedirectResponse:
+    """System settings page."""
+    user = auth.get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    if not is_admin(user):
+        return RedirectResponse(url="/dashboard", status_code=303)
+
+    # Mock settings
+    settings_data = {
+        "platform_name": "LPxGP",
+        "support_email": "support@lpxgp.com",
+        "maintenance_mode": False,
+        "pagination_size": 25,
+        "auto_dedupe": True,
+        "validate_emails": True,
+        "notify_new_users": True,
+        "notify_data_issues": False,
+    }
+
+    return templates.TemplateResponse(
+        request,
+        "pages/admin/settings.html",
+        {
+            "title": "Settings - Admin - LPxGP",
+            "user": user,
+            "settings": settings_data,
+        },
+    )
+
+
+# =============================================================================
+# People Export
+# =============================================================================
+
+
+@router.get("/api/admin/export/people", response_model=None)
+async def export_people_csv(request: Request) -> StreamingResponse | JSONResponse:
+    """Export People to CSV file."""
+    user = auth.get_current_user(request)
+    if not user:
+        return JSONResponse(status_code=401, content={"error": "Authentication required"})
+
+    if not can_manage_data(user):
+        return JSONResponse(status_code=403, content={"error": "Insufficient permissions"})
+
+    people: list[dict[str, Any]] = []
+
+    conn = get_db()
+    if conn:
+        try:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT p.id, p.full_name, p.email, p.linkedin_url,
+                           cp.title, cp.is_decision_maker,
+                           o.name as company_name
+                    FROM people p
+                    LEFT JOIN company_people cp ON cp.person_id = p.id
+                    LEFT JOIN organizations o ON o.id = cp.org_id
+                    ORDER BY p.full_name
+                """)
+                rows = cur.fetchall()
+                people = [dict(row) for row in rows]
+        except Exception as e:
+            logger.warning(f"Failed to export people: {e}")
+        finally:
+            conn.close()
+
+    if not people:
+        people = [
+            {"id": "person-001", "full_name": "John Smith", "email": "john@example.com", "title": "CIO", "company_name": "CalPERS", "is_decision_maker": True},
+            {"id": "person-002", "full_name": "Jane Doe", "email": "jane@example.com", "title": "Portfolio Manager", "company_name": "Yale Endowment", "is_decision_maker": True},
+        ]
+
+    output = io.StringIO()
+    if people:
+        fieldnames = list(people[0].keys())
+        writer = csv.DictWriter(output, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(people)
+
+    output.seek(0)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"people_export_{timestamp}.csv"
+
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )

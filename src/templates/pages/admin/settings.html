@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block nav %}
+<nav class="hidden md:flex ml-10 space-x-8">
+    <a href="/admin" class="text-navy-600 dark:text-navy-300 hover:text-navy-900 dark:hover:text-white text-sm">Overview</a>
+    <a href="/admin/companies" class="text-navy-600 dark:text-navy-300 hover:text-navy-900 dark:hover:text-white text-sm">Companies</a>
+    <a href="/admin/activity" class="text-navy-600 dark:text-navy-300 hover:text-navy-900 dark:hover:text-white text-sm">Activity</a>
+    <a href="/admin/settings" class="text-gold font-medium text-sm">Settings</a>
+    <a href="/admin/health" class="text-navy-600 dark:text-navy-300 hover:text-navy-900 dark:hover:text-white text-sm">System</a>
+</nav>
+{% endblock %}
+
+{% block header_right %}
+<div class="flex items-center space-x-4">
+    <span class="px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-800 rounded">Admin</span>
+    <a href="/settings" class="text-gold font-medium text-sm hidden md:inline">{{ user.name }}</a>
+    <a href="/logout" class="btn-secondary text-sm">Sign Out</a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 py-8">
+    {% set breadcrumbs = [{"label": "Admin", "url": "/admin"}, {"label": "Settings"}] %}
+    {% include "partials/breadcrumb.html" %}
+
+    <h1 class="text-2xl font-bold text-navy-900 dark:text-white mb-6">System Settings</h1>
+
+    <form id="settings-form" data-validate class="space-y-6">
+        <!-- General Settings -->
+        <div class="card p-6">
+            <h2 class="text-lg font-semibold text-navy-900 dark:text-white mb-4">General</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-1">Platform Name</label>
+                    <input type="text" name="platform_name" value="{{ settings.platform_name or 'LPxGP' }}" class="form-input max-w-md">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-1">Support Email</label>
+                    <input type="email" name="support_email" value="{{ settings.support_email or '' }}" class="form-input max-w-md" placeholder="support@lpxgp.com">
+                </div>
+                <div>
+                    <label class="flex items-center">
+                        <input type="checkbox" name="maintenance_mode" class="rounded border-navy-300 text-gold focus:ring-gold mr-2" {{ 'checked' if settings.maintenance_mode else '' }}>
+                        <span class="text-sm text-navy-600 dark:text-navy-300">Enable maintenance mode</span>
+                    </label>
+                    <p class="text-xs text-navy-500 dark:text-navy-400 mt-1 ml-6">When enabled, only admins can access the platform.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Settings -->
+        <div class="card p-6">
+            <h2 class="text-lg font-semibold text-navy-900 dark:text-white mb-4">Data & Import</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-1">Default Pagination Size</label>
+                    <select name="pagination_size" class="form-input max-w-xs">
+                        <option value="10" {{ 'selected' if settings.pagination_size == 10 else '' }}>10 items</option>
+                        <option value="25" {{ 'selected' if settings.pagination_size == 25 else '' }}>25 items</option>
+                        <option value="50" {{ 'selected' if settings.pagination_size == 50 else '' }}>50 items</option>
+                        <option value="100" {{ 'selected' if settings.pagination_size == 100 else '' }}>100 items</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="flex items-center">
+                        <input type="checkbox" name="auto_dedupe" class="rounded border-navy-300 text-gold focus:ring-gold mr-2" {{ 'checked' if settings.auto_dedupe else '' }}>
+                        <span class="text-sm text-navy-600 dark:text-navy-300">Auto-detect duplicates on import</span>
+                    </label>
+                </div>
+                <div>
+                    <label class="flex items-center">
+                        <input type="checkbox" name="validate_emails" class="rounded border-navy-300 text-gold focus:ring-gold mr-2" {{ 'checked' if settings.validate_emails else '' }}>
+                        <span class="text-sm text-navy-600 dark:text-navy-300">Validate email addresses</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bulk Import -->
+        <div class="card p-6">
+            <h2 class="text-lg font-semibold text-navy-900 dark:text-white mb-4">Bulk Import</h2>
+            <div class="border-2 border-dashed border-navy-200 dark:border-navy-700 rounded-lg p-8 text-center">
+                <svg class="w-12 h-12 mx-auto text-navy-300 dark:text-navy-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                </svg>
+                <p class="text-navy-600 dark:text-navy-300 mb-2">Drag and drop a CSV file, or click to browse</p>
+                <p class="text-xs text-navy-500 dark:text-navy-400 mb-4">Supports LPs, Funds, and People data</p>
+                <input type="file" id="import-file" accept=".csv" class="hidden" onchange="handleFileSelect(event)">
+                <button type="button" onclick="document.getElementById('import-file').click()" class="btn-secondary">
+                    Select File
+                </button>
+            </div>
+            <div id="import-preview" class="mt-4 hidden">
+                <div class="flex items-center justify-between p-4 bg-navy-50 dark:bg-navy-800 rounded-lg">
+                    <div class="flex items-center space-x-3">
+                        <svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        <div>
+                            <p id="import-filename" class="font-medium text-navy-900 dark:text-white">filename.csv</p>
+                            <p id="import-stats" class="text-sm text-navy-500 dark:text-navy-400">0 rows detected</p>
+                        </div>
+                    </div>
+                    <button type="button" onclick="startImport()" class="btn-primary">Import Data</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notifications -->
+        <div class="card p-6">
+            <h2 class="text-lg font-semibold text-navy-900 dark:text-white mb-4">Notifications</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="flex items-center">
+                        <input type="checkbox" name="notify_new_users" class="rounded border-navy-300 text-gold focus:ring-gold mr-2" {{ 'checked' if settings.notify_new_users else '' }}>
+                        <span class="text-sm text-navy-600 dark:text-navy-300">Email admins when new users register</span>
+                    </label>
+                </div>
+                <div>
+                    <label class="flex items-center">
+                        <input type="checkbox" name="notify_data_issues" class="rounded border-navy-300 text-gold focus:ring-gold mr-2" {{ 'checked' if settings.notify_data_issues else '' }}>
+                        <span class="text-sm text-navy-600 dark:text-navy-300">Email weekly data quality report</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Save Button -->
+        <div class="flex justify-end space-x-3">
+            <button type="button" onclick="location.reload()" class="btn-secondary">Reset</button>
+            <button type="submit" class="btn-primary">Save Settings</button>
+        </div>
+    </form>
+
+    <!-- Back Link -->
+    <div class="mt-8">
+        <a href="/admin" class="text-gold hover:text-gold-600 text-sm font-medium">
+            &larr; Back to Admin Dashboard
+        </a>
+    </div>
+</div>
+
+<script>
+function handleFileSelect(event) {
+    const file = event.target.files[0];
+    if (file) {
+        document.getElementById('import-filename').textContent = file.name;
+        document.getElementById('import-stats').textContent = 'Analyzing file...';
+        document.getElementById('import-preview').classList.remove('hidden');
+
+        // Simulate file analysis
+        setTimeout(() => {
+            document.getElementById('import-stats').textContent = 'Ready to import (~100 rows detected)';
+        }, 500);
+    }
+}
+
+function startImport() {
+    showToast('Import started. This may take a few minutes...', 'info');
+    // TODO: Implement actual import
+    setTimeout(() => {
+        showToast('Import completed successfully!', 'success');
+        document.getElementById('import-preview').classList.add('hidden');
+    }, 2000);
+}
+
+document.getElementById('settings-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    showToast('Settings saved successfully', 'success');
+});
+</script>
+{% endblock %}

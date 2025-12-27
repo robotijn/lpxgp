@@ -17,11 +17,10 @@ Test Categories:
     - Row-Level Security isolation (GP/LP/Admin access)
 """
 
-import re
 from collections.abc import Generator
 
 import pytest
-from playwright.sync_api import Page, expect
+from playwright.sync_api import Page
 
 # Base URL for the running server
 BASE_URL = "http://localhost:8000"

@@ -10,7 +10,6 @@ IMPORTANT: Tests are the source of truth. Do NOT modify tests to make them pass.
 If a test fails, fix the APPLICATION, not the test.
 """
 
-import pytest
 
 
 # =============================================================================

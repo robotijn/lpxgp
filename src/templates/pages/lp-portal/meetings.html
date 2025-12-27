@@ -1,0 +1,348 @@
+{% extends "base.html" %}
+
+{% block nav %}
+<nav class="hidden md:flex ml-10 space-x-8">
+    <a href="/lp-portal" class="text-navy-600 hover:text-navy-900 text-sm">Dashboard</a>
+    <a href="/lp-portal/funds" class="text-navy-600 hover:text-navy-900 text-sm">Funds</a>
+    <a href="/lp-portal/mandate" class="text-navy-600 hover:text-navy-900 text-sm">Investment Mandate</a>
+    <a href="/lp-portal/meetings" class="text-gold font-medium text-sm">Meetings</a>
+</nav>
+{% endblock %}
+
+{% block mobile_nav %}
+<a href="/lp-portal" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Dashboard</a>
+<a href="/lp-portal/funds" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Funds</a>
+<a href="/lp-portal/mandate" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Investment Mandate</a>
+<a href="/lp-portal/meetings" class="block py-2 px-3 rounded-lg bg-gold/10 text-gold font-medium">Meetings</a>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+    {% set breadcrumbs = [{"label": "LP Portal", "url": "/lp-portal"}, {"label": "Meetings"}] %}
+    {% include "partials/breadcrumb.html" %}
+
+    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-navy-900 dark:text-white">Meeting Scheduler</h1>
+            <p class="text-navy-500 dark:text-navy-400 mt-1">Manage your GP meetings and availability</p>
+        </div>
+        <button onclick="openScheduleModal()" class="btn-primary">
+            <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+            Schedule Meeting
+        </button>
+    </div>
+
+    <!-- Availability Settings -->
+    <div class="card p-6 mb-6">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-semibold text-navy-900 dark:text-white">Your Availability</h2>
+            <button onclick="toggleAvailability()" class="text-sm text-gold hover:text-gold/80">Edit</button>
+        </div>
+        <div id="availability-display" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                <div class="text-sm font-medium text-green-700 dark:text-green-400">Monday</div>
+                <div class="text-xs text-green-600 dark:text-green-500 mt-1">9:00 AM - 5:00 PM</div>
+            </div>
+            <div class="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                <div class="text-sm font-medium text-green-700 dark:text-green-400">Tuesday</div>
+                <div class="text-xs text-green-600 dark:text-green-500 mt-1">9:00 AM - 5:00 PM</div>
+            </div>
+            <div class="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                <div class="text-sm font-medium text-green-700 dark:text-green-400">Wednesday</div>
+                <div class="text-xs text-green-600 dark:text-green-500 mt-1">9:00 AM - 12:00 PM</div>
+            </div>
+            <div class="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                <div class="text-sm font-medium text-green-700 dark:text-green-400">Thursday</div>
+                <div class="text-xs text-green-600 dark:text-green-500 mt-1">9:00 AM - 5:00 PM</div>
+            </div>
+        </div>
+        <div id="availability-edit" class="hidden space-y-4 mt-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {% for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'] %}
+                <div class="flex items-center space-x-4 p-3 border border-navy-200 dark:border-navy-700 rounded-lg">
+                    <label class="flex items-center w-28">
+                        <input type="checkbox" name="day_{{ day|lower }}" checked
+                               class="rounded border-navy-300 text-gold focus:ring-gold mr-2">
+                        <span class="text-sm font-medium text-navy-700 dark:text-navy-300">{{ day }}</span>
+                    </label>
+                    <input type="time" name="start_{{ day|lower }}" value="09:00"
+                           class="form-input text-sm py-1">
+                    <span class="text-navy-500">to</span>
+                    <input type="time" name="end_{{ day|lower }}" value="17:00"
+                           class="form-input text-sm py-1">
+                </div>
+                {% endfor %}
+            </div>
+            <div class="flex justify-end space-x-3">
+                <button type="button" onclick="toggleAvailability()" class="btn-secondary text-sm">Cancel</button>
+                <button type="button" onclick="saveAvailability()" class="btn-primary text-sm">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upcoming Meetings -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2">
+            <div class="card overflow-hidden">
+                <div class="px-6 py-4 border-b border-navy-100 dark:border-navy-700">
+                    <h2 class="font-semibold text-navy-900 dark:text-white">Upcoming Meetings</h2>
+                </div>
+                <div class="divide-y divide-navy-100 dark:divide-navy-700">
+                    {% for meeting in meetings or [] %}
+                    <div class="p-4 hover:bg-navy-50 dark:hover:bg-navy-800">
+                        <div class="flex items-start justify-between">
+                            <div class="flex items-start space-x-4">
+                                <div class="flex-shrink-0 w-12 text-center">
+                                    <div class="text-xs text-navy-500 uppercase">{{ meeting.date|default('Jan') }}</div>
+                                    <div class="text-xl font-bold text-navy-900 dark:text-white">{{ meeting.day|default('15') }}</div>
+                                </div>
+                                <div>
+                                    <h3 class="font-medium text-navy-900 dark:text-white">{{ meeting.gp_name|default('Sample GP Partners') }}</h3>
+                                    <p class="text-sm text-navy-500 dark:text-navy-400">{{ meeting.fund_name|default('Growth Fund III') }}</p>
+                                    <div class="flex items-center mt-2 space-x-4 text-xs text-navy-500">
+                                        <span class="flex items-center">
+                                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                            </svg>
+                                            {{ meeting.time|default('2:00 PM - 3:00 PM') }}
+                                        </span>
+                                        <span class="flex items-center">
+                                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                                            </svg>
+                                            {{ meeting.type|default('Video Call') }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="px-2 py-1 text-xs rounded-full
+                                    {% if meeting.status == 'confirmed' %}bg-green-100 text-green-700
+                                    {% elif meeting.status == 'pending' %}bg-amber-100 text-amber-700
+                                    {% else %}bg-navy-100 text-navy-700{% endif %}">
+                                    {{ meeting.status|default('Confirmed')|title }}
+                                </span>
+                                <button class="p-1 text-navy-400 hover:text-navy-600">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <!-- Sample meetings for demo -->
+                    <div class="p-4 hover:bg-navy-50 dark:hover:bg-navy-800">
+                        <div class="flex items-start justify-between">
+                            <div class="flex items-start space-x-4">
+                                <div class="flex-shrink-0 w-12 text-center">
+                                    <div class="text-xs text-navy-500 uppercase">Jan</div>
+                                    <div class="text-xl font-bold text-navy-900 dark:text-white">15</div>
+                                </div>
+                                <div>
+                                    <h3 class="font-medium text-navy-900 dark:text-white">Apex Capital Partners</h3>
+                                    <p class="text-sm text-navy-500 dark:text-navy-400">Growth Fund IV - Initial Introduction</p>
+                                    <div class="flex items-center mt-2 space-x-4 text-xs text-navy-500">
+                                        <span class="flex items-center">
+                                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                            </svg>
+                                            2:00 PM - 3:00 PM EST
+                                        </span>
+                                        <span class="flex items-center">
+                                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                                            </svg>
+                                            Zoom
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-700">Confirmed</span>
+                        </div>
+                    </div>
+                    <div class="p-4 hover:bg-navy-50 dark:hover:bg-navy-800">
+                        <div class="flex items-start justify-between">
+                            <div class="flex items-start space-x-4">
+                                <div class="flex-shrink-0 w-12 text-center">
+                                    <div class="text-xs text-navy-500 uppercase">Jan</div>
+                                    <div class="text-xl font-bold text-navy-900 dark:text-white">22</div>
+                                </div>
+                                <div>
+                                    <h3 class="font-medium text-navy-900 dark:text-white">Venture Plus</h3>
+                                    <p class="text-sm text-navy-500 dark:text-navy-400">Tech Fund II - Due Diligence Follow-up</p>
+                                    <div class="flex items-center mt-2 space-x-4 text-xs text-navy-500">
+                                        <span class="flex items-center">
+                                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                            </svg>
+                                            10:00 AM - 11:30 AM EST
+                                        </span>
+                                        <span class="flex items-center">
+                                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                            </svg>
+                                            In Person - NYC
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            <span class="px-2 py-1 text-xs rounded-full bg-amber-100 text-amber-700">Pending</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Meeting Requests -->
+        <div class="space-y-6">
+            <div class="card p-6">
+                <h2 class="font-semibold text-navy-900 dark:text-white mb-4">Pending Requests</h2>
+                <div class="space-y-4">
+                    <div class="p-4 border border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800 rounded-lg">
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="font-medium text-navy-900 dark:text-white text-sm">Horizon Capital</h3>
+                            <span class="text-xs text-navy-500">2 days ago</span>
+                        </div>
+                        <p class="text-xs text-navy-600 dark:text-navy-300 mb-3">Requesting 30-min intro call for Infrastructure Fund I</p>
+                        <div class="flex space-x-2">
+                            <button class="flex-1 btn-primary text-xs py-1.5">Accept</button>
+                            <button class="flex-1 btn-secondary text-xs py-1.5">Decline</button>
+                        </div>
+                    </div>
+                    <div class="p-4 border border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800 rounded-lg">
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="font-medium text-navy-900 dark:text-white text-sm">Blue Ridge Partners</h3>
+                            <span class="text-xs text-navy-500">5 days ago</span>
+                        </div>
+                        <p class="text-xs text-navy-600 dark:text-navy-300 mb-3">Requesting annual review meeting for Fund III</p>
+                        <div class="flex space-x-2">
+                            <button class="flex-1 btn-primary text-xs py-1.5">Accept</button>
+                            <button class="flex-1 btn-secondary text-xs py-1.5">Decline</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card p-6">
+                <h2 class="font-semibold text-navy-900 dark:text-white mb-4">Quick Stats</h2>
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-navy-500 dark:text-navy-400">This Month</span>
+                        <span class="font-semibold text-navy-900 dark:text-white">{{ meetings|length or 8 }} meetings</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-navy-500 dark:text-navy-400">Pending Requests</span>
+                        <span class="font-semibold text-amber-600">2</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-navy-500 dark:text-navy-400">This Quarter</span>
+                        <span class="font-semibold text-navy-900 dark:text-white">24 meetings</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Schedule Meeting Modal -->
+<div id="schedule-modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50" data-modal>
+    <div class="bg-white dark:bg-navy-800 rounded-xl shadow-2xl max-w-md w-full mx-4 max-height: 100vh; overflow-y: auto;">
+        <div class="px-6 py-4 border-b border-navy-200 dark:border-navy-700 flex justify-between items-center">
+            <h2 class="text-lg font-semibold text-navy-900 dark:text-white">Schedule Meeting</h2>
+            <button onclick="closeScheduleModal()" class="text-navy-400 hover:text-navy-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+        <form id="schedule-form" class="p-6 space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-1">GP / Fund</label>
+                <select name="fund_id" class="form-input" required>
+                    <option value="">Select a fund...</option>
+                    {% for fund in funds or [] %}
+                    <option value="{{ fund.id }}">{{ fund.gp_name }} - {{ fund.name }}</option>
+                    {% endfor %}
+                    <option value="demo-1">Apex Capital - Growth Fund IV</option>
+                    <option value="demo-2">Venture Plus - Tech Fund II</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-1">Meeting Type</label>
+                <select name="meeting_type" class="form-input" required>
+                    <option value="intro">Initial Introduction</option>
+                    <option value="followup">Follow-up Call</option>
+                    <option value="dd">Due Diligence Session</option>
+                    <option value="review">Annual Review</option>
+                </select>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-1">Date</label>
+                    <input type="date" name="date" class="form-input" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-1">Time</label>
+                    <input type="time" name="time" class="form-input" required>
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-1">Duration</label>
+                <select name="duration" class="form-input">
+                    <option value="30">30 minutes</option>
+                    <option value="60" selected>1 hour</option>
+                    <option value="90">1.5 hours</option>
+                    <option value="120">2 hours</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-1">Location</label>
+                <select name="location_type" class="form-input">
+                    <option value="video">Video Call (Zoom/Teams)</option>
+                    <option value="phone">Phone Call</option>
+                    <option value="in_person">In Person</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-1">Notes (optional)</label>
+                <textarea name="notes" rows="2" class="form-input" placeholder="Any specific topics or agenda items..."></textarea>
+            </div>
+            <div class="flex justify-end space-x-3 pt-4">
+                <button type="button" onclick="closeScheduleModal()" class="btn-secondary">Cancel</button>
+                <button type="submit" class="btn-primary">Send Request</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openScheduleModal() {
+    document.getElementById('schedule-modal').classList.remove('hidden');
+}
+
+function closeScheduleModal() {
+    document.getElementById('schedule-modal').classList.add('hidden');
+}
+
+function toggleAvailability() {
+    document.getElementById('availability-display').classList.toggle('hidden');
+    document.getElementById('availability-edit').classList.toggle('hidden');
+}
+
+function saveAvailability() {
+    toggleAvailability();
+    showToast('Availability updated', 'success');
+}
+
+document.getElementById('schedule-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    closeScheduleModal();
+    showToast('Meeting request sent', 'success');
+});
+</script>
+{% endblock %}

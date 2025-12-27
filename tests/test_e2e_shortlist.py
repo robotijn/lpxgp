@@ -16,7 +16,6 @@ Run with:
     uv run pytest tests/test_e2e_shortlist.py -v -m browser
 """
 
-import re
 from collections.abc import Generator
 
 import pytest

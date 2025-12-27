@@ -174,6 +174,62 @@
                 </div>
             </div>
 
+            <!-- Notes Section -->
+            <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm" id="notes-section">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="font-semibold text-slate-900">Notes</h2>
+                    <button onclick="toggleNoteForm()" class="text-sm text-gold hover:text-gold-600">+ Add Note</button>
+                </div>
+
+                <!-- Add Note Form (hidden by default) -->
+                <div id="note-form" class="hidden mb-4">
+                    <textarea id="note-input" class="form-input w-full h-24 resize-none" placeholder="Add a note about this LP..."></textarea>
+                    <div class="flex justify-end space-x-2 mt-2">
+                        <button onclick="toggleNoteForm()" class="btn-secondary text-sm px-3 py-1">Cancel</button>
+                        <button onclick="saveNote()" class="btn-primary text-sm px-3 py-1">Save Note</button>
+                    </div>
+                </div>
+
+                <!-- Notes List -->
+                <div id="notes-list" class="space-y-3">
+                    {% for note in lp.notes or [] %}
+                    <div class="p-3 bg-slate-50 rounded-lg">
+                        <p class="text-sm text-slate-700">{{ note.content }}</p>
+                        <div class="flex items-center justify-between mt-2">
+                            <span class="text-xs text-slate-400">{{ note.created_at or 'Just now' }}</span>
+                            <button onclick="deleteNote('{{ note.id }}')" class="text-xs text-red-500 hover:text-red-600">Delete</button>
+                        </div>
+                    </div>
+                    {% else %}
+                    <p class="text-sm text-slate-400 italic" id="no-notes-msg">No notes yet. Add a note to track your interactions.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Tags Section -->
+            <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="font-semibold text-slate-900">Tags</h2>
+                    <button onclick="showTagInput()" class="text-sm text-gold hover:text-gold-600">+ Add Tag</button>
+                </div>
+
+                <div id="tag-input-container" class="hidden mb-3">
+                    <div class="flex space-x-2">
+                        <input type="text" id="tag-input" class="form-input flex-1 text-sm" placeholder="Enter tag..." onkeypress="if(event.key==='Enter') addTag()">
+                        <button onclick="addTag()" class="btn-primary text-sm px-3">Add</button>
+                    </div>
+                </div>
+
+                <div id="tags-container" class="flex flex-wrap gap-2">
+                    {% for tag in lp.tags or ['Priority', 'Tech Focus'] %}
+                    <span class="inline-flex items-center px-2 py-1 text-xs font-medium bg-gold/10 text-gold rounded-full">
+                        {{ tag }}
+                        <button onclick="removeTag('{{ tag }}')" class="ml-1 hover:text-gold-600">&times;</button>
+                    </span>
+                    {% endfor %}
+                </div>
+            </div>
+
             <!-- Data Quality -->
             <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
                 <div class="flex items-center justify-between mb-2">
@@ -185,4 +241,79 @@
         </div>
     </div>
 </main>
+
+<script>
+// Notes functionality
+function toggleNoteForm() {
+    const form = document.getElementById('note-form');
+    form.classList.toggle('hidden');
+    if (!form.classList.contains('hidden')) {
+        document.getElementById('note-input').focus();
+    }
+}
+
+function saveNote() {
+    const input = document.getElementById('note-input');
+    const content = input.value.trim();
+    if (!content) return;
+
+    // Add note to UI
+    const notesList = document.getElementById('notes-list');
+    const noNotesMsg = document.getElementById('no-notes-msg');
+    if (noNotesMsg) noNotesMsg.remove();
+
+    const noteHtml = `
+        <div class="p-3 bg-slate-50 rounded-lg">
+            <p class="text-sm text-slate-700">${content}</p>
+            <div class="flex items-center justify-between mt-2">
+                <span class="text-xs text-slate-400">Just now</span>
+                <button onclick="this.closest('.p-3').remove()" class="text-xs text-red-500 hover:text-red-600">Delete</button>
+            </div>
+        </div>
+    `;
+    notesList.insertAdjacentHTML('afterbegin', noteHtml);
+
+    input.value = '';
+    toggleNoteForm();
+    showToast('Note saved', 'success');
+}
+
+function deleteNote(id) {
+    if (confirm('Delete this note?')) {
+        showToast('Note deleted', 'success');
+    }
+}
+
+// Tags functionality
+function showTagInput() {
+    const container = document.getElementById('tag-input-container');
+    container.classList.toggle('hidden');
+    if (!container.classList.contains('hidden')) {
+        document.getElementById('tag-input').focus();
+    }
+}
+
+function addTag() {
+    const input = document.getElementById('tag-input');
+    const tag = input.value.trim();
+    if (!tag) return;
+
+    const container = document.getElementById('tags-container');
+    const tagHtml = `
+        <span class="inline-flex items-center px-2 py-1 text-xs font-medium bg-gold/10 text-gold rounded-full">
+            ${tag}
+            <button onclick="this.parentElement.remove(); showToast('Tag removed', 'success')" class="ml-1 hover:text-gold-600">&times;</button>
+        </span>
+    `;
+    container.insertAdjacentHTML('beforeend', tagHtml);
+
+    input.value = '';
+    document.getElementById('tag-input-container').classList.add('hidden');
+    showToast('Tag added', 'success');
+}
+
+function removeTag(tag) {
+    showToast('Tag removed', 'success');
+}
+</script>
 {% endblock %}

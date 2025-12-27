@@ -1,0 +1,302 @@
+{% extends "base.html" %}
+
+{% block nav %}
+<nav class="hidden md:flex ml-10 space-x-8">
+    <a href="/dashboard" class="text-navy-600 hover:text-navy-900 text-sm">Dashboard</a>
+    <a href="/matches" class="text-navy-600 hover:text-navy-900 text-sm">Matches</a>
+    <a href="/funds" class="text-navy-600 hover:text-navy-900 text-sm">Funds</a>
+    <a href="/lps" class="text-navy-600 hover:text-navy-900 text-sm">LPs</a>
+    <a href="/shortlist" class="text-gold font-medium text-sm">Shortlist</a>
+</nav>
+{% endblock %}
+
+{% block mobile_nav %}
+<a href="/dashboard" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Dashboard</a>
+<a href="/matches" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Matches</a>
+<a href="/funds" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">Funds</a>
+<a href="/lps" class="block py-2 px-3 rounded-lg text-navy-600 hover:bg-navy-100">LPs</a>
+<a href="/shortlist" class="block py-2 px-3 rounded-lg bg-gold/10 text-gold font-medium">Shortlist</a>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+    {% set breadcrumbs = [{"label": "Matches", "url": "/matches"}, {"label": "Compare LPs"}] %}
+    {% include "partials/breadcrumb.html" %}
+
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-navy-900 dark:text-white">Compare LP Matches</h1>
+            <p class="text-navy-500 dark:text-navy-400 mt-1">Side-by-side comparison of potential LP investors</p>
+        </div>
+        <div class="flex space-x-3">
+            <button onclick="exportComparison()" class="btn-secondary">
+                <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                </svg>
+                Export
+            </button>
+            <button onclick="clearComparison()" class="btn-secondary text-red-600 border-red-200 hover:bg-red-50">
+                Clear All
+            </button>
+        </div>
+    </div>
+
+    {% if matches|length == 0 %}
+    <!-- Empty State -->
+    <div class="card p-12 text-center">
+        <svg class="w-16 h-16 mx-auto text-navy-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+        </svg>
+        <h3 class="text-lg font-semibold text-navy-900 dark:text-white mb-2">No LPs to Compare</h3>
+        <p class="text-navy-500 dark:text-navy-400 mb-4">Add LPs to your comparison from the Matches page.</p>
+        <a href="/matches" class="btn-primary">Go to Matches</a>
+    </div>
+    {% else %}
+    <!-- Comparison Table -->
+    <div class="card overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full">
+                <thead>
+                    <tr class="bg-navy-50 dark:bg-navy-800">
+                        <th class="px-6 py-4 text-left text-xs font-medium text-navy-500 dark:text-navy-400 uppercase tracking-wider w-48">
+                            Criteria
+                        </th>
+                        {% for match in matches %}
+                        <th class="px-6 py-4 text-center min-w-[200px]">
+                            <div class="flex flex-col items-center">
+                                <div class="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold mb-2
+                                    {% if match.score >= 80 %}bg-green-100 text-green-700
+                                    {% elif match.score >= 60 %}bg-amber-100 text-amber-700
+                                    {% else %}bg-navy-100 text-navy-700{% endif %}">
+                                    {{ match.score }}
+                                </div>
+                                <span class="font-semibold text-navy-900 dark:text-white">{{ match.lp_name }}</span>
+                                <span class="text-xs text-navy-500">{{ match.lp_type or 'Institutional' }}</span>
+                            </div>
+                        </th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-navy-100 dark:divide-navy-700">
+                    <!-- Match Score -->
+                    <tr class="bg-gold/5">
+                        <td class="px-6 py-4 font-medium text-navy-900 dark:text-white">Overall Score</td>
+                        {% for match in matches %}
+                        <td class="px-6 py-4 text-center">
+                            <div class="flex items-center justify-center">
+                                <div class="w-full max-w-[120px] bg-navy-200 rounded-full h-3">
+                                    <div class="h-3 rounded-full {% if match.score >= 80 %}bg-green-500{% elif match.score >= 60 %}bg-amber-500{% else %}bg-navy-500{% endif %}" style="width: {{ match.score }}%"></div>
+                                </div>
+                                <span class="ml-2 text-sm font-bold">{{ match.score }}%</span>
+                            </div>
+                        </td>
+                        {% endfor %}
+                    </tr>
+
+                    <!-- Strategy Fit -->
+                    <tr>
+                        <td class="px-6 py-4 font-medium text-navy-700 dark:text-navy-300">Strategy Fit</td>
+                        {% for match in matches %}
+                        <td class="px-6 py-4 text-center">
+                            {% set strategy = match.score_breakdown.strategy if match.score_breakdown else 85 %}
+                            <span class="px-2 py-1 text-sm rounded-full
+                                {% if strategy >= 80 %}bg-green-100 text-green-700
+                                {% elif strategy >= 60 %}bg-amber-100 text-amber-700
+                                {% else %}bg-red-100 text-red-700{% endif %}">
+                                {{ strategy }}%
+                            </span>
+                        </td>
+                        {% endfor %}
+                    </tr>
+
+                    <!-- Size Fit -->
+                    <tr class="bg-navy-25 dark:bg-navy-850">
+                        <td class="px-6 py-4 font-medium text-navy-700 dark:text-navy-300">Size Fit</td>
+                        {% for match in matches %}
+                        <td class="px-6 py-4 text-center">
+                            {% set size = match.score_breakdown.size_fit if match.score_breakdown else 90 %}
+                            <span class="px-2 py-1 text-sm rounded-full
+                                {% if size >= 80 %}bg-green-100 text-green-700
+                                {% elif size >= 60 %}bg-amber-100 text-amber-700
+                                {% else %}bg-red-100 text-red-700{% endif %}">
+                                {{ size }}%
+                            </span>
+                        </td>
+                        {% endfor %}
+                    </tr>
+
+                    <!-- Geography -->
+                    <tr>
+                        <td class="px-6 py-4 font-medium text-navy-700 dark:text-navy-300">Geography</td>
+                        {% for match in matches %}
+                        <td class="px-6 py-4 text-center">
+                            {% set geo = match.score_breakdown.geography if match.score_breakdown else 88 %}
+                            <span class="px-2 py-1 text-sm rounded-full
+                                {% if geo >= 80 %}bg-green-100 text-green-700
+                                {% elif geo >= 60 %}bg-amber-100 text-amber-700
+                                {% else %}bg-red-100 text-red-700{% endif %}">
+                                {{ geo }}%
+                            </span>
+                        </td>
+                        {% endfor %}
+                    </tr>
+
+                    <!-- LP Details Section -->
+                    <tr class="bg-navy-100 dark:bg-navy-700">
+                        <td colspan="{{ matches|length + 1 }}" class="px-6 py-2 text-xs font-semibold text-navy-500 uppercase">
+                            LP Details
+                        </td>
+                    </tr>
+
+                    <!-- AUM -->
+                    <tr>
+                        <td class="px-6 py-4 font-medium text-navy-700 dark:text-navy-300">Total AUM</td>
+                        {% for match in matches %}
+                        <td class="px-6 py-4 text-center font-semibold text-navy-900 dark:text-white">
+                            ${{ match.total_aum_bn or '?' }}B
+                        </td>
+                        {% endfor %}
+                    </tr>
+
+                    <!-- Location -->
+                    <tr class="bg-navy-25 dark:bg-navy-850">
+                        <td class="px-6 py-4 font-medium text-navy-700 dark:text-navy-300">Location</td>
+                        {% for match in matches %}
+                        <td class="px-6 py-4 text-center text-navy-600 dark:text-navy-300">
+                            {{ match.lp_city or '-' }}{% if match.lp_country %}, {{ match.lp_country }}{% endif %}
+                        </td>
+                        {% endfor %}
+                    </tr>
+
+                    <!-- Type -->
+                    <tr>
+                        <td class="px-6 py-4 font-medium text-navy-700 dark:text-navy-300">LP Type</td>
+                        {% for match in matches %}
+                        <td class="px-6 py-4 text-center">
+                            <span class="px-2 py-1 text-xs rounded-full bg-navy-100 text-navy-700">
+                                {{ match.lp_type or 'Institutional' }}
+                            </span>
+                        </td>
+                        {% endfor %}
+                    </tr>
+
+                    <!-- Pipeline Status -->
+                    <tr class="bg-navy-25 dark:bg-navy-850">
+                        <td class="px-6 py-4 font-medium text-navy-700 dark:text-navy-300">Pipeline Status</td>
+                        {% for match in matches %}
+                        <td class="px-6 py-4 text-center">
+                            {% set stage = match.pipeline_stage or 'new' %}
+                            <span class="px-2 py-1 text-xs rounded-full
+                                {% if stage == 'committed' %}bg-green-100 text-green-700
+                                {% elif stage == 'dd_in_progress' %}bg-blue-100 text-blue-700
+                                {% elif stage == 'meeting_held' %}bg-purple-100 text-purple-700
+                                {% elif stage == 'contacted' %}bg-amber-100 text-amber-700
+                                {% else %}bg-navy-100 text-navy-700{% endif %}">
+                                {{ stage.replace('_', ' ')|title }}
+                            </span>
+                        </td>
+                        {% endfor %}
+                    </tr>
+
+                    <!-- Actions -->
+                    <tr class="bg-navy-50 dark:bg-navy-800">
+                        <td class="px-6 py-4 font-medium text-navy-700 dark:text-navy-300">Actions</td>
+                        {% for match in matches %}
+                        <td class="px-6 py-4 text-center">
+                            <div class="flex flex-col space-y-2">
+                                <a href="/matches/{{ match.lp_org_id }}?fund_id={{ match.fund_id }}" class="btn-primary text-xs py-1.5">
+                                    View Details
+                                </a>
+                                <a href="/pitch?lp_id={{ match.lp_org_id }}&fund_id={{ match.fund_id }}" class="btn-secondary text-xs py-1.5">
+                                    Generate Pitch
+                                </a>
+                            </div>
+                        </td>
+                        {% endfor %}
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Key Insights -->
+    <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="card p-6">
+            <h3 class="font-semibold text-navy-900 dark:text-white mb-4 flex items-center">
+                <svg class="w-5 h-5 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                Recommendation
+            </h3>
+            <p class="text-navy-600 dark:text-navy-300">
+                {% if matches|length > 0 %}
+                {% set best = matches|sort(attribute='score', reverse=true)|first %}
+                <strong>{{ best.lp_name }}</strong> shows the strongest fit with a {{ best.score }}% match score.
+                We recommend prioritizing outreach to this LP based on their strategy alignment and size fit.
+                {% else %}
+                Add LPs to compare to see recommendations.
+                {% endif %}
+            </p>
+        </div>
+        <div class="card p-6">
+            <h3 class="font-semibold text-navy-900 dark:text-white mb-4 flex items-center">
+                <svg class="w-5 h-5 mr-2 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                </svg>
+                Points to Consider
+            </h3>
+            <ul class="text-navy-600 dark:text-navy-300 space-y-1 text-sm">
+                <li>- Each LP has unique due diligence timelines</li>
+                <li>- Consider co-investment appetite differences</li>
+                <li>- Check for existing GP relationships</li>
+            </ul>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function exportComparison() {
+    // Generate CSV export
+    const table = document.querySelector('table');
+    if (!table) {
+        showToast('No data to export', 'warning');
+        return;
+    }
+
+    let csv = [];
+    const rows = table.querySelectorAll('tr');
+
+    rows.forEach(row => {
+        const cols = row.querySelectorAll('td, th');
+        const rowData = [];
+        cols.forEach(col => {
+            let text = col.innerText.replace(/"/g, '""').trim();
+            rowData.push('"' + text + '"');
+        });
+        csv.push(rowData.join(','));
+    });
+
+    const csvContent = csv.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'lp-comparison-{{ fund.name|default("fund", true)|replace(" ", "-") }}.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+
+    showToast('Comparison exported', 'success');
+}
+
+function clearComparison() {
+    if (confirm('Clear all LPs from comparison?')) {
+        localStorage.removeItem('compareIds');
+        window.location.href = '/matches';
+    }
+}
+</script>
+{% endblock %}

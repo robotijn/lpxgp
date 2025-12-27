@@ -761,6 +761,144 @@ async def lp_meeting_request_page(
     )
 
 
+# =============================================================================
+# LP Portal Routes (new paths for enhanced LP experience)
+# =============================================================================
+
+
+@router.get("/lp-portal", response_class=HTMLResponse, response_model=None)
+async def lp_portal_home(request: Request) -> HTMLResponse | RedirectResponse:
+    """LP Portal home - redirects to dashboard."""
+    return RedirectResponse(url="/lp-dashboard", status_code=303)
+
+
+@router.get("/lp-portal/funds", response_class=HTMLResponse, response_model=None)
+async def lp_portal_funds(request: Request) -> HTMLResponse | RedirectResponse:
+    """LP Portal funds list - redirects to watchlist."""
+    return RedirectResponse(url="/lp-watchlist", status_code=303)
+
+
+@router.get("/lp-portal/mandate", response_class=HTMLResponse, response_model=None)
+async def lp_portal_mandate(request: Request) -> HTMLResponse | RedirectResponse:
+    """LP Portal mandate editor."""
+    user = auth.get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    # Mock mandate data for the new UI
+    mandate: dict[str, Any] = {
+        "strategies": ["growth", "buyout"],
+        "regions": ["north_america", "europe"],
+        "min_irr": 15,
+        "target_moic": 2.0,
+        "min_commitment_mm": 10,
+        "max_commitment_mm": 100,
+        "min_fund_size_mm": 100,
+        "max_fund_size_mm": 2000,
+        "min_track_record_years": 5,
+        "min_prior_funds": 1,
+        "first_time_managers": False,
+        "emerging_managers": True,
+        "co_investment": True,
+        "esg_policy": "consider",
+        "exclusions": ["tobacco", "weapons"],
+        "status": "Active",
+    }
+
+    return templates.TemplateResponse(
+        request,
+        "pages/lp-portal/mandate.html",
+        {"title": "Investment Mandate - LPxGP", "user": user, "mandate": mandate},
+    )
+
+
+@router.get("/lp-portal/meetings", response_class=HTMLResponse, response_model=None)
+async def lp_portal_meetings(request: Request) -> HTMLResponse | RedirectResponse:
+    """LP Portal meeting scheduler."""
+    user = auth.get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    meetings: list[dict[str, Any]] = []
+    funds: list[dict[str, Any]] = []
+
+    return templates.TemplateResponse(
+        request,
+        "pages/lp-portal/meetings.html",
+        {"title": "Meetings - LPxGP", "user": user, "meetings": meetings, "funds": funds},
+    )
+
+
+@router.get("/lp-portal/compare", response_class=HTMLResponse, response_model=None)
+async def lp_portal_compare_funds(
+    request: Request,
+    fund_ids: str | None = Query(None),
+) -> HTMLResponse | RedirectResponse:
+    """LP Portal - compare multiple funds side-by-side."""
+    user = auth.get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    funds: list[dict[str, Any]] = []
+
+    if fund_ids:
+        ids = [fid.strip() for fid in fund_ids.split(",") if is_valid_uuid(fid.strip())]
+
+        conn = get_db()
+        if conn and ids:
+            try:
+                with conn.cursor() as cur:
+                    placeholders = ",".join(["%s"] * len(ids))
+                    cur.execute(f"""
+                        SELECT f.*, o.name as gp_name
+                        FROM funds f
+                        JOIN organizations o ON o.id = f.org_id
+                        WHERE f.id IN ({placeholders})
+                    """, ids)
+                    funds = [dict(row) for row in cur.fetchall()]
+            finally:
+                conn.close()
+
+    # Demo data if no funds
+    if not funds:
+        funds = [
+            {
+                "id": "demo-1",
+                "name": "Growth Fund IV",
+                "gp_name": "Apex Capital",
+                "strategy": "growth",
+                "target_size_mm": 500,
+                "vintage_year": 2024,
+                "management_fee_pct": 2.0,
+                "carried_interest_pct": 20,
+                "gp_commitment_pct": 2,
+                "prior_irr": 28,
+                "prior_moic": 2.5,
+                "mandate_fit": 92,
+            },
+            {
+                "id": "demo-2",
+                "name": "Tech Fund II",
+                "gp_name": "Venture Plus",
+                "strategy": "venture",
+                "target_size_mm": 250,
+                "vintage_year": 2024,
+                "management_fee_pct": 2.5,
+                "carried_interest_pct": 20,
+                "gp_commitment_pct": 3,
+                "prior_irr": 35,
+                "prior_moic": 3.2,
+                "mandate_fit": 85,
+            },
+        ]
+
+    return templates.TemplateResponse(
+        request,
+        "pages/lp-portal/compare-funds.html",
+        {"title": "Compare Funds - LPxGP", "user": user, "funds": funds},
+    )
+
+
 @router.post("/api/lp-meeting-request", response_class=HTMLResponse)
 async def submit_meeting_request(
     request: Request,

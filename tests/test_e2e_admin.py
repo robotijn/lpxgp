@@ -20,7 +20,6 @@ Test Categories:
     - Admin mobile responsiveness
 """
 
-import re
 from collections.abc import Generator
 
 import pytest

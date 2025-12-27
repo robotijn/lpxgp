@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+
+{% block nav %}
+<nav class="hidden md:flex ml-10 space-x-8">
+    <a href="/admin" class="text-navy-600 dark:text-navy-300 hover:text-navy-900 dark:hover:text-white text-sm">Overview</a>
+    <a href="/admin/companies" class="text-navy-600 dark:text-navy-300 hover:text-navy-900 dark:hover:text-white text-sm">Companies</a>
+    <a href="/admin/funds" class="text-navy-600 dark:text-navy-300 hover:text-navy-900 dark:hover:text-white text-sm">Funds</a>
+    <a href="/admin/users" class="text-navy-600 dark:text-navy-300 hover:text-navy-900 dark:hover:text-white text-sm">Users</a>
+    <a href="/admin/lps" class="text-navy-600 dark:text-navy-300 hover:text-navy-900 dark:hover:text-white text-sm">LPs</a>
+    <a href="/admin/data-health" class="text-gold font-medium text-sm">Data Health</a>
+    <a href="/admin/health" class="text-navy-600 dark:text-navy-300 hover:text-navy-900 dark:hover:text-white text-sm">System</a>
+</nav>
+{% endblock %}
+
+{% block mobile_nav %}
+<a href="/admin" class="block py-2 px-3 rounded-lg text-navy-600 dark:text-navy-300 hover:bg-navy-100 dark:hover:bg-navy-700">Overview</a>
+<a href="/admin/companies" class="block py-2 px-3 rounded-lg text-navy-600 dark:text-navy-300 hover:bg-navy-100 dark:hover:bg-navy-700">Companies</a>
+<a href="/admin/data-health" class="block py-2 px-3 rounded-lg bg-gold/10 text-gold font-medium">Data Health</a>
+<a href="/admin/health" class="block py-2 px-3 rounded-lg text-navy-600 dark:text-navy-300 hover:bg-navy-100 dark:hover:bg-navy-700">System</a>
+{% endblock %}
+
+{% block header_right %}
+<div class="flex items-center space-x-4">
+    <span class="px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-800 rounded">Admin</span>
+    <a href="/settings" class="text-gold font-medium text-sm hidden md:inline">{{ user.name }}</a>
+    <a href="/logout" class="btn-secondary text-sm">Sign Out</a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+    {% set breadcrumbs = [{"label": "Admin", "url": "/admin"}, {"label": "Data Health"}] %}
+    {% include "partials/breadcrumb.html" %}
+
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-navy-900 dark:text-white">Data Health Dashboard</h1>
+            <p class="text-navy-500 dark:text-navy-400 mt-1">Monitor data quality across the platform</p>
+        </div>
+        <div class="flex space-x-3">
+            <button onclick="refreshDataHealth()" class="btn-secondary">
+                <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                Refresh
+            </button>
+        </div>
+    </div>
+
+    <!-- Overall Health Score -->
+    <div class="card p-6 mb-6">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold text-navy-900 dark:text-white">Overall Data Quality Score</h2>
+            <span class="text-3xl font-bold {% if health.overall_score >= 80 %}text-green-600{% elif health.overall_score >= 60 %}text-amber-500{% else %}text-red-500{% endif %}">
+                {{ health.overall_score }}%
+            </span>
+        </div>
+        <div class="w-full bg-navy-200 dark:bg-navy-700 rounded-full h-4 overflow-hidden">
+            <div class="h-full rounded-full transition-all duration-500 {% if health.overall_score >= 80 %}bg-green-500{% elif health.overall_score >= 60 %}bg-amber-500{% else %}bg-red-500{% endif %}"
+                 style="width: {{ health.overall_score }}%"></div>
+        </div>
+        <p class="text-sm text-navy-500 dark:text-navy-400 mt-2">
+            Based on field completeness, data freshness, and validation status
+        </p>
+    </div>
+
+    <!-- Category Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <!-- LPs Health -->
+        <div class="card p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="font-medium text-navy-900 dark:text-white">LP Database</h3>
+                <span class="text-2xl font-bold {% if health.lps.score >= 80 %}text-green-600{% elif health.lps.score >= 60 %}text-amber-500{% else %}text-red-500{% endif %}">
+                    {{ health.lps.score }}%
+                </span>
+            </div>
+            <div class="space-y-3">
+                <div class="flex justify-between text-sm">
+                    <span class="text-navy-500 dark:text-navy-400">Total Records</span>
+                    <span class="font-medium text-navy-900 dark:text-white">{{ health.lps.total }}</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-navy-500 dark:text-navy-400">With AUM</span>
+                    <span class="font-medium text-navy-900 dark:text-white">{{ health.lps.with_aum }}%</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-navy-500 dark:text-navy-400">With Strategy</span>
+                    <span class="font-medium text-navy-900 dark:text-white">{{ health.lps.with_strategy }}%</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-navy-500 dark:text-navy-400">With Location</span>
+                    <span class="font-medium text-navy-900 dark:text-white">{{ health.lps.with_location }}%</span>
+                </div>
+            </div>
+            <a href="/admin/lps" class="block mt-4 text-gold hover:text-gold-600 text-sm font-medium">
+                View all LPs &rarr;
+            </a>
+        </div>
+
+        <!-- Funds Health -->
+        <div class="card p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="font-medium text-navy-900 dark:text-white">Fund Database</h3>
+                <span class="text-2xl font-bold {% if health.funds.score >= 80 %}text-green-600{% elif health.funds.score >= 60 %}text-amber-500{% else %}text-red-500{% endif %}">
+                    {{ health.funds.score }}%
+                </span>
+            </div>
+            <div class="space-y-3">
+                <div class="flex justify-between text-sm">
+                    <span class="text-navy-500 dark:text-navy-400">Total Records</span>
+                    <span class="font-medium text-navy-900 dark:text-white">{{ health.funds.total }}</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-navy-500 dark:text-navy-400">With Target Size</span>
+                    <span class="font-medium text-navy-900 dark:text-white">{{ health.funds.with_size }}%</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-navy-500 dark:text-navy-400">With Strategy</span>
+                    <span class="font-medium text-navy-900 dark:text-white">{{ health.funds.with_strategy }}%</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-navy-500 dark:text-navy-400">With Vintage</span>
+                    <span class="font-medium text-navy-900 dark:text-white">{{ health.funds.with_vintage }}%</span>
+                </div>
+            </div>
+            <a href="/admin/funds" class="block mt-4 text-gold hover:text-gold-600 text-sm font-medium">
+                View all Funds &rarr;
+            </a>
+        </div>
+
+        <!-- Contacts Health -->
+        <div class="card p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="font-medium text-navy-900 dark:text-white">Contact Database</h3>
+                <span class="text-2xl font-bold {% if health.people.score >= 80 %}text-green-600{% elif health.people.score >= 60 %}text-amber-500{% else %}text-red-500{% endif %}">
+                    {{ health.people.score }}%
+                </span>
+            </div>
+            <div class="space-y-3">
+                <div class="flex justify-between text-sm">
+                    <span class="text-navy-500 dark:text-navy-400">Total Records</span>
+                    <span class="font-medium text-navy-900 dark:text-white">{{ health.people.total }}</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-navy-500 dark:text-navy-400">With Email</span>
+                    <span class="font-medium text-navy-900 dark:text-white">{{ health.people.with_email }}%</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-navy-500 dark:text-navy-400">With Title</span>
+                    <span class="font-medium text-navy-900 dark:text-white">{{ health.people.with_title }}%</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-navy-500 dark:text-navy-400">With Company</span>
+                    <span class="font-medium text-navy-900 dark:text-white">{{ health.people.with_company }}%</span>
+                </div>
+            </div>
+            <a href="/admin/people" class="block mt-4 text-gold hover:text-gold-600 text-sm font-medium">
+                View all People &rarr;
+            </a>
+        </div>
+    </div>
+
+    <!-- Issues Requiring Attention -->
+    <div class="card overflow-hidden">
+        <div class="px-6 py-4 border-b border-navy-200 dark:border-navy-700">
+            <h2 class="text-lg font-semibold text-navy-900 dark:text-white">Issues Requiring Attention</h2>
+        </div>
+        <div class="divide-y divide-navy-100 dark:divide-navy-800">
+            {% for issue in health.issues %}
+            <div class="px-6 py-4 flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <div class="w-10 h-10 rounded-lg flex items-center justify-center
+                        {% if issue.severity == 'high' %}bg-red-50 dark:bg-red-900/30 text-red-600
+                        {% elif issue.severity == 'medium' %}bg-amber-50 dark:bg-amber-900/30 text-amber-600
+                        {% else %}bg-blue-50 dark:bg-blue-900/30 text-blue-600{% endif %}">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="font-medium text-navy-900 dark:text-white">{{ issue.title }}</div>
+                        <div class="text-sm text-navy-500 dark:text-navy-400">{{ issue.description }}</div>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="px-2 py-1 text-xs font-medium rounded
+                        {% if issue.severity == 'high' %}bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400
+                        {% elif issue.severity == 'medium' %}bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400
+                        {% else %}bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400{% endif %}">
+                        {{ issue.severity|title }}
+                    </span>
+                    <span class="text-sm text-navy-500 dark:text-navy-400">{{ issue.count }} records</span>
+                    <a href="{{ issue.url }}" class="text-gold hover:text-gold-600 text-sm font-medium">Fix &rarr;</a>
+                </div>
+            </div>
+            {% else %}
+            <div class="px-6 py-8 text-center text-navy-500 dark:text-navy-400">
+                <svg class="w-12 h-12 mx-auto mb-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <p class="font-medium text-navy-900 dark:text-white">All data looks healthy!</p>
+                <p class="text-sm">No critical issues found in the database.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Back Link -->
+    <div class="mt-8">
+        <a href="/admin" class="text-gold hover:text-gold-600 text-sm font-medium">
+            &larr; Back to Admin Dashboard
+        </a>
+    </div>
+</div>
+
+<script>
+function refreshDataHealth() {
+    showToast('Refreshing data health metrics...', 'info');
+    setTimeout(() => {
+        location.reload();
+    }, 1000);
+}
+</script>
+{% endblock %}
